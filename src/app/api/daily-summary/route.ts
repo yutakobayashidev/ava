@@ -153,10 +153,8 @@ async function postToSlack(summary: string) {
   const workspaceRepository = createWorkspaceRepository({ db });
   const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
 
-  const allowEnvFallback = !workspace?.botAccessToken;
-  const channel =
-    workspace?.notificationChannelId ?? (allowEnvFallback ? process.env.SLACK_CHANNEL_ID : undefined);
-  const token = workspace?.botAccessToken ?? (allowEnvFallback ? process.env.SLACK_BOT_TOKEN : undefined);
+  const channel = workspace?.notificationChannelId;
+  const token = workspace?.botAccessToken;
 
   if (!channel) {
     return { delivered: false, reason: "missing_channel" };

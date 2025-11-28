@@ -36,24 +36,16 @@ type SlackNotificationResult = {
     channel?: string;
     threadTs?: string;
     workspaceId?: string;
-    source?: "workspace" | "env";
+    source?: "workspace";
     reason?: "missing_config" | "api_error";
     error?: string;
 };
 
-type SlackConfig =
-    | {
-          token: string;
-          channel: string;
-          source: "workspace";
-          workspaceId: string;
-      }
-    | {
-          token: string;
-          channel: string;
-          source: "env";
-          workspaceId?: undefined;
-      };
+type SlackConfig = {
+    token: string;
+    channel: string;
+    workspaceId: string;
+};
 
 const resolveSlackConfig = async (): Promise<SlackConfig | null> => {
     const workspaceRepository = createWorkspaceRepository({ db });
@@ -63,22 +55,8 @@ const resolveSlackConfig = async (): Promise<SlackConfig | null> => {
         return {
             token: workspace.botAccessToken,
             channel: workspace.notificationChannelId,
-            source: "workspace",
             workspaceId: workspace.id,
         };
-    }
-
-    if (!workspace?.botAccessToken) {
-        const envChannel = process.env.SLACK_CHANNEL_ID;
-        const envToken = process.env.SLACK_BOT_TOKEN;
-
-        if (envChannel && envToken) {
-            return {
-                token: envToken,
-                channel: envChannel,
-                source: "env",
-            };
-        }
     }
 
     return null;
@@ -131,7 +109,7 @@ export const notifyTaskStarted = async (
             channel: result.channel,
             threadTs: result.ts,
             workspaceId: config.workspaceId,
-            source: config.source,
+            source: "workspace",
         };
     } catch (error) {
         console.error("Failed to post Slack notification", error);
@@ -193,7 +171,7 @@ export const notifyTaskBlocked = async (
             channel: result.channel,
             threadTs: result.ts,
             workspaceId: config.workspaceId,
-            source: config.source,
+            source: "workspace",
         };
     } catch (error) {
         console.error("Failed to post Slack notification", error);
@@ -255,7 +233,7 @@ export const notifyTaskUpdate = async (
             channel: result.channel,
             threadTs: result.ts,
             workspaceId: config.workspaceId,
-            source: config.source,
+            source: "workspace",
         };
     } catch (error) {
         console.error("Failed to post Slack notification", error);
@@ -318,7 +296,7 @@ export const notifyTaskCompleted = async (
             channel: result.channel,
             threadTs: result.ts,
             workspaceId: config.workspaceId,
-            source: config.source,
+            source: "workspace",
         };
     } catch (error) {
         console.error("Failed to post Slack notification", error);
