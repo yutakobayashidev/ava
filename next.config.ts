@@ -6,7 +6,6 @@ config()
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
-  cacheComponents: true,
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production"
