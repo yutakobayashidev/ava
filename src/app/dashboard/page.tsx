@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createTaskRepository } from "@/src/repos";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createTaskRepository } from "@/repos";
 import {
   Table,
   TableBody,
@@ -48,7 +48,8 @@ function StatusBadge({ status }: { status: string }) {
     completed: { variant: "secondary" as const, label: "完了" },
   };
 
-  const config = variants[status as keyof typeof variants] || variants.in_progress;
+  const config =
+    variants[status as keyof typeof variants] || variants.in_progress;
 
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
@@ -85,8 +86,12 @@ export default async function DashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-            <p className="text-slate-600">タスクの進捗状況と所要時間を確認できます</p>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">
+              Dashboard
+            </h1>
+            <p className="text-slate-600">
+              タスクの進捗状況と所要時間を確認できます
+            </p>
           </div>
           <DailySummaryButton />
         </div>
@@ -100,7 +105,9 @@ export default async function DashboardPage() {
           </h2>
 
           {tasksWithDuration.length === 0 ? (
-            <p className="text-slate-600 py-8 text-center">タスクがありません</p>
+            <p className="text-slate-600 py-8 text-center">
+              タスクがありません
+            </p>
           ) : (
             <Table>
               <TableHeader>

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles, ArrowRight } from "lucide-react";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createWorkspaceRepository } from "@/src/repos";
-import { users } from "@/src/db/schema";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createWorkspaceRepository } from "@/repos";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { OnboardingProgress } from "../OnboardingProgress";
 
@@ -60,7 +60,9 @@ export default async function CompletePage() {
               <p className="text-sm text-slate-300">ワークスペース</p>
               <p className="text-xl font-bold">{workspace.name}</p>
               {workspace.domain && (
-                <p className="mt-1 text-sm text-slate-400">{workspace.domain}</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {workspace.domain}
+                </p>
               )}
             </div>
           </div>
@@ -68,7 +70,9 @@ export default async function CompletePage() {
           <div className="space-y-6">
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
               <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">次のステップ</h2>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  次のステップ
+                </h2>
                 <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
                   利用開始
                 </span>
@@ -80,7 +84,9 @@ export default async function CompletePage() {
                     1
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">Claude Codeでコーディング開始</h3>
+                    <h3 className="font-semibold text-slate-900">
+                      Claude Codeでコーディング開始
+                    </h3>
                     <p className="text-sm text-slate-600">
                       普段通りにコードを書くだけ。エージェントが自動的に進捗をSlackに投稿します。
                     </p>
@@ -92,7 +98,9 @@ export default async function CompletePage() {
                     2
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">Slackで進捗を確認</h3>
+                    <h3 className="font-semibold text-slate-900">
+                      Slackで進捗を確認
+                    </h3>
                     <p className="text-sm text-slate-600">
                       チームメンバーはSlackで自動更新を受け取り、質問なしで状況を把握できます。
                     </p>
@@ -104,7 +112,9 @@ export default async function CompletePage() {
                     3
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">フロー状態を維持</h3>
+                    <h3 className="font-semibold text-slate-900">
+                      フロー状態を維持
+                    </h3>
                     <p className="text-sm text-slate-600">
                       報告のための中断がなくなり、深い集中を保ったまま開発を続けられます。
                     </p>

@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 import { encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { eq } from "drizzle-orm";
-import { db } from "@/src/clients/drizzle";
-import * as schema from "@/src/db/schema";
+import { db } from "@/clients/drizzle";
+import * as schema from "@/db/schema";
 
 export async function validateSessionToken(token: string) {
     const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));

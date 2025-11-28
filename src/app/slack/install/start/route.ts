@@ -1,8 +1,8 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
-import { getSlackInstallConfig, buildSlackInstallUrl } from "@/src/lib/slackInstall";
-import { getCurrentSession } from "@/src/lib/session";
+import { getSlackInstallConfig, buildSlackInstallUrl } from "@/lib/slackInstall";
+import { getCurrentSession } from "@/lib/session";
 
 const STATE_COOKIE = "slack_install_state";
 

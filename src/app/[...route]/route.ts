@@ -6,11 +6,11 @@ import {
 } from "@hono/mcp";
 import { createMcpServer } from "../mcp";
 import oauthRoutes from "./oauth"
-import { oauthMiddleware } from '@/src/middleware/oauth';
+import { oauthMiddleware } from '@/middleware/oauth';
 import { generateState, OAuth2Tokens, Slack } from "arctic";
 import { getCookie, setCookie } from 'hono/cookie';
-import { db } from "@/src/clients/drizzle";
-import * as schema from "@/src/db/schema";
+import { db } from "@/clients/drizzle";
+import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";

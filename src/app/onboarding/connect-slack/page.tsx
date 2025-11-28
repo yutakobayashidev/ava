@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, CheckCircle } from "lucide-react";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createWorkspaceRepository } from "@/src/repos";
-import { getSlackInstallConfig } from "@/src/lib/slackInstall";
-import { listChannels, type SlackChannel } from "@/src/clients/slack";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createWorkspaceRepository } from "@/repos";
+import { getSlackInstallConfig } from "@/lib/slackInstall";
+import { listChannels, type SlackChannel } from "@/clients/slack";
 import { OnboardingProgress } from "../OnboardingProgress";
 
 type SearchParams = {
@@ -31,7 +31,11 @@ export default async function ConnectSlackPage({
   const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
 
   // Slack連携済み + 通知先設定済みの場合は次のステップへ
-  if (workspace?.botAccessToken && workspace.notificationChannelId && !params.error) {
+  if (
+    workspace?.botAccessToken &&
+    workspace.notificationChannelId &&
+    !params.error
+  ) {
     redirect("/onboarding/setup-mcp");
   }
 
@@ -77,7 +81,9 @@ export default async function ConnectSlackPage({
       redirect("/onboarding/connect-slack?error=channel_fetch_failed");
     }
 
-    const targetChannel = availableChannels.find((channel) => channel.id === channelId);
+    const targetChannel = availableChannels.find(
+      (channel) => channel.id === channelId
+    );
 
     if (!targetChannel) {
       redirect("/onboarding/connect-slack?error=invalid_channel");
@@ -142,12 +148,16 @@ export default async function ConnectSlackPage({
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h2 className="mb-6 text-2xl font-bold text-slate-900">連携で得られること</h2>
+              <h2 className="mb-6 text-2xl font-bold text-slate-900">
+                連携で得られること
+              </h2>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
                   <div>
-                    <p className="font-semibold text-slate-900">タスク開始の自動通知</p>
+                    <p className="font-semibold text-slate-900">
+                      タスク開始の自動通知
+                    </p>
                     <p className="text-sm text-slate-600">
                       エージェントがタスクを開始すると自動的にSlackへ投稿
                     </p>
@@ -156,7 +166,9 @@ export default async function ConnectSlackPage({
                 <li className="flex items-start gap-3">
                   <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
                   <div>
-                    <p className="font-semibold text-slate-900">リアルタイム進捗更新</p>
+                    <p className="font-semibold text-slate-900">
+                      リアルタイム進捗更新
+                    </p>
                     <p className="text-sm text-slate-600">
                       進捗がスレッドに同期され、チームが状況を把握できる
                     </p>
@@ -165,7 +177,9 @@ export default async function ConnectSlackPage({
                 <li className="flex items-start gap-3">
                   <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
                   <div>
-                    <p className="font-semibold text-slate-900">完了とPRの自動共有</p>
+                    <p className="font-semibold text-slate-900">
+                      完了とPRの自動共有
+                    </p>
                     <p className="text-sm text-slate-600">
                       タスク完了時にPRリンクがSlackに投稿される
                     </p>
@@ -190,7 +204,9 @@ export default async function ConnectSlackPage({
 
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-slate-900">Slack接続</h3>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Slack接続
+                </h3>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                   まずは連携
                 </span>
@@ -210,7 +226,9 @@ export default async function ConnectSlackPage({
                 </Link>
               ) : (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-semibold text-slate-900">Slackと接続済み</p>
+                  <p className="font-semibold text-slate-900">
+                    Slackと接続済み
+                  </p>
                   <p className="mt-1 text-sm text-slate-600">
                     ワークスペース: {workspace.name}
                     {workspace.domain ? ` (${workspace.domain})` : ""}
@@ -230,8 +248,12 @@ export default async function ConnectSlackPage({
             {workspace?.botAccessToken && (
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">通知チャンネルを選択</h2>
-                  <span className="text-xs font-semibold text-blue-700">必須</span>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    通知チャンネルを選択
+                  </h2>
+                  <span className="text-xs font-semibold text-blue-700">
+                    必須
+                  </span>
                 </div>
                 <p className="mb-4 text-sm text-slate-600">
                   進捗通知を投稿するSlackチャンネルを選んでください。ボットがチャンネルに参加している必要があります。
@@ -240,7 +262,9 @@ export default async function ConnectSlackPage({
                 {channelError ? (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
                     Slackのチャンネル一覧の取得に失敗しました。権限やネットワークを確認してください。
-                    <div className="mt-1 break-words text-xs text-red-700">詳細: {channelError}</div>
+                    <div className="mt-1 break-words text-xs text-red-700">
+                      詳細: {channelError}
+                    </div>
                   </div>
                 ) : channels.length === 0 ? (
                   <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
@@ -268,7 +292,8 @@ export default async function ConnectSlackPage({
                           </option>
                           {channels.map((channel) => (
                             <option key={channel.id} value={channel.id}>
-                              #{channel.name} {channel.isPrivate ? "(プライベート)" : ""}
+                              #{channel.name}{" "}
+                              {channel.isPrivate ? "(プライベート)" : ""}
                             </option>
                           ))}
                         </select>

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { db } from "@/src/clients/drizzle";
-import { exchangeSlackInstallCode, getSlackInstallConfig } from "@/src/lib/slackInstall";
-import { getCurrentSession } from "@/src/lib/session";
-import { createWorkspaceRepository } from "@/src/repos";
+import { db } from "@/clients/drizzle";
+import { exchangeSlackInstallCode, getSlackInstallConfig } from "@/lib/slackInstall";
+import { getCurrentSession } from "@/lib/session";
+import { createWorkspaceRepository } from "@/repos";
 
 const STATE_COOKIE = "slack_install_state";
 

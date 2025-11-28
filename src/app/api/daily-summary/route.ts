@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createTaskRepository } from "@/src/repos";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createTaskRepository } from "@/repos";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { postMessage } from "@/src/clients/slack";
-import { createWorkspaceRepository } from "@/src/repos";
+import { postMessage } from "@/clients/slack";
+import { createWorkspaceRepository } from "@/repos";
 
 export async function POST() {
   try {
@@ -112,16 +112,16 @@ async function generateDailySummary(
 
 完了タスク (${tasks.length}件):
 ${tasks
-  .map(
-    (task, i) => `
+      .map(
+        (task, i) => `
 ${i + 1}. 【${task.title}】
    - 初期サマリ: ${task.initialSummary}
    - 完了サマリ: ${task.completionSummary}
    - 所要時間: ${formatDuration(task.duration)}
    - PR: ${task.prUrl}
 `
-  )
-  .join("\n")}
+      )
+      .join("\n")}
 
 まとめのガイドライン:
 - 5〜10行程度で簡潔に

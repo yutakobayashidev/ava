@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Terminal, AlertCircle } from "lucide-react";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createWorkspaceRepository } from "@/src/repos";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createWorkspaceRepository } from "@/repos";
 import { CopyButton } from "./CopyButton";
 import { OnboardingProgress } from "../OnboardingProgress";
 
@@ -44,9 +44,12 @@ export default async function SetupMcpPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
                 Step 2
               </p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">MCPサーバーを接続</h1>
+              <h1 className="mt-3 text-4xl font-bold text-slate-900">
+                MCPサーバーを接続
+              </h1>
               <p className="mt-3 text-lg text-slate-600">
-                コーディングエージェントにAI Task Managerを追加して、自動タスク管理を有効化します。
+                コーディングエージェントにAI Task
+                Managerを追加して、自動タスク管理を有効化します。
                 ローカルに設定ファイルを1つ置くだけのシンプルなステップです。
               </p>
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-500">
@@ -60,7 +63,9 @@ export default async function SetupMcpPage() {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h3 className="mb-4 text-xl font-bold text-slate-900">セットアップ手順</h3>
+              <h3 className="mb-4 text-xl font-bold text-slate-900">
+                セットアップ手順
+              </h3>
               <ol className="space-y-3 text-slate-700">
                 <li className="flex gap-3">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
@@ -74,7 +79,9 @@ export default async function SetupMcpPage() {
                   </span>
                   <span>
                     プロジェクトのルートディレクトリに{" "}
-                    <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">.mcp.json</code>{" "}
+                    <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+                      .mcp.json
+                    </code>{" "}
                     を作成して貼り付け
                   </span>
                 </li>
@@ -88,7 +95,9 @@ export default async function SetupMcpPage() {
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                     4
                   </span>
-                  <span>初回接続時にブラウザでOAuth認証が求められるので承認</span>
+                  <span>
+                    初回接続時にブラウザでOAuth認証が求められるので承認
+                  </span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
@@ -105,7 +114,8 @@ export default async function SetupMcpPage() {
                 </div>
                 <p className="text-sm text-amber-800">
                   MCPサーバーに初めて接続する際、ブラウザが開いてOAuth認証画面が表示されます。
-                  「Allow」をクリックしてAI Task Managerへのアクセスを許可してください。
+                  「Allow」をクリックしてAI Task
+                  Managerへのアクセスを許可してください。
                 </p>
               </div>
             </div>
@@ -118,10 +128,14 @@ export default async function SetupMcpPage() {
                   <Terminal className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">プロジェクトの設定</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    プロジェクトの設定
+                  </h2>
                   <p className="text-slate-600">
                     以下の設定をプロジェクトのルートディレクトリに{" "}
-                    <code className="rounded bg-slate-100 px-2 py-1 text-sm">.mcp.json</code>{" "}
+                    <code className="rounded bg-slate-100 px-2 py-1 text-sm">
+                      .mcp.json
+                    </code>{" "}
                     として保存してください。
                   </p>
                 </div>
@@ -135,10 +149,14 @@ export default async function SetupMcpPage() {
               </div>
 
               <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-2 font-semibold text-blue-900">設定ファイルの場所</h3>
+                <h3 className="mb-2 font-semibold text-blue-900">
+                  設定ファイルの場所
+                </h3>
                 <p className="text-sm text-blue-800">
                   プロジェクトのルートディレクトリ（例:{" "}
-                  <code className="rounded bg-blue-100 px-2 py-0.5">~/your-project/.mcp.json</code>
+                  <code className="rounded bg-blue-100 px-2 py-0.5">
+                    ~/your-project/.mcp.json
+                  </code>
                   ）に配置してください。
                 </p>
               </div>

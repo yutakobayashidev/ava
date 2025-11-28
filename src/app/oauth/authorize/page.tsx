@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { randomBytes, randomUUID } from "crypto";
 import { headers } from "next/headers";
-import { getCurrentSession } from "@/src/lib/session";
+import { getCurrentSession } from "@/lib/session";
 
 export default async function AuthorizePage({
   searchParams,

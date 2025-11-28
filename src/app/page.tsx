@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CheckCircle, MessageSquare, GitPullRequest, AlertCircle, Zap } from "lucide-react";
-import { getCurrentSession } from "@/src/lib/session";
+import {
+  ArrowRight,
+  CheckCircle,
+  MessageSquare,
+  GitPullRequest,
+  AlertCircle,
+  Zap,
+} from "lucide-react";
+import { getCurrentSession } from "@/lib/session";
 
 export default async function LandingPage() {
   const { user } = await getCurrentSession();
@@ -22,7 +29,9 @@ export default async function LandingPage() {
           </div>
           <h1 className="text-6xl md:text-8xl font-bold text-slate-900 mb-6 tracking-tight">
             Code in Flow.
-            <span className="block text-blue-600 mt-2">AI Handles the Rest.</span>
+            <span className="block text-blue-600 mt-2">
+              AI Handles the Rest.
+            </span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
             集中作業に最適化されたタスク管理。コーディングエージェントが自動的に進捗をSlackに同期—コンテキストスイッチ不要。
@@ -63,8 +72,12 @@ export default async function LandingPage() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Context Switching</h3>
-                  <p className="text-slate-600">コードに集中したまま、AIが自動的にチームへ進捗を伝達します。</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    No Context Switching
+                  </h3>
+                  <p className="text-slate-600">
+                    コードに集中したまま、AIが自動的にチームへ進捗を伝達します。
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -72,8 +85,12 @@ export default async function LandingPage() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Process Transparency</h3>
-                  <p className="text-slate-600">すべてのステップが記録・共有され、最終成果物だけでなくプロセスも正当に評価されます。</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Process Transparency
+                  </h3>
+                  <p className="text-slate-600">
+                    すべてのステップが記録・共有され、最終成果物だけでなくプロセスも正当に評価されます。
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -81,8 +98,12 @@ export default async function LandingPage() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Trust by Default</h3>
-                  <p className="text-slate-600">沈黙は停滞を意味しません。自動更新により、集中を妨げずにチームへ状況を伝えられます。</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    Trust by Default
+                  </h3>
+                  <p className="text-slate-600">
+                    沈黙は停滞を意味しません。自動更新により、集中を妨げずにチームへ状況を伝えられます。
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -90,8 +111,12 @@ export default async function LandingPage() {
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Micromanagement</h3>
-                  <p className="text-slate-600">透明性の高い可視化により、頻繁な確認会議が不要になります。</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    No Micromanagement
+                  </h3>
+                  <p className="text-slate-600">
+                    透明性の高い可視化により、頻繁な確認会議が不要になります。
+                  </p>
                 </div>
               </div>
             </div>
@@ -112,23 +137,33 @@ export default async function LandingPage() {
               </p>
             </div>
             <div className="bg-white p-8 md:p-12 rounded-2xl border border-slate-200">
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">こんな経験はありませんか？</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+                こんな経験はありませんか？
+              </h3>
               <ul className="space-y-4 text-slate-700">
                 <li className="flex items-start gap-3">
                   <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>フロー状態でコードを書いていたら、気づいたら数時間経っていて報告を忘れていた</span>
+                  <span>
+                    フロー状態でコードを書いていたら、気づいたら数時間経っていて報告を忘れていた
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>進捗報告の文章を書く方が、コードを書くより難しく感じる</span>
+                  <span>
+                    進捗報告の文章を書く方が、コードを書くより難しく感じる
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>報告しないとチェックインされ、さらに集中が途切れる悪循環</span>
+                  <span>
+                    報告しないとチェックインされ、さらに集中が途切れる悪循環
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>作業の可視性は欲しいけど、コミュニケーションのオーバーヘッドは避けたい</span>
+                  <span>
+                    作業の可視性は欲しいけど、コミュニケーションのオーバーヘッドは避けたい
+                  </span>
                 </li>
               </ul>
             </div>
@@ -145,7 +180,8 @@ export default async function LandingPage() {
                 How It Works
               </h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-                コーディングエージェント + MCP + Slack = 何もしなくても自動で進捗報告
+                コーディングエージェント + MCP + Slack =
+                何もしなくても自動で進捗報告
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
@@ -247,9 +283,15 @@ export default async function LandingPage() {
               &copy; 2025 AI Task Manager. Built for deep work.
             </div>
             <div className="flex gap-6 text-sm">
-              <a href="#" className="hover:text-white transition-colors">ドキュメント</a>
-              <a href="#" className="hover:text-white transition-colors">GitHub</a>
-              <a href="#" className="hover:text-white transition-colors">サポート</a>
+              <a href="#" className="hover:text-white transition-colors">
+                ドキュメント
+              </a>
+              <a href="#" className="hover:text-white transition-colors">
+                GitHub
+              </a>
+              <a href="#" className="hover:text-white transition-colors">
+                サポート
+              </a>
             </div>
           </div>
         </div>

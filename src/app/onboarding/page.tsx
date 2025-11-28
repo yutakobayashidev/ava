@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/src/lib/session";
-import { db } from "@/src/clients/drizzle";
-import { createWorkspaceRepository } from "@/src/repos";
+import { getCurrentSession } from "@/lib/session";
+import { db } from "@/clients/drizzle";
+import { createWorkspaceRepository } from "@/repos";
 
 export default async function OnboardingPage() {
   const { user } = await getCurrentSession();
