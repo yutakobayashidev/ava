@@ -1,17 +1,17 @@
-import { auth } from "@/app/auth";
 import { db } from "../../../clients/drizzle";
 import * as schema from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { randomBytes, randomUUID } from "crypto";
 import { headers } from "next/headers";
+import { getCurrentSession } from "@/src/lib/session";
 
 export default async function AuthorizePage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const session = await auth();
+  const { user } = await getCurrentSession();
 
   const params = await searchParams;
 
@@ -24,13 +24,13 @@ export default async function AuthorizePage({
     | string
     | undefined;
 
-  if (!session || !session.user || !session.user.id) {
+  if (!user || !user.id) {
     const headersList = await headers();
     const host = headersList.get("host");
     const prot = process.env.NODE_ENV === "production" ? "https" : "http";
     const baseUrl = `${prot}://${host}`;
 
-    const loginUrl = new URL("/api/auth/signin", baseUrl);
+    const loginUrl = new URL("/login", baseUrl);
     const callbackUrl = new URL("/oauth/authorize", baseUrl);
 
     // 現在のすべてのクエリパラメータをコールバックURLに追加する
@@ -77,8 +77,8 @@ export default async function AuthorizePage({
   async function handleConsent(formData: FormData) {
     "use server";
 
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { user } = await getCurrentSession();
+    if (!user?.id) {
       // This should not be reachable if the user sees the consent screen
       throw new Error("No session found during consent handling.");
     }
@@ -105,7 +105,7 @@ export default async function AuthorizePage({
       code: authorizationCode,
       expiresAt,
       clientId: client.id,
-      userId: session.user.id,
+      userId: user.id,
       redirectUri,
       codeChallenge: code_challenge ?? null,
       codeChallengeMethod: code_challenge_method ?? null,

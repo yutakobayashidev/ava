@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm db:up && pnpm db:push && next dev",
+    "dev": "pnpm db:up && next dev --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,9 +17,13 @@
   "dependencies": {
     "@hono/mcp": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.23.0",
+    "@oslojs/crypto": "^1.0.1",
+    "@oslojs/encoding": "^1.1.0",
+    "arctic": "^3.7.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",
     "next": "16.0.5",
+    "oslo": "^1.2.1",
     "postgres": "^3.4.7",
     "react": "19.2.0",
     "react-dom": "19.2.0",

@@ -75,12 +75,30 @@ export const users = pgTable(
         id: text("id").primaryKey().notNull(),
         name: text("name"),
         email: text("email").unique(),
+        slackId: text("slack_id").unique(),
         emailVerified: timestamp("email_verified", { withTimezone: true }),
         image: text("image"),
         createdAt: timestamp("created_at", { withTimezone: true })
             .defaultNow()
             .notNull(),
     },
+);
+
+export const sessions = pgTable(
+    "sessions",
+    {
+        id: text("id").primaryKey().notNull(),
+        userId: text("user_id")
+            .references(() => users.id, { onDelete: "cascade" })
+            .notNull(),
+        expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => ({
+        userIdx: index("sessions_user_idx").on(table.userId),
+    }),
 );
 
 export const authCodes = pgTable(
@@ -246,6 +264,14 @@ export const taskCompletionRelations = relations(taskCompletions, ({ one }) => (
 export const userRelations = relations(users, ({ many }) => ({
     authCodes: many(authCodes),
     accessTokens: many(accessTokens),
+    sessions: many(sessions),
+}));
+
+export const sessionRelations = relations(sessions, ({ one }) => ({
+    user: one(users, {
+        fields: [sessions.userId],
+        references: [users.id],
+    }),
 }));
 
 export const authCodeRelations = relations(authCodes, ({ one }) => ({
@@ -287,6 +313,8 @@ export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
 export type AuthCode = typeof authCodes.$inferSelect;
 export type NewAuthCode = typeof authCodes.$inferInsert;
 export type AccessToken = typeof accessTokens.$inferSelect;
