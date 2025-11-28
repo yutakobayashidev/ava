@@ -1,11 +1,12 @@
 import { handle } from 'hono/vercel'
 import { cors } from "hono/cors";
 import {
-  StreamableHTTPTransport,
+    StreamableHTTPTransport,
 } from "@hono/mcp";
 import { createMcpServer } from "../mcp";
 import oauthRoutes from "../../routes/oauth"
 import authRoutes from "../../routes/auth"
+import slackRoutes from "../../routes/slack"
 import { oauthMiddleware } from '@/middleware/oauth';
 import { createHonoApp } from '../factory';
 
@@ -18,6 +19,7 @@ const app = createHonoApp().use(
 
 app.route("/", oauthRoutes)
 app.route("/login", authRoutes)
+app.route("/slack", slackRoutes)
 
 app.all(
   "/mcp",

@@ -58,7 +58,6 @@ async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
   }).then((response) => response.json());
 }
 
-
 export function generateSessionToken(): string {
   const tokenBytes = new Uint8Array(20);
   crypto.getRandomValues(tokenBytes);
