@@ -15,6 +15,13 @@
       "when": 1764309302370,
       "tag": "0001_busy_warstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764310834987,
+      "tag": "0002_choose_notification_channel",
+      "breakpoints": true
     }
   ]
 }

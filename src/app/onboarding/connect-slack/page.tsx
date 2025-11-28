@@ -5,6 +5,7 @@ import { getCurrentSession } from "@/src/lib/session";
 import { db } from "@/src/clients/drizzle";
 import { createWorkspaceRepository } from "@/src/repos";
 import { getSlackInstallConfig } from "@/src/lib/slackInstall";
+import { listChannels, type SlackChannel } from "@/src/clients/slack";
 
 type SearchParams = {
   installed?: string;
@@ -28,14 +29,82 @@ export default async function ConnectSlackPage({
   const workspaceRepository = createWorkspaceRepository({ db });
   const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
 
-  // Slack連携済みの場合は次のステップへ
-  if (workspace?.botAccessToken && !params.error) {
+  // Slack連携済み + 通知先設定済みの場合は次のステップへ
+  if (workspace?.botAccessToken && workspace.notificationChannelId && !params.error) {
+    redirect("/onboarding/setup-mcp");
+  }
+
+  let channels: SlackChannel[] = [];
+  let channelError: string | null = null;
+
+  if (workspace?.botAccessToken) {
+    try {
+      channels = await listChannels(workspace.botAccessToken);
+    } catch (error) {
+      channelError = error instanceof Error ? error.message : "unknown_error";
+    }
+  }
+
+  async function saveNotificationChannel(formData: FormData) {
+    "use server";
+
+    const { user } = await getCurrentSession();
+
+    if (!user) {
+      redirect("/login?callbackUrl=/onboarding/connect-slack");
+    }
+
+    const channelId = formData.get("channel_id");
+
+    if (!channelId || typeof channelId !== "string") {
+      redirect("/onboarding/connect-slack?error=missing_channel");
+    }
+
+    const workspaceRepository = createWorkspaceRepository({ db });
+    const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+
+    if (!workspace?.botAccessToken) {
+      redirect("/onboarding/connect-slack?error=missing_token");
+    }
+
+    let availableChannels: SlackChannel[] = [];
+
+    try {
+      availableChannels = await listChannels(workspace.botAccessToken);
+    } catch (error) {
+      console.error("Failed to load Slack channels", error);
+      redirect("/onboarding/connect-slack?error=channel_fetch_failed");
+    }
+
+    const targetChannel = availableChannels.find((channel) => channel.id === channelId);
+
+    if (!targetChannel) {
+      redirect("/onboarding/connect-slack?error=invalid_channel");
+    }
+
+    await workspaceRepository.updateNotificationChannel({
+      workspaceId: workspace.id,
+      channelId: targetChannel.id,
+      channelName: targetChannel.name,
+    });
+
     redirect("/onboarding/setup-mcp");
   }
 
   const statusMessage = (() => {
     if (params.installed === "1") {
-      return `Slackワークスペースを連携しました (${params.team ?? "workspace"})`;
+      return `Slackワークスペースを連携しました (${
+        params.team ?? "workspace"
+      })`;
+    }
+    if (params.error === "invalid_channel") {
+      return "エラー: 選択したチャンネルが見つかりませんでした";
+    }
+    if (params.error === "missing_channel") {
+      return "エラー: チャンネルを選択してください";
+    }
+    if (params.error === "channel_fetch_failed") {
+      return "エラー: チャンネル一覧の取得に失敗しました";
     }
     if (params.error) {
       return `エラー: ${params.error}`;
@@ -137,16 +206,91 @@ export default async function ConnectSlackPage({
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-900">
                 Slackアプリのクライアント設定が未設定です。環境変数を確認してください。
               </div>
-            ) : (
+            ) : !workspace?.botAccessToken ? (
               <Link
                 href="/slack/install/start"
                 className="w-full inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
-                Slackで認証
+                アプリをインストール
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="font-semibold text-slate-900">Slackと接続済み</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  ワークスペース: {workspace.name}
+                  {workspace.domain ? ` (${workspace.domain})` : ""}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Link
+                    href="/slack/install/start"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  >
+                    別のワークスペースに接続
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
+
+          {workspace?.botAccessToken && (
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">通知チャンネルを選択</h2>
+              <p className="text-slate-600 mb-4">
+                進捗通知を投稿するSlackチャンネルを選んでください。ボットがチャンネルに参加している必要があります。
+              </p>
+
+              {channelError ? (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-900">
+                  Slackのチャンネル一覧の取得に失敗しました。権限やネットワークを確認してください。
+                  <div className="mt-1 text-xs text-red-700 break-words">詳細: {channelError}</div>
+                </div>
+              ) : channels.length === 0 ? (
+                <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-900">
+                  Botが参加しているチャンネルが見つかりません。SlackでBotを追加してから再読み込みしてください。
+                </div>
+              ) : (
+                <form action={saveNotificationChannel} className="space-y-6">
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="channel_id"
+                      className="block text-sm font-semibold text-slate-800"
+                    >
+                      通知先チャンネル
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="channel_id"
+                        name="channel_id"
+                        defaultValue={workspace?.notificationChannelId ?? ""}
+                        required
+                        className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 py-3 pr-10 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      >
+                        <option value="" disabled>
+                          通知先を選択してください
+                        </option>
+                        {channels.map((channel) => (
+                          <option key={channel.id} value={channel.id}>
+                            #{channel.name} {channel.isPrivate ? "(プライベート)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    プライベートチャンネルの場合は事前にボットを招待してください。
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    チャンネルを保存して次へ
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
 
           <div className="text-center text-sm text-slate-500">
             <p>所要時間: 約30秒</p>

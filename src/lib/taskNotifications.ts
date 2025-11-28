@@ -56,27 +56,29 @@ type SlackConfig =
       };
 
 const resolveSlackConfig = async (): Promise<SlackConfig | null> => {
-    const channel = process.env.SLACK_CHANNEL_ID;
-
     const workspaceRepository = createWorkspaceRepository({ db });
     const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
 
-    if (channel && workspace?.botAccessToken) {
+    if (workspace?.botAccessToken && workspace.notificationChannelId) {
         return {
             token: workspace.botAccessToken,
-            channel,
+            channel: workspace.notificationChannelId,
             source: "workspace",
             workspaceId: workspace.id,
         };
     }
 
-    const envToken = process.env.SLACK_BOT_TOKEN;
-    if (channel && envToken) {
-        return {
-            token: envToken,
-            channel,
-            source: "env",
-        };
+    if (!workspace?.botAccessToken) {
+        const envChannel = process.env.SLACK_CHANNEL_ID;
+        const envToken = process.env.SLACK_BOT_TOKEN;
+
+        if (envChannel && envToken) {
+            return {
+                token: envToken,
+                channel: envChannel,
+                source: "env",
+            };
+        }
     }
 
     return null;

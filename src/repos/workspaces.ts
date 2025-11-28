@@ -17,6 +17,8 @@ type CreateWorkspaceInput = {
     botUserId?: string | null;
     botAccessToken?: string | null;
     botRefreshToken?: string | null;
+    notificationChannelId?: string | null;
+    notificationChannelName?: string | null;
     installedAt?: Date | null;
 };
 
@@ -27,6 +29,12 @@ type UpdateCredentialsInput = {
     botRefreshToken?: string | null;
     name?: string;
     domain?: string | null;
+};
+
+type UpdateNotificationChannelInput = {
+    workspaceId: string;
+    channelId: string;
+    channelName?: string | null;
 };
 
 type FindByExternalIdInput = {
@@ -50,6 +58,8 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
                 botUserId: input.botUserId ?? null,
                 botAccessToken: input.botAccessToken ?? null,
                 botRefreshToken: input.botRefreshToken ?? null,
+                notificationChannelId: input.notificationChannelId ?? null,
+                notificationChannelName: input.notificationChannelName ?? null,
                 installedAt: input.installedAt ?? new Date(),
             })
             .returning();
@@ -62,6 +72,19 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
             .select()
             .from(schema.workspaces)
             .where(eq(schema.workspaces.id, workspaceId));
+
+        return workspace ?? null;
+    };
+
+    const updateNotificationChannel = async (input: UpdateNotificationChannelInput) => {
+        const [workspace] = await db
+            .update(schema.workspaces)
+            .set({
+                notificationChannelId: input.channelId,
+                notificationChannelName: input.channelName ?? null,
+            })
+            .where(eq(schema.workspaces.id, input.workspaceId))
+            .returning();
 
         return workspace ?? null;
     };
@@ -140,6 +163,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         findWorkspaceByExternalId,
         listWorkspaces,
         updateWorkspaceCredentials,
+        updateNotificationChannel,
         deleteWorkspace,
     };
 };
@@ -150,4 +174,5 @@ export type {
     UpdateCredentialsInput,
     FindByExternalIdInput,
     ListWorkspaceOptions,
+    UpdateNotificationChannelInput,
 };

@@ -150,22 +150,25 @@ ${i + 1}. 【${task.title}】
 }
 
 async function postToSlack(summary: string) {
-  const channel = process.env.SLACK_CHANNEL_ID;
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+
+  const allowEnvFallback = !workspace?.botAccessToken;
+  const channel =
+    workspace?.notificationChannelId ?? (allowEnvFallback ? process.env.SLACK_CHANNEL_ID : undefined);
+  const token = workspace?.botAccessToken ?? (allowEnvFallback ? process.env.SLACK_BOT_TOKEN : undefined);
 
   if (!channel) {
     return { delivered: false, reason: "missing_channel" };
   }
 
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
-
-  if (!workspace?.botAccessToken) {
+  if (!token) {
     return { delivered: false, reason: "missing_token" };
   }
 
   try {
     const result = await postMessage({
-      token: workspace.botAccessToken,
+      token,
       channel,
       text: `:calendar: 本日の業務まとめ\n\n${summary}`,
     });
