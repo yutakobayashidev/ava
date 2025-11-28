@@ -6,6 +6,8 @@ import {
 } from "@hono/mcp";
 import mcp from "../mcp";
 import oauthRoutes from "./oauth"
+import { oauthMiddleware } from '@/src/middleware/oauth';
+
 const transport = new StreamableHTTPTransport();
 
 const app = new Hono().use(
@@ -19,6 +21,7 @@ app.route("/", oauthRoutes)
 
 app.all(
     "/mcp",
+    oauthMiddleware,
     async (c) => {
         if (!mcp.isConnected()) {
             await mcp.connect(transport);
