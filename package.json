@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint:claude": "claude -p 'あなたはリンターです。mainブランチとの変更を確認し、タイポに関する問題を報告してください。ファイル名と行番号を1行目に、問題の説明を2行目に報告してください。他のテキストは返さないでください。'"
   },
   "dependencies": {
     "@hono/mcp": "0.2.0",
@@ -56,6 +57,7 @@
     "embla-carousel-react": "8.6.0",
     "hono": "4.10.7",
     "input-otp": "1.4.2",
+    "knip": "5.70.2",
     "lucide-react": "0.555.0",
     "next": "16.0.5",
     "next-themes": "0.4.6",
