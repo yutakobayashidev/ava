@@ -1,6 +1,6 @@
 import { generateState, OAuth2Tokens, Slack } from "arctic";
 import { getCookie, setCookie } from 'hono/cookie';
-import { db } from "@/clients/drizzle";
+import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
@@ -73,7 +73,7 @@ export function generateSessionToken(): string {
 
 export type Session = typeof schema.sessions.$inferSelect;
 
-export async function createSession(token: string, userId: string): Promise<Session> {
+export async function createSession(db: Database, token: string, userId: string): Promise<Session> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
@@ -118,6 +118,7 @@ app.get("/slack/callback", async (c) => {
   }
   const slackUser = await getSlackUser(tokens);
 
+  const db = c.get('db');
   let [existingUser] = await db
     .select()
     .from(schema.users)
@@ -144,7 +145,7 @@ app.get("/slack/callback", async (c) => {
   }
 
   const sessionToken = generateSessionToken();
-  const session = await createSession(sessionToken, existingUser.id);
+  const session = await createSession(db, sessionToken, existingUser.id);
 
   setCookie(c, "session", sessionToken, {
     httpOnly: true,

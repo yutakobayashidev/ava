@@ -1,5 +1,4 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
-import { db } from "../clients/drizzle";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 import { createHonoApp } from '@/app/factory';
@@ -24,6 +23,7 @@ app.post("/api/oauth/register", async (c) => {
   const generatedClientId = randomBytes(16).toString('hex');
 
   try {
+    const db = c.get('db');
     const [newClient] = await db
       .insert(schema.clients)
       .values({
@@ -75,6 +75,7 @@ app.post("/api/oauth/token", async (c) => {
 
   try {
     console.log("Finding client for client_id:", client_id);
+    const db = c.get('db');
     const [client] = await db
       .select()
       .from(schema.clients)

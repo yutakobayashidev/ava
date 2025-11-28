@@ -1,7 +1,6 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp } from "@/app/factory";
-import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
@@ -43,6 +42,7 @@ app.get("/install/callback", async (c) => {
 
     try {
         const oauthResult = await exchangeSlackInstallCode(code);
+        const db = c.get('db');
         const workspaceRepository = createWorkspaceRepository({ db });
 
         const existing = await workspaceRepository.findWorkspaceByExternalId({
