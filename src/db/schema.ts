@@ -84,7 +84,6 @@ export const users = pgTable(
       .notNull(),
   },
   (table) => ({
-    emailUnique: uniqueIndex("users_email_unique").on(table.email),
     slackIdUnique: uniqueIndex("users_slack_id_unique").on(table.slackId),
   }),
 );
