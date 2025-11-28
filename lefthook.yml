@@ -1,0 +1,9 @@
+post-checkout:
+  commands:
+    detect-new-branch:
+      run: |
+        branch=$(git symbolic-ref --short HEAD)
+        # remoteに存在しない場合、新規ブランチと判定
+        if ! git rev-parse --verify --quiet "origin/$branch" >/dev/null; then
+          claude -p 'ユーザーに、このブランチがどのようなものなのかを説明させてください。そのあと、MCPでタスクを報告してください。'
+        fi
