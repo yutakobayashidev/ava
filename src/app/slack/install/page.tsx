@@ -57,31 +57,20 @@ export default async function SlackInstallPage({
           </div>
         ) : null}
 
-        {!config ? (
-          <div className="rounded-md bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-900">
-            SlackアプリのクライアントID/シークレット/リダイレクトURIが未設定です。
-            環境変数
-            <code className="px-1">SLACK_APP_CLIENT_ID</code>、
-            <code className="px-1">SLACK_APP_CLIENT_SECRET</code>、
-            <code className="px-1">SLACK_APP_REDIRECT_URI</code>
-            をセットしてください。
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-gray-900">ボットをインストール</p>
+            <p className="text-sm text-gray-600">
+              必要なスコープ: {config.scopes.join(", ")}
+            </p>
           </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-gray-900">ボットをインストール</p>
-              <p className="text-sm text-gray-600">
-                必要なスコープ: {config.scopes.join(", ")}
-              </p>
-            </div>
-            <Link
-              href="/slack/install/start"
-              className="inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800 transition"
-            >
-              Slackで認可
-            </Link>
-          </div>
-        )}
+          <Link
+            href="/slack/install/start"
+            className="inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800 transition"
+          >
+            Slackで認可
+          </Link>
+        </div>
 
         <div className="border-t border-gray-200 pt-4 space-y-2">
           <p className="font-medium text-gray-900">現在の接続状況</p>

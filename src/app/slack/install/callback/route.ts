@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/clients/drizzle";
-import { exchangeSlackInstallCode, getSlackInstallConfig } from "@/lib/slackInstall";
+import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { getCurrentSession } from "@/lib/session";
 import { createWorkspaceRepository } from "@/repos";
 
@@ -17,11 +17,6 @@ export async function GET(request: NextRequest) {
     const { user } = await getCurrentSession();
     if (!user) {
         return NextResponse.redirect("/login?callbackUrl=/slack/install");
-    }
-
-    const config = getSlackInstallConfig();
-    if (!config) {
-        return NextResponse.redirect("/slack/install?error=missing_config");
     }
 
     const searchParams = request.nextUrl.searchParams;

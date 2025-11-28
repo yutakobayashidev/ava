@@ -33,11 +33,11 @@ const app = new Hono<Env>().use(
 
 app.route("/", oauthRoutes)
 
-const slackClientId = process.env.SLACK_OIDC_CLIENT_ID ?? "";
-const slackClientSecret = process.env.SLACK_OIDC_CLIENT_SECRET ?? "";
-const slackRedirectUri =
-    process.env.SLACK_OIDC_REDIRECT_URI ??
-    `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://localhost:3000"}/login/slack/callback`;
+const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
+const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+
+const slackRedirectUri = new URL("/login/slack/callback", baseUrl).toString();
 
 export const slack = new Slack(
     slackClientId,

@@ -91,14 +91,7 @@ async function generateDailySummary(
     duration: number;
   }>
 ): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    // フォールバック: シンプルなまとめ
-    return `本日は ${tasks.length} 件のタスクを完了しました。\n\n${tasks
-      .map((t, i) => `${i + 1}. ${t.title}`)
-      .join("\n")}`;
-  }
+  const apiKey = process.env.OPENAI_API_KEY!;
 
   const formatDuration = (ms: number): string => {
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -130,23 +123,16 @@ ${i + 1}. 【${task.title}】
 - チャットで報告するような自然な口調で
 - 絵文字は使わない
 - 「本日は〜」のような書き出しで始める
-`.trim();
+  `.trim();
 
-  try {
-    const openai = createOpenAI({ apiKey });
+  const openai = createOpenAI({ apiKey });
 
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      prompt,
-    });
+  const { text } = await generateText({
+    model: openai("gpt-4o-mini"),
+    prompt,
+  });
 
-    return text;
-  } catch (error) {
-    console.error("Failed to generate summary with LLM:", error);
-    return `本日は ${tasks.length} 件のタスクを完了しました。\n\n${tasks
-      .map((t, i) => `${i + 1}. ${t.title}`)
-      .join("\n")}`;
-  }
+  return text;
 }
 
 async function postToSlack(summary: string) {

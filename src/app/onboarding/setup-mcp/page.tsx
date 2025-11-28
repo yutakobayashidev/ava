@@ -26,7 +26,7 @@ export default async function SetupMcpPage() {
     mcpServers: {
       task: {
         type: "http",
-        url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000/mcp",
+        url: `${process.env.NEXT_PUBLIC_BASE_URL}/mcp`,
       },
     },
   };

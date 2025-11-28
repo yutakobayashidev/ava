@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
-import { getSlackInstallConfig, buildSlackInstallUrl } from "@/lib/slackInstall";
+import { buildSlackInstallUrl } from "@/lib/slackInstall";
 import { getCurrentSession } from "@/lib/session";
 
 const STATE_COOKIE = "slack_install_state";
@@ -13,12 +13,7 @@ export async function GET() {
     }
 
     const state = randomBytes(16).toString("hex");
-    const config = getSlackInstallConfig();
     const authorizeUrl = buildSlackInstallUrl(state);
-
-    if (!config || !authorizeUrl) {
-        return NextResponse.redirect("/slack/install?error=missing_config");
-    }
 
     const response = NextResponse.redirect(authorizeUrl);
     response.cookies.set(STATE_COOKIE, state, {

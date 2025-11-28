@@ -3,14 +3,12 @@ const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
 const DEFAULT_SCOPES = ["chat:write", "chat:write.public", "channels:read", "groups:read"];
 
-type SlackInstallConfig =
-    | {
-        clientId: string;
-        clientSecret: string;
-        redirectUri: string;
-        scopes: string[];
-    }
-    | null;
+type SlackInstallConfig = {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    scopes: string[];
+};
 
 type SlackOAuthSuccess = {
     access_token: string;
@@ -28,14 +26,9 @@ type SlackOAuthSuccess = {
 type SlackOAuthResponse = ({ ok: true } & SlackOAuthSuccess) | { ok: false; error?: string };
 
 export const getSlackInstallConfig = (): SlackInstallConfig => {
-    const clientId = process.env.SLACK_APP_CLIENT_ID;
-    const clientSecret = process.env.SLACK_APP_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-        return null;
-    }
-
-    const redirectUri = "https://localhost:3000/slack/install/callback";
+    const clientId = process.env.SLACK_APP_CLIENT_ID!;
+    const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
+    const redirectUri = process.env.SLACK_APP_REDIRECT_URI!;
 
     return {
         clientId,
@@ -45,9 +38,8 @@ export const getSlackInstallConfig = (): SlackInstallConfig => {
     };
 };
 
-export const buildSlackInstallUrl = (state: string): string | null => {
+export const buildSlackInstallUrl = (state: string): string => {
     const config = getSlackInstallConfig();
-    if (!config) return null;
 
     const url = new URL(SLACK_OAUTH_ENDPOINT);
     url.searchParams.set("client_id", config.clientId);
@@ -60,9 +52,6 @@ export const buildSlackInstallUrl = (state: string): string | null => {
 
 export const exchangeSlackInstallCode = async (code: string) => {
     const config = getSlackInstallConfig();
-    if (!config) {
-        throw new Error("Slack app credentials are not configured");
-    }
 
     const body = new URLSearchParams({
         client_id: config.clientId,

@@ -4,7 +4,6 @@ import { ArrowRight, CheckCircle } from "lucide-react";
 import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
-import { getSlackInstallConfig } from "@/lib/slackInstall";
 import { listChannels, type SlackChannel } from "@/clients/slack";
 import { OnboardingProgress } from "../OnboardingProgress";
 
@@ -26,7 +25,6 @@ export default async function ConnectSlackPage({
   }
 
   const params = await searchParams;
-  const config = getSlackInstallConfig();
   const workspaceRepository = createWorkspaceRepository({ db });
   const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
 
@@ -212,11 +210,7 @@ export default async function ConnectSlackPage({
                 </span>
               </div>
 
-              {!config ? (
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
-                  Slackアプリのクライアント設定が未設定です。環境変数を確認してください。
-                </div>
-              ) : !workspace?.botAccessToken ? (
+              {!workspace?.botAccessToken ? (
                 <Link
                   href="/slack/install/start"
                   className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
