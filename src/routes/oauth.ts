@@ -62,7 +62,6 @@ app.post("/api/oauth/token", zValidator("form", z.object({
 
   console.log("Form data:", { grant_type, code, redirect_uri, client_id });
 
-
   try {
     console.log("Finding client for client_id:", client_id);
     const db = c.get('db');
@@ -72,7 +71,7 @@ app.post("/api/oauth/token", zValidator("form", z.object({
       .where(eq(schema.clients.clientId, client_id));
     if (!client) {
       console.log("Invalid client.", { client_id });
-      return c.json({ error: 'Invalid client' }, 401);
+      return c.json({ error: 'invalid_client' }, 401);
     }
 
     console.log("Finding auth code:", code);
@@ -87,19 +86,54 @@ app.post("/api/oauth/token", zValidator("form", z.object({
       authCode.redirectUri !== redirect_uri
     ) {
       console.log("Invalid code or redirect_uri mismatch.", { authCode, client_id: client.id, redirect_uri });
-      return c.json({ error: 'Invalid code' }, 400);
+      return c.json({ error: 'invalid_grant' }, 400);
     }
     console.log("Found auth code for user:", authCode.userId);
 
     if (authCode.expiresAt < new Date()) {
       console.log("Auth code expired at:", authCode.expiresAt);
-      return c.json({ error: 'Code expired' }, 400);
+      return c.json({ error: 'invalid_grant' }, 400);
     }
     console.log("Auth code is valid.");
 
+    // PKCE or client_secret validation
+    if (authCode.codeChallenge) {
+      if (!code_verifier) {
+        return c.json({ error: 'invalid_request' }, 400);
+      }
+
+      let pkceValid = false;
+      if (authCode.codeChallengeMethod === 'S256') {
+        const hash = createHash('sha256').update(code_verifier).digest();
+        const base64url = hash
+          .toString('base64')
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+        pkceValid = base64url === authCode.codeChallenge;
+      } else {
+        pkceValid = code_verifier === authCode.codeChallenge;
+      }
+
+      if (!pkceValid) {
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+    } else {
+      // No PKCE - client_secret is required
+      if (!client_secret || !client.clientSecret || client.clientSecret !== client_secret) {
+        console.log("Invalid client_secret.", { client_id });
+        return c.json({ error: 'invalid_client' }, 401);
+      }
+    }
+
+    // Delete auth code immediately after validation
+    console.log("Deleting auth code:", authCode.id);
+    await db.delete(schema.authCodes).where(eq(schema.authCodes.id, authCode.id));
+    console.log("Auth code deleted.");
+
     if (!authCode.workspaceId) {
       console.log("Auth code missing workspace_id", { authCodeId: authCode.id });
-      return c.json({ error: "workspace_not_found" }, 400);
+      return c.json({ error: "invalid_grant" }, 400);
     }
 
     const [[workspace], [membership]] = await Promise.all([
@@ -121,43 +155,13 @@ app.post("/api/oauth/token", zValidator("form", z.object({
 
     if (!workspace) {
       console.log("Workspace not found for auth code", { workspaceId: authCode.workspaceId });
-      return c.json({ error: "workspace_not_found" }, 400);
+      return c.json({ error: "invalid_grant" }, 400);
     }
 
     if (!membership) {
       console.log("User not a member of workspace", { workspaceId: authCode.workspaceId, userId: authCode.userId });
       return c.json({ error: "forbidden_workspace" }, 403);
     }
-
-    if (authCode.codeChallenge) {
-      if (!code_verifier) {
-        return c.json({ error: 'Missing code_verifier for PKCE' }, 400);
-      }
-
-      let pkceValid = false;
-      if (authCode.codeChallengeMethod === 'S256') {
-        const hash = createHash('sha256').update(code_verifier).digest();
-        const base64url = hash
-          .toString('base64')
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=+$/, '');
-        pkceValid = base64url === authCode.codeChallenge;
-      } else {
-        pkceValid = code_verifier === authCode.codeChallenge;
-      }
-
-      if (!pkceValid) {
-        return c.json({ error: 'Invalid code_verifier for PKCE' }, 400);
-      }
-    } else if (client.clientSecret && client.clientSecret !== client_secret) {
-      console.log("Invalid client_secret.", { client_id });
-      return c.json({ error: 'Invalid client' }, 401);
-    }
-
-    console.log("Deleting auth code:", authCode.id);
-    await db.delete(schema.authCodes).where(eq(schema.authCodes.id, authCode.id));
-    console.log("Auth code deleted.");
 
     const accessToken = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
@@ -180,7 +184,7 @@ app.post("/api/oauth/token", zValidator("form", z.object({
     });
   } catch (e) {
     console.error("Error in token endpoint:", e);
-    return c.json({ error: 'Server error' }, 500);
+    return c.json({ error: 'server_error' }, 500);
   }
 });
 
