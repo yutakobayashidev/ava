@@ -15,9 +15,7 @@ type SearchParams = {
 
 export default async function ConnectSlackPage({
   searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
+}: PageProps<"/onboarding/connect-slack">) {
   const { user } = await getCurrentSession();
 
   if (!user) {
@@ -80,7 +78,7 @@ export default async function ConnectSlackPage({
     }
 
     const targetChannel = availableChannels.find(
-      (channel) => channel.id === channelId
+      (channel) => channel.id === channelId,
     );
 
     if (!targetChannel) {
