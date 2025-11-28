@@ -20,7 +20,8 @@ app.all(
   oauthMiddleware,
   async (c) => {
     const user = c.get('user');
-    const mcp = createMcpServer(user);
+    const workspace = c.get('workspace');
+    const mcp = createMcpServer(user, workspace);
     const transport = new StreamableHTTPTransport();
 
     await mcp.connect(transport);
@@ -28,6 +29,7 @@ app.all(
     return transport.handleRequest(c);
   },
 );
+
 export const GET = handle(app);
 export const POST = handle(app);
 export const OPTIONS = handle(app);

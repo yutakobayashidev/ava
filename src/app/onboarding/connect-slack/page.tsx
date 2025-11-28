@@ -18,7 +18,11 @@ export default async function ConnectSlackPage({
 
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+  const [membership] = await workspaceRepository.listWorkspacesForUser({
+    userId: user.id,
+    limit: 1,
+  });
+  const workspace = membership?.workspace;
 
   // Slack連携済み + 通知先設定済みの場合は次のステップへ
   if (
@@ -56,7 +60,11 @@ export default async function ConnectSlackPage({
     }
 
     const workspaceRepository = createWorkspaceRepository({ db });
-    const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+    const [membership] = await workspaceRepository.listWorkspacesForUser({
+      userId: user.id,
+      limit: 1,
+    });
+    const workspace = membership?.workspace;
 
     if (!workspace?.botAccessToken) {
       redirect("/onboarding/connect-slack?error=missing_token");

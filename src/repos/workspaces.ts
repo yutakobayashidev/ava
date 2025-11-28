@@ -42,7 +42,18 @@ type FindByExternalIdInput = {
     externalId: string;
 };
 
-type ListWorkspaceOptions = {
+type AddMemberInput = {
+    workspaceId: string;
+    userId: string;
+};
+
+type IsMemberInput = {
+    workspaceId: string;
+    userId: string;
+};
+
+type ListWorkspacesForUserInput = {
+    userId: string;
     limit?: number;
 };
 
@@ -103,13 +114,57 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         return workspace ?? null;
     };
 
-    const listWorkspaces = async (options: ListWorkspaceOptions = {}) => {
-        const limit = options.limit ?? 50;
+    const listWorkspacesForUser = async (input: ListWorkspacesForUserInput) => {
+        const limit = input.limit ?? 50;
+
         return db
-            .select()
+            .select({
+                workspace: schema.workspaces,
+                membership: schema.workspaceMembers,
+            })
             .from(schema.workspaces)
+            .innerJoin(
+                schema.workspaceMembers,
+                and(
+                    eq(schema.workspaceMembers.workspaceId, schema.workspaces.id),
+                    eq(schema.workspaceMembers.userId, input.userId),
+                ),
+            )
             .orderBy(desc(schema.workspaces.createdAt))
             .limit(limit);
+    };
+
+    const addMember = async (input: AddMemberInput) => {
+        const [membership] = await db
+            .insert(schema.workspaceMembers)
+            .values({
+                workspaceId: input.workspaceId,
+                userId: input.userId,
+            })
+            .onConflictDoNothing({
+                target: [
+                    schema.workspaceMembers.workspaceId,
+                    schema.workspaceMembers.userId,
+                ],
+            })
+            .returning();
+
+        return membership ?? null;
+    };
+
+    const isMember = async (input: IsMemberInput) => {
+        const [membership] = await db
+            .select()
+            .from(schema.workspaceMembers)
+            .where(
+                and(
+                    eq(schema.workspaceMembers.workspaceId, input.workspaceId),
+                    eq(schema.workspaceMembers.userId, input.userId),
+                ),
+            )
+            .limit(1);
+
+        return Boolean(membership);
     };
 
     const updateWorkspaceCredentials = async (input: UpdateCredentialsInput) => {
@@ -148,23 +203,15 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         return workspace ?? null;
     };
 
-    const deleteWorkspace = async (workspaceId: string) => {
-        const [workspace] = await db
-            .delete(schema.workspaces)
-            .where(eq(schema.workspaces.id, workspaceId))
-            .returning();
-
-        return workspace ?? null;
-    };
-
     return {
         createWorkspace,
         findWorkspaceById,
         findWorkspaceByExternalId,
-        listWorkspaces,
+        listWorkspacesForUser,
         updateWorkspaceCredentials,
         updateNotificationChannel,
-        deleteWorkspace,
+        addMember,
+        isMember,
     };
 };
 
@@ -173,6 +220,8 @@ export type {
     CreateWorkspaceInput,
     UpdateCredentialsInput,
     FindByExternalIdInput,
-    ListWorkspaceOptions,
     UpdateNotificationChannelInput,
+    AddMemberInput,
+    IsMemberInput,
+    ListWorkspacesForUserInput,
 };

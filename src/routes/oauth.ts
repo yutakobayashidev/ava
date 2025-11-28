@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import * as schema from "../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createHonoApp } from '@/app/factory';
 import { absoluteUrl } from "@/lib/utils";
 import { zValidator } from '@hono/zod-validator'
@@ -12,7 +12,7 @@ app.post("/api/oauth/register", zValidator(
   "json",
   z.object({
     client_name: z.string().min(1),
-    redirect_uris: z.array(z.string().min(1)),
+    redirect_uris: z.array(z.url()).min(1),
   })
 ), async (c) => {
 
@@ -97,6 +97,38 @@ app.post("/api/oauth/token", zValidator("form", z.object({
     }
     console.log("Auth code is valid.");
 
+    if (!authCode.workspaceId) {
+      console.log("Auth code missing workspace_id", { authCodeId: authCode.id });
+      return c.json({ error: "workspace_not_found" }, 400);
+    }
+
+    const [[workspace], [membership]] = await Promise.all([
+      db
+        .select()
+        .from(schema.workspaces)
+        .where(eq(schema.workspaces.id, authCode.workspaceId)),
+      db
+        .select()
+        .from(schema.workspaceMembers)
+        .where(
+          and(
+            eq(schema.workspaceMembers.workspaceId, authCode.workspaceId),
+            eq(schema.workspaceMembers.userId, authCode.userId),
+          ),
+        )
+        .limit(1),
+    ]);
+
+    if (!workspace) {
+      console.log("Workspace not found for auth code", { workspaceId: authCode.workspaceId });
+      return c.json({ error: "workspace_not_found" }, 400);
+    }
+
+    if (!membership) {
+      console.log("User not a member of workspace", { workspaceId: authCode.workspaceId, userId: authCode.userId });
+      return c.json({ error: "forbidden_workspace" }, 403);
+    }
+
     if (authCode.codeChallenge) {
       if (!code_verifier) {
         return c.json({ error: 'Missing code_verifier for PKCE' }, 400);
@@ -137,6 +169,7 @@ app.post("/api/oauth/token", zValidator("form", z.object({
       expiresAt,
       clientId: client.id,
       userId: authCode.userId,
+      workspaceId: authCode.workspaceId,
     });
     console.log("Access token created.");
 

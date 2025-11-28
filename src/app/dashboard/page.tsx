@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
-import { createTaskRepository } from "@/repos";
+import { createTaskRepository, createWorkspaceRepository } from "@/repos";
 import {
   Table,
   TableBody,
@@ -61,9 +61,21 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const [membership] = await workspaceRepository.listWorkspacesForUser({
+    userId: user.id,
+    limit: 1,
+  });
+  const workspace = membership?.workspace;
+
+  if (!workspace) {
+    redirect("/onboarding/connect-slack");
+  }
+
   const taskRepository = createTaskRepository({ db });
   const tasks = await taskRepository.listTaskSessions({
     userId: user.id,
+    workspaceId: workspace.id,
     limit: 100,
   });
 

@@ -3,12 +3,13 @@ import { createFactory } from "hono/factory"
 import * as schema from "@/db/schema";
 
 type User = typeof schema.users.$inferSelect;
+type Workspace = typeof schema.workspaces.$inferSelect;
 
-// factory-with-db.ts
-type Env = {
+export type Env = {
   Variables: {
     db: Database
     user: User
+    workspace: Workspace
   }
 }
 

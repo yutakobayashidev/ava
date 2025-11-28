@@ -120,6 +120,9 @@ export const authCodes = pgTable(
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     redirectUri: text("redirect_uri").notNull(),
     codeChallenge: text("code_challenge"),
     codeChallengeMethod: text("code_challenge_method"),
@@ -144,12 +147,39 @@ export const accessTokens = pgTable(
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => ({
     tokenUnique: uniqueIndex("access_tokens_token_unique").on(table.token),
+  }),
+);
+
+export const workspaceMembers = pgTable(
+  "workspace_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    workspaceId: uuid("workspace_id")
+      .references(() => workspaces.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workspaceUserUnique: uniqueIndex("workspace_members_workspace_user_unique").on(
+      table.workspaceId,
+      table.userId,
+    ),
+    workspaceIdx: index("workspace_members_workspace_idx").on(table.workspaceId),
+    userIdx: index("workspace_members_user_idx").on(table.userId),
   }),
 );
 
@@ -165,6 +195,9 @@ export const taskSessions = pgTable(
     issueTitle: text("issue_title").notNull(),
     initialSummary: text("initial_summary").notNull(),
     status: taskStatusEnum("status").notNull().default("in_progress"),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
     slackThreadTs: text("slack_thread_ts"),
     slackChannel: text("slack_channel"),
     blockedAt: timestamp("blocked_at", { withTimezone: true }),
@@ -252,6 +285,10 @@ export const taskSessionRelations = relations(taskSessions, ({ one, many }) => (
     fields: [taskSessions.userId],
     references: [users.id],
   }),
+  workspace: one(workspaces, {
+    fields: [taskSessions.workspaceId],
+    references: [workspaces.id],
+  }),
   updates: many(taskUpdates),
   blockReports: many(taskBlockReports),
   completions: many(taskCompletions),
@@ -283,6 +320,7 @@ export const userRelations = relations(users, ({ many }) => ({
   accessTokens: many(accessTokens),
   sessions: many(sessions),
   taskSessions: many(taskSessions),
+  workspaceMemberships: many(workspaceMembers),
 }));
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
@@ -297,6 +335,10 @@ export const authCodeRelations = relations(authCodes, ({ one }) => ({
     fields: [authCodes.userId],
     references: [users.id],
   }),
+  workspace: one(workspaces, {
+    fields: [authCodes.workspaceId],
+    references: [workspaces.id],
+  }),
   client: one(clients, {
     fields: [authCodes.clientId],
     references: [clients.id],
@@ -308,6 +350,10 @@ export const accessTokenRelations = relations(accessTokens, ({ one }) => ({
     fields: [accessTokens.userId],
     references: [users.id],
   }),
+  workspace: one(workspaces, {
+    fields: [accessTokens.workspaceId],
+    references: [workspaces.id],
+  }),
   client: one(clients, {
     fields: [accessTokens.clientId],
     references: [clients.id],
@@ -317,6 +363,17 @@ export const accessTokenRelations = relations(accessTokens, ({ one }) => ({
 export const clientRelations = relations(clients, ({ many }) => ({
   authCodes: many(authCodes),
   accessTokens: many(accessTokens),
+}));
+
+export const workspaceMemberRelations = relations(workspaceMembers, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workspaceMembers.workspaceId],
+    references: [workspaces.id],
+  }),
+  user: one(users, {
+    fields: [workspaceMembers.userId],
+    references: [users.id],
+  }),
 }));
 
 export type TaskSession = typeof taskSessions.$inferSelect;
@@ -339,3 +396,5 @@ export type AccessToken = typeof accessTokens.$inferSelect;
 export type NewAccessToken = typeof accessTokens.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
+export type NewWorkspaceMember = typeof workspaceMembers.$inferInsert;

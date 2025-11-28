@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { randomBytes, randomUUID } from "crypto";
 import { headers } from "next/headers";
 import { getCurrentSession } from "@/lib/session";
+import { createWorkspaceRepository } from "@/repos";
 
 export default async function AuthorizePage({
   searchParams,
@@ -51,7 +52,8 @@ export default async function AuthorizePage({
           <h1 className="text-2xl font-bold mb-4">Error</h1>
           <p>Invalid authorization request.</p>
           <p className="text-xs text-gray-500 mt-4">
-            Missing client_id, redirect_uri, or response_type is not 'code'.
+            Missing client_id, redirect_uri, or response_type is not
+            &apos;code&apos;.
           </p>
         </div>
       </main>
@@ -73,6 +75,29 @@ export default async function AuthorizePage({
       </main>
     );
   }
+
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspacesForUser = await workspaceRepository.listWorkspacesForUser({
+    userId: user.id,
+    limit: 1,
+  });
+  const workspace = workspacesForUser[0]?.workspace;
+
+  if (!workspace) {
+    return (
+      <main className="flex items-center justify-center h-screen">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-sm w-full text-center">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p>Workspace not found for the current user.</p>
+          <p className="text-xs text-gray-500 mt-4">
+            Please connect a workspace before authorizing.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const workspaceId = workspace.id;
 
   async function handleConsent(formData: FormData) {
     "use server";
@@ -106,6 +131,7 @@ export default async function AuthorizePage({
       expiresAt,
       clientId: client.id,
       userId: user.id,
+      workspaceId,
       redirectUri,
       codeChallenge: code_challenge ?? null,
       codeChallengeMethod: code_challenge_method ?? null,

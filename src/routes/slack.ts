@@ -59,8 +59,12 @@ app.get("/install/callback", async (c) => {
                 name: oauthResult.teamName,
                 domain: oauthResult.teamDomain ?? existing.domain,
             });
+            await workspaceRepository.addMember({
+                workspaceId: existing.id,
+                userId: user.id,
+            });
         } else {
-            await workspaceRepository.createWorkspace({
+            const workspace = await workspaceRepository.createWorkspace({
                 provider: "slack",
                 externalId: oauthResult.teamId,
                 name: oauthResult.teamName,
@@ -69,6 +73,10 @@ app.get("/install/callback", async (c) => {
                 botAccessToken: oauthResult.accessToken,
                 botRefreshToken: oauthResult.refreshToken ?? null,
                 installedAt: new Date(),
+            });
+            await workspaceRepository.addMember({
+                workspaceId: workspace.id,
+                userId: user.id,
             });
         }
 

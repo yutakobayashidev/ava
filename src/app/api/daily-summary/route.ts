@@ -6,29 +6,44 @@ import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { postMessage } from "@/clients/slack";
 import { createWorkspaceRepository } from "@/repos";
+import type { Workspace } from "@/db/schema";
 
 export async function POST() {
   try {
     const { user } = await getCurrentSession();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const taskRepository = createTaskRepository({ db });
+  const taskRepository = createTaskRepository({ db });
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const [membership] = await workspaceRepository.listWorkspacesForUser({
+    userId: user.id,
+    limit: 1,
+  });
+  const workspace = membership?.workspace;
 
-    // 今日の開始と終了の時刻を取得
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
+  if (!workspace) {
+    return NextResponse.json(
+      { error: "Workspace not connected for user" },
+      { status: 400 },
+    );
+  }
+
+  // 今日の開始と終了の時刻を取得
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     // 全タスクを取得して、今日完了したものをフィルタリング
-    const allTasks = await taskRepository.listTaskSessions({
-      userId: user.id,
-      status: "completed",
-      limit: 100,
-    });
+  const allTasks = await taskRepository.listTaskSessions({
+    userId: user.id,
+    workspaceId: workspace.id,
+    status: "completed",
+    limit: 100,
+  });
 
     const todayCompletedTasks = allTasks.filter((task) => {
       if (!task.completedAt) return false;
@@ -65,7 +80,7 @@ export async function POST() {
     const summary = await generateDailySummary(tasksWithDetails);
 
     // Slackに投稿
-    const slackResult = await postToSlack(summary);
+  const slackResult = await postToSlack(summary, workspace);
 
     return NextResponse.json({
       success: true,
@@ -135,12 +150,9 @@ ${i + 1}. 【${task.title}】
   return text;
 }
 
-async function postToSlack(summary: string) {
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
-
-  const channel = workspace?.notificationChannelId;
-  const token = workspace?.botAccessToken;
+async function postToSlack(summary: string, workspace: Workspace) {
+  const channel = workspace.notificationChannelId;
+  const token = workspace.botAccessToken;
 
   if (!channel) {
     return { delivered: false, reason: "missing_channel" };

@@ -7,8 +7,9 @@ import * as schema from "../db/schema";
 import { notifyTaskStarted, notifyTaskBlocked, notifyTaskCompleted, notifyTaskUpdate } from "../lib/taskNotifications";
 
 type User = typeof schema.users.$inferSelect;
+type Workspace = typeof schema.workspaces.$inferSelect;
 
-export function createMcpServer(user: User) {
+export function createMcpServer(user: User, workspace: Workspace) {
 
     const server = new McpServer({
         name: "task-bridge-mcp",
@@ -63,6 +64,7 @@ export function createMcpServer(user: User) {
         async ({ issue, initial_summary }) => {
             const session = await taskRepository.createTaskSession({
                 userId: user.id,
+                workspaceId: workspace.id,
                 issueProvider: issue.provider,
                 issueId: issue.id ?? null,
                 issueTitle: issue.title,
@@ -71,6 +73,7 @@ export function createMcpServer(user: User) {
 
             const slackNotification = await notifyTaskStarted({
                 sessionId: session.id,
+                workspaceId: workspace.id,
                 issueTitle: issue.title,
                 issueProvider: issue.provider,
                 issueId: issue.id ?? null,
@@ -109,12 +112,14 @@ export function createMcpServer(user: User) {
         async ({ task_session_id, summary, raw_context }) => {
             const { session, update } = await taskRepository.addTaskUpdate({
                 taskSessionId: task_session_id,
+                workspaceId: workspace.id,
                 summary,
                 rawContext: raw_context,
             });
 
             const slackNotification = await notifyTaskUpdate({
                 sessionId: session.id,
+                workspaceId: workspace.id,
                 summary,
             });
 
@@ -149,12 +154,14 @@ export function createMcpServer(user: User) {
         async ({ task_session_id, reason, raw_context }) => {
             const { session, blockReport } = await taskRepository.reportBlock({
                 taskSessionId: task_session_id,
+                workspaceId: workspace.id,
                 reason,
                 rawContext: raw_context,
             });
 
             const slackNotification = await notifyTaskBlocked({
                 sessionId: session.id,
+                workspaceId: workspace.id,
                 reason,
             });
 
@@ -192,12 +199,14 @@ export function createMcpServer(user: User) {
         async ({ task_session_id, pr_url, summary }) => {
             const { session, completion } = await taskRepository.completeTask({
                 taskSessionId: task_session_id,
+                workspaceId: workspace.id,
                 prUrl: pr_url,
                 summary,
             });
 
             const slackNotification = await notifyTaskCompleted({
                 sessionId: session.id,
+                workspaceId: workspace.id,
                 summary,
                 prUrl: pr_url,
             });
@@ -234,6 +243,7 @@ export function createMcpServer(user: User) {
         async ({ status, limit }) => {
             const sessions = await taskRepository.listTaskSessions({
                 userId: user.id,
+                workspaceId: workspace.id,
                 status,
                 limit,
             });

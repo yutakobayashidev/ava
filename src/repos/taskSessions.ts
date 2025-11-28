@@ -13,6 +13,7 @@ type TaskRepositoryDeps = {
 
 type CreateTaskSessionInput = {
     userId: string;
+    workspaceId: string;
     issueProvider: IssueProvider;
     issueId?: string | null;
     issueTitle: string;
@@ -21,18 +22,21 @@ type CreateTaskSessionInput = {
 
 type AddTaskUpdateInput = {
     taskSessionId: string;
+    workspaceId: string;
     summary: string;
     rawContext?: Record<string, unknown>;
 };
 
 type ReportBlockInput = {
     taskSessionId: string;
+    workspaceId: string;
     reason: string;
     rawContext?: Record<string, unknown>;
 };
 
 type CompleteTaskInput = {
     taskSessionId: string;
+    workspaceId: string;
     prUrl: string;
     summary: string;
 };
@@ -43,6 +47,7 @@ type ListOptions = {
 
 type ListTaskSessionsInput = {
     userId: string;
+    workspaceId: string;
     status?: TaskStatus;
     limit?: number;
 };
@@ -66,6 +71,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             .insert(schema.taskSessions)
             .values({
                 userId: params.userId,
+                workspaceId: params.workspaceId,
                 issueProvider: params.issueProvider,
                 issueId: params.issueId ?? null,
                 issueTitle: params.issueTitle,
@@ -76,11 +82,16 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         return ensureRecord(session);
     };
 
-    const findTaskSessionById = async (taskSessionId: string) => {
+    const findTaskSessionById = async (taskSessionId: string, workspaceId: string) => {
         const [session] = await db
             .select()
             .from(schema.taskSessions)
-            .where(eq(schema.taskSessions.id, taskSessionId));
+            .where(
+                and(
+                    eq(schema.taskSessions.id, taskSessionId),
+                    eq(schema.taskSessions.workspaceId, workspaceId),
+                ),
+            );
 
         return session ?? null;
     };
@@ -96,8 +107,15 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                     blockedAt: null,
                     updatedAt: now,
                 })
-                .where(eq(schema.taskSessions.id, params.taskSessionId))
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
                 .returning();
+
+            const validSession = ensureRecord(session);
 
             await tx
                 .update(schema.taskBlockReports)
@@ -119,7 +137,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                 .returning();
 
             return {
-                session: ensureRecord(session),
+                session: validSession,
                 update: ensureRecord(update),
             };
         });
@@ -136,8 +154,15 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                     blockedAt: now,
                     updatedAt: now,
                 })
-                .where(eq(schema.taskSessions.id, params.taskSessionId))
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
                 .returning();
+
+            const validSession = ensureRecord(session);
 
             const [blockReport] = await tx
                 .insert(schema.taskBlockReports)
@@ -149,7 +174,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                 .returning();
 
             return {
-                session: ensureRecord(session),
+                session: validSession,
                 blockReport: ensureRecord(blockReport),
             };
         });
@@ -167,8 +192,15 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                     completedAt: now,
                     updatedAt: now,
                 })
-                .where(eq(schema.taskSessions.id, params.taskSessionId))
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
                 .returning();
+
+            const validSession = ensureRecord(session);
 
             const completionValues = {
                 taskSessionId: params.taskSessionId,
@@ -196,7 +228,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                 );
 
             return {
-                session: ensureRecord(session),
+                session: validSession,
                 completion: ensureRecord(completion),
             };
         });
@@ -240,7 +272,10 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     const listTaskSessions = async (params: ListTaskSessionsInput) => {
         const limit = params.limit ?? 50;
 
-        const conditions = [eq(schema.taskSessions.userId, params.userId)];
+        const conditions = [
+            eq(schema.taskSessions.userId, params.userId),
+            eq(schema.taskSessions.workspaceId, params.workspaceId),
+        ];
 
         if (params.status) {
             conditions.push(eq(schema.taskSessions.status, params.status));
@@ -256,6 +291,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 
     const updateSlackThread = async (params: {
         taskSessionId: string;
+        workspaceId: string;
         threadTs: string;
         channel: string;
     }) => {
@@ -265,7 +301,12 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                 slackThreadTs: params.threadTs,
                 slackChannel: params.channel,
             })
-            .where(eq(schema.taskSessions.id, params.taskSessionId))
+            .where(
+                and(
+                    eq(schema.taskSessions.id, params.taskSessionId),
+                    eq(schema.taskSessions.workspaceId, params.workspaceId),
+                ),
+            )
             .returning();
 
         return ensureRecord(session);

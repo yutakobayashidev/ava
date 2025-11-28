@@ -16,7 +16,11 @@ export default async function SetupMcpPage() {
   }
 
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+  const [membership] = await workspaceRepository.listWorkspacesForUser({
+    userId: user.id,
+    limit: 1,
+  });
+  const workspace = membership?.workspace;
 
   // Slack未連携の場合は戻す
   if (!workspace?.botAccessToken) {

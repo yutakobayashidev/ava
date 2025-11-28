@@ -7,6 +7,7 @@ type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
 
 type NotifyTaskStartedParams = {
     sessionId: string;
+    workspaceId: string;
     issueTitle: string;
     issueProvider: IssueProvider;
     issueId?: string | null;
@@ -17,17 +18,20 @@ type NotifyTaskStartedParams = {
 
 type NotifyTaskBlockedParams = {
     sessionId: string;
+    workspaceId: string;
     reason: string;
 };
 
 type NotifyTaskCompletedParams = {
     sessionId: string;
+    workspaceId: string;
     summary: string;
     prUrl: string;
 };
 
 type NotifyTaskUpdateParams = {
     sessionId: string;
+    workspaceId: string;
     summary: string;
 };
 
@@ -47,9 +51,9 @@ type SlackConfig = {
     workspaceId: string;
 };
 
-const resolveSlackConfig = async (): Promise<SlackConfig | null> => {
+const resolveSlackConfig = async (workspaceId: string): Promise<SlackConfig | null> => {
     const workspaceRepository = createWorkspaceRepository({ db });
-    const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+    const workspace = await workspaceRepository.findWorkspaceById(workspaceId);
 
     if (workspace?.botAccessToken && workspace.notificationChannelId) {
         return {
@@ -65,7 +69,7 @@ const resolveSlackConfig = async (): Promise<SlackConfig | null> => {
 export const notifyTaskStarted = async (
     params: NotifyTaskStartedParams,
 ): Promise<SlackNotificationResult> => {
-    const config = await resolveSlackConfig();
+    const config = await resolveSlackConfig(params.workspaceId);
 
     if (!config) {
         return {
@@ -99,6 +103,7 @@ export const notifyTaskStarted = async (
             const taskRepository = createTaskRepository({ db });
             await taskRepository.updateSlackThread({
                 taskSessionId: params.sessionId,
+                workspaceId: params.workspaceId,
                 threadTs: result.ts,
                 channel: result.channel,
             });
@@ -124,7 +129,7 @@ export const notifyTaskStarted = async (
 export const notifyTaskBlocked = async (
     params: NotifyTaskBlockedParams,
 ): Promise<SlackNotificationResult> => {
-    const config = await resolveSlackConfig();
+    const config = await resolveSlackConfig(params.workspaceId);
 
     if (!config) {
         return {
@@ -135,7 +140,10 @@ export const notifyTaskBlocked = async (
 
     // Get task session to retrieve thread info
     const taskRepository = createTaskRepository({ db });
-    const session = await taskRepository.findTaskSessionById(params.sessionId);
+    const session = await taskRepository.findTaskSessionById(
+        params.sessionId,
+        params.workspaceId,
+    );
 
     if (!session) {
         return {
@@ -186,7 +194,7 @@ export const notifyTaskBlocked = async (
 export const notifyTaskUpdate = async (
     params: NotifyTaskUpdateParams,
 ): Promise<SlackNotificationResult> => {
-    const config = await resolveSlackConfig();
+    const config = await resolveSlackConfig(params.workspaceId);
 
     if (!config) {
         return {
@@ -197,7 +205,10 @@ export const notifyTaskUpdate = async (
 
     // Get task session to retrieve thread info
     const taskRepository = createTaskRepository({ db });
-    const session = await taskRepository.findTaskSessionById(params.sessionId);
+    const session = await taskRepository.findTaskSessionById(
+        params.sessionId,
+        params.workspaceId,
+    );
 
     if (!session) {
         return {
@@ -248,7 +259,7 @@ export const notifyTaskUpdate = async (
 export const notifyTaskCompleted = async (
     params: NotifyTaskCompletedParams,
 ): Promise<SlackNotificationResult> => {
-    const config = await resolveSlackConfig();
+    const config = await resolveSlackConfig(params.workspaceId);
 
     if (!config) {
         return {
@@ -259,7 +270,10 @@ export const notifyTaskCompleted = async (
 
     // Get task session to retrieve thread info
     const taskRepository = createTaskRepository({ db });
-    const session = await taskRepository.findTaskSessionById(params.sessionId);
+    const session = await taskRepository.findTaskSessionById(
+        params.sessionId,
+        params.workspaceId,
+    );
 
     if (!session) {
         return {
