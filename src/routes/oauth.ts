@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
-import { db } from "../../clients/drizzle";
-import * as schema from "../../db/schema";
+import { db } from "../clients/drizzle";
+import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 import { Hono } from 'hono';
 
