@@ -125,16 +125,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 
             const validSession = ensureRecord(session);
 
-            await tx
-                .update(schema.taskBlockReports)
-                .set({ resolvedAt: now })
-                .where(
-                    and(
-                        eq(schema.taskBlockReports.taskSessionId, params.taskSessionId),
-                        isNull(schema.taskBlockReports.resolvedAt),
-                    ),
-                );
-
             const [update] = await tx
                 .insert(schema.taskUpdates)
                 .values({
