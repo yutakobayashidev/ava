@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         }
 
         const response = NextResponse.redirect(
-            redirectWithMessage("/slack/install", {
+            redirectWithMessage("/onboarding/connect-slack", {
                 installed: "1",
                 team: oauthResult.teamName,
             }),

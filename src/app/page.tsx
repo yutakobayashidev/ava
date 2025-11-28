@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, CheckCircle, MessageSquare, GitPullRequest, AlertCircle, Zap } from "lucide-react";
+import { getCurrentSession } from "@/src/lib/session";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { user } = await getCurrentSession();
+
+  // オンボーディング完了済みのユーザーはダッシュボードへ
+  if (user?.onboardingCompletedAt) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}

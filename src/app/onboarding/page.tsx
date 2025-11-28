@@ -1,0 +1,23 @@
+import { redirect } from "next/navigation";
+import { getCurrentSession } from "@/src/lib/session";
+import { db } from "@/src/clients/drizzle";
+import { createWorkspaceRepository } from "@/src/repos";
+
+export default async function OnboardingPage() {
+  const { user } = await getCurrentSession();
+
+  if (!user) {
+    redirect("/login?callbackUrl=/onboarding");
+  }
+
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const [workspace] = await workspaceRepository.listWorkspaces({ limit: 1 });
+
+  // Slack連携が完了していればStep 2へ
+  if (workspace?.botAccessToken) {
+    redirect("/onboarding/setup-mcp");
+  }
+
+  // 未連携であればStep 1へ
+  redirect("/onboarding/connect-slack");
+}

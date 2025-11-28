@@ -4,7 +4,7 @@ import { getCurrentSession } from "@/src/lib/session";
 export default async function Page() {
   const { user } = await getCurrentSession();
   if (user !== null) {
-    return redirect("/");
+    return redirect("/onboarding");
   }
 
   return (
