@@ -11,8 +11,8 @@ const app = createHonoApp()
 app.post("/api/oauth/register", zValidator(
   "json",
   z.object({
-    client_name: z.string(),
-    redirect_uris: z.array(z.string()),
+    client_name: z.string().min(1),
+    redirect_uris: z.array(z.string().min(1)),
   })
 ), async (c) => {
 
@@ -50,8 +50,8 @@ app.post("/api/oauth/register", zValidator(
 
 app.post("/api/oauth/token", zValidator("form", z.object({
   grant_type: z.literal("authorization_code"),
-  client_id: z.string(),
-  client_secret: z.string(),
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1),
   code: z.string().min(1, "Missing code"),
   redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
   code_verifier: z.string().max(190).optional(),
