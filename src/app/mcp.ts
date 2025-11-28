@@ -4,6 +4,7 @@ import { z } from "zod/v3";
 import { db } from "../clients/drizzle";
 import { createTaskRepository } from "../repos";
 import * as schema from "../db/schema";
+import { notifyTaskStarted, notifyTaskBlocked, notifyTaskCompleted, notifyTaskUpdate } from "../lib/taskNotifications";
 
 type User = typeof schema.users.$inferSelect;
 
@@ -68,10 +69,21 @@ export function createMcpServer(user: User) {
                 initialSummary: initial_summary,
             });
 
+            const slackNotification = await notifyTaskStarted({
+                sessionId: session.id,
+                issueTitle: issue.title,
+                issueProvider: issue.provider,
+                issueId: issue.id ?? null,
+                initialSummary: initial_summary,
+                userName: user.name,
+                userEmail: user.email,
+            });
+
             return toJsonResponse({
                 task_session_id: session.id,
                 status: session.status,
                 issued_at: session.createdAt,
+                slack_notification: slackNotification,
                 message: "タスクの追跡を開始しました。",
             });
         },
@@ -101,11 +113,17 @@ export function createMcpServer(user: User) {
                 rawContext: raw_context,
             });
 
+            const slackNotification = await notifyTaskUpdate({
+                sessionId: session.id,
+                summary,
+            });
+
             return toJsonResponse({
                 task_session_id: session.id,
                 update_id: update.id,
                 status: session.status,
                 summary: update.summary,
+                slack_notification: slackNotification,
                 message: "進捗を保存しました。",
             });
         },
@@ -135,11 +153,17 @@ export function createMcpServer(user: User) {
                 rawContext: raw_context,
             });
 
+            const slackNotification = await notifyTaskBlocked({
+                sessionId: session.id,
+                reason,
+            });
+
             return toJsonResponse({
                 task_session_id: session.id,
                 block_report_id: blockReport.id,
                 status: session.status,
                 reason: blockReport.reason,
+                slack_notification: slackNotification,
                 message: "詰まり情報を登録しました。",
             });
         },
@@ -172,11 +196,18 @@ export function createMcpServer(user: User) {
                 summary,
             });
 
+            const slackNotification = await notifyTaskCompleted({
+                sessionId: session.id,
+                summary,
+                prUrl: pr_url,
+            });
+
             return toJsonResponse({
                 task_session_id: session.id,
                 completion_id: completion.id,
                 status: session.status,
                 pr_url: completion.prUrl,
+                slack_notification: slackNotification,
                 message: "完了報告を保存しました。",
             });
         },

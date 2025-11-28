@@ -254,6 +254,23 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             .limit(limit);
     };
 
+    const updateSlackThread = async (params: {
+        taskSessionId: string;
+        threadTs: string;
+        channel: string;
+    }) => {
+        const [session] = await db
+            .update(schema.taskSessions)
+            .set({
+                slackThreadTs: params.threadTs,
+                slackChannel: params.channel,
+            })
+            .where(eq(schema.taskSessions.id, params.taskSessionId))
+            .returning();
+
+        return ensureRecord(session);
+    };
+
     return {
         createTaskSession,
         findTaskSessionById,
@@ -264,6 +281,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         listBlockReports,
         findCompletionByTaskSessionId,
         listTaskSessions,
+        updateSlackThread,
     };
 };
 

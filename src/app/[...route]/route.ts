@@ -33,10 +33,16 @@ const app = new Hono<Env>().use(
 
 app.route("/", oauthRoutes)
 
+const slackClientId = process.env.SLACK_OIDC_CLIENT_ID ?? "";
+const slackClientSecret = process.env.SLACK_OIDC_CLIENT_SECRET ?? "";
+const slackRedirectUri =
+    process.env.SLACK_OIDC_REDIRECT_URI ??
+    `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://localhost:3000"}/login/slack/callback`;
+
 export const slack = new Slack(
-    process.env.GOOGLE_CLIENT_ID ?? "",
-    process.env.GOOGLE_CLIENT_SECRET ?? "",
-    "https://localhost:3000/login/slack/callback"
+    slackClientId,
+    slackClientSecret,
+    slackRedirectUri,
 );
 
 app.get("/login/slack", async (c) => {

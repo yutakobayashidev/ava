@@ -162,6 +162,8 @@ export const taskSessions = pgTable(
         issueTitle: text("issue_title").notNull(),
         initialSummary: text("initial_summary").notNull(),
         status: taskStatusEnum("status").notNull().default("in_progress"),
+        slackThreadTs: text("slack_thread_ts"),
+        slackChannel: text("slack_channel"),
         blockedAt: timestamp("blocked_at", { withTimezone: true }),
         completedAt: timestamp("completed_at", { withTimezone: true }),
         createdAt: timestamp("created_at", { withTimezone: true })
