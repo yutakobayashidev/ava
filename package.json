@@ -3,27 +3,38 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm db:up && pnpm db:push && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@hono/mcp": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.23.0",
+    "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",
     "next": "16.0.5",
+    "postgres": "^3.4.7",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@next/env": "^16.0.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.7",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
+    "eslint-plugin-drizzle": "^0.2.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
