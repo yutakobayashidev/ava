@@ -1,3 +1,5 @@
+import { absoluteUrl } from "./utils";
+
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
 const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
@@ -28,7 +30,7 @@ type SlackOAuthResponse = ({ ok: true } & SlackOAuthSuccess) | { ok: false; erro
 export const getSlackInstallConfig = (): SlackInstallConfig => {
     const clientId = process.env.SLACK_APP_CLIENT_ID!;
     const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-    const redirectUri = process.env.SLACK_APP_REDIRECT_URI!;
+    const redirectUri = absoluteUrl("/slack/install/callback");
 
     return {
         clientId,

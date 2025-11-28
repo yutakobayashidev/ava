@@ -1,53 +1,41 @@
 import { createMiddleware } from 'hono/factory';
-import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 import { db } from '../clients/drizzle';
+import * as schema from "../db/schema";
+import { Context, Env } from 'hono';
 
-const unauthorizedResponse = () =>
-    new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-        },
-    });
+const unauthorized = () => new Response("Unauthorized", { status: 401 });
 
+async function findUserByToken(token: string) {
+  const [accessToken] = await db
+    .select()
+    .from(schema.accessTokens)
+    .where(eq(schema.accessTokens.token, token));
 
-const parseBearerToken = (auth: string | undefined) => {
-    if (!auth) return null;
+  if (!accessToken) return null;
+  if (accessToken.expiresAt.getTime() < Date.now()) return null;
 
-    const [scheme, token] = auth.split(" ");
-    if (scheme !== "Bearer" || !token) return null;
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, accessToken.userId));
 
-    return token;
-};
+  return user ?? null;
+}
+
+function getToken(c: Context<Env>) {
+  const auth = c.req.header("Authorization");
+  if (!auth?.startsWith("Bearer ")) return null;
+  return auth.slice("Bearer ".length);
+}
 
 export const oauthMiddleware = createMiddleware(async (c, next) => {
-    const header = c.req.header("Authorization");
-    const token = parseBearerToken(header);
+  const token = getToken(c);
+  if (!token) return unauthorized();
 
-    if (!token) return unauthorizedResponse();
+  const user = await findUserByToken(token);
+  if (!user) return unauthorized();
 
-    const [accessToken] = await db
-        .select()
-        .from(schema.accessTokens)
-        .where(eq(schema.accessTokens.token, token));
-
-    if (!accessToken) return unauthorizedResponse();
-
-    if (accessToken.expiresAt.getTime() < Date.now()) {
-        return unauthorizedResponse();
-    }
-
-    const [user] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.id, accessToken.userId));
-
-    if (!user) return unauthorizedResponse();
-
-    c.set('user', user);
-    c.set('accessToken', accessToken);
-
-    await next();
+  c.set("user", user);
+  return next();
 });
