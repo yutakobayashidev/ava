@@ -2,7 +2,8 @@ import { db } from "../../../clients/drizzle";
 import * as schema from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes } from "crypto";
+import { uuidv7 } from "uuidv7";
 import { headers } from "next/headers";
 import { getCurrentSession } from "@/lib/session";
 import { createWorkspaceRepository } from "@/repos";
@@ -126,7 +127,7 @@ export default async function AuthorizePage({
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await db.insert(schema.authCodes).values({
-      id: randomUUID(),
+      id: uuidv7(),
       code: authorizationCode,
       expiresAt,
       clientId: client.id,

@@ -1,11 +1,11 @@
 import { generateState, OAuth2Tokens, Slack } from "arctic";
 import { getCookie, setCookie } from 'hono/cookie';
+import { uuidv7 } from "uuidv7";
 import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { randomUUID } from "crypto";
 import { createHonoApp } from "@/app/factory";
 import { absoluteUrl } from "@/lib/utils";
 import { cors } from "hono/cors";
@@ -128,12 +128,11 @@ app.get("/slack/callback", async (c) => {
     const [newUser] = await db
       .insert(schema.users)
       .values({
-        id: randomUUID(),
+        id: uuidv7(),
         slackId: slackUser.sub,
         email: slackUser.email,
         name: slackUser.name,
         image: slackUser.picture,
-        emailVerified: slackUser.email_verified ? new Date() : null,
       })
       .returning();
 

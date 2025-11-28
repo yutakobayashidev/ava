@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
 import * as schema from "../db/schema";
@@ -70,6 +71,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         const [session] = await db
             .insert(schema.taskSessions)
             .values({
+                id: uuidv7(),
                 userId: params.userId,
                 workspaceId: params.workspaceId,
                 issueProvider: params.issueProvider,
@@ -130,6 +132,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             const [update] = await tx
                 .insert(schema.taskUpdates)
                 .values({
+                    id: uuidv7(),
                     taskSessionId: params.taskSessionId,
                     summary: params.summary,
                     rawContext: params.rawContext ?? {},
@@ -167,6 +170,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             const [blockReport] = await tx
                 .insert(schema.taskBlockReports)
                 .values({
+                    id: uuidv7(),
                     taskSessionId: params.taskSessionId,
                     reason: params.reason,
                     rawContext: params.rawContext ?? {},
@@ -203,6 +207,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             const validSession = ensureRecord(session);
 
             const completionValues = {
+                id: uuidv7(),
                 taskSessionId: params.taskSessionId,
                 prUrl: params.prUrl,
                 summary: params.summary,

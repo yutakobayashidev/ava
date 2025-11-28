@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1764305491333,
-      "tag": "0000_goofy_fantastic_four",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1764309302370,
-      "tag": "0001_busy_warstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1764310834987,
-      "tag": "0002_choose_notification_channel",
+      "when": 1764333602582,
+      "tag": "0000_useful_hercules",
       "breakpoints": true
     }
   ]

@@ -7,7 +7,6 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  uuid,
 } from "drizzle-orm/pg-core";
 
 export const issueProviderEnum = pgEnum("issue_provider", ["github", "manual"]);
@@ -23,7 +22,7 @@ export const workspaceProviderEnum = pgEnum("workspace_provider", ["slack"]);
 export const workspaces = pgTable(
   "workspaces",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    id: text("id").primaryKey().notNull(),
     provider: workspaceProviderEnum("provider").notNull(),
     externalId: text("external_id").notNull(),
     name: text("name").notNull(),
@@ -78,7 +77,6 @@ export const users = pgTable(
     name: text("name"),
     email: text("email"),
     slackId: text("slack_id"),
-    emailVerified: timestamp("email_verified", { withTimezone: true }),
     image: text("image"),
     onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -120,7 +118,7 @@ export const authCodes = pgTable(
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
-    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+    workspaceId: text("workspace_id").references(() => workspaces.id, {
       onDelete: "cascade",
     }),
     redirectUri: text("redirect_uri").notNull(),
@@ -147,7 +145,7 @@ export const accessTokens = pgTable(
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
-    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+    workspaceId: text("workspace_id").references(() => workspaces.id, {
       onDelete: "cascade",
     }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -162,8 +160,8 @@ export const accessTokens = pgTable(
 export const workspaceMembers = pgTable(
   "workspace_members",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    workspaceId: uuid("workspace_id")
+    id: text("id").primaryKey().notNull(),
+    workspaceId: text("workspace_id")
       .references(() => workspaces.id, { onDelete: "cascade" })
       .notNull(),
     userId: text("user_id")
@@ -186,7 +184,7 @@ export const workspaceMembers = pgTable(
 export const taskSessions = pgTable(
   "task_sessions",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
+    id: text("id").primaryKey().notNull(),
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
@@ -195,7 +193,7 @@ export const taskSessions = pgTable(
     issueTitle: text("issue_title").notNull(),
     initialSummary: text("initial_summary").notNull(),
     status: taskStatusEnum("status").notNull().default("in_progress"),
-    workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+    workspaceId: text("workspace_id").references(() => workspaces.id, {
       onDelete: "cascade",
     }),
     slackThreadTs: text("slack_thread_ts"),
@@ -220,8 +218,8 @@ export const taskSessions = pgTable(
 export const taskUpdates = pgTable(
   "task_updates",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    taskSessionId: uuid("task_session_id")
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
       .references(() => taskSessions.id, { onDelete: "cascade" })
       .notNull(),
     summary: text("summary").notNull(),
@@ -241,8 +239,8 @@ export const taskUpdates = pgTable(
 export const taskBlockReports = pgTable(
   "task_block_reports",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    taskSessionId: uuid("task_session_id")
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
       .references(() => taskSessions.id, { onDelete: "cascade" })
       .notNull(),
     reason: text("reason").notNull(),
@@ -263,8 +261,8 @@ export const taskBlockReports = pgTable(
 export const taskCompletions = pgTable(
   "task_completions",
   {
-    id: uuid("id").defaultRandom().primaryKey().notNull(),
-    taskSessionId: uuid("task_session_id")
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
       .references(() => taskSessions.id, { onDelete: "cascade" })
       .notNull(),
     prUrl: text("pr_url").notNull(),

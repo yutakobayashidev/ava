@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
 import * as schema from "../db/schema";
@@ -62,6 +63,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         const [workspace] = await db
             .insert(schema.workspaces)
             .values({
+                id: uuidv7(),
                 provider: input.provider,
                 externalId: input.externalId,
                 name: input.name,
@@ -138,6 +140,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         const [membership] = await db
             .insert(schema.workspaceMembers)
             .values({
+                id: uuidv7(),
                 workspaceId: input.workspaceId,
                 userId: input.userId,
             })

@@ -1,4 +1,5 @@
-import { createHash, randomBytes, randomUUID } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
+import { uuidv7 } from 'uuidv7';
 import * as schema from "../db/schema";
 import { and, eq } from "drizzle-orm";
 import { createHonoApp } from '@/app/factory';
@@ -25,7 +26,7 @@ app.post("/api/oauth/register", zValidator(
     const [newClient] = await db
       .insert(schema.clients)
       .values({
-        id: randomUUID(),
+        id: uuidv7(),
         clientId: generatedClientId,
         clientSecret,
         name: client_name,
@@ -168,7 +169,7 @@ app.post("/api/oauth/token", zValidator("form", z.object({
 
     console.log("Creating access token for user:", authCode.userId);
     await db.insert(schema.accessTokens).values({
-      id: randomUUID(),
+      id: uuidv7(),
       token: accessToken,
       expiresAt,
       clientId: client.id,

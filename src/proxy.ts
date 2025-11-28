@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
   const hasCompletedOnboarding = !!user.onboardingCompletedAt;
 
   // オンボーディング未完了でオンボーディング以外のページにアクセス
-  if (!hasCompletedOnboarding && !isOnboardingPath && pathname !== "/") {
+  if (!hasCompletedOnboarding && !isOnboardingPath) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
