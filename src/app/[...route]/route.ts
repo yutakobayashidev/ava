@@ -19,7 +19,6 @@ app.all(
     "/mcp",
     async (c) => {
         if (!mcp.isConnected()) {
-            // Connecting the MCP server to the transport
             await mcp.connect(transport);
         }
 

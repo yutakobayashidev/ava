@@ -1,10 +1,15 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
 
+import { db } from "../clients/drizzle";
+import { createTaskRepository } from "../repos";
+
 const server = new McpServer({
     name: "task-bridge-mcp",
     version: "1.0.0",
 });
+
+const taskRepository = createTaskRepository({ db });
 
 const toTextResponse = (text: string) => ({
     content: [
@@ -33,10 +38,8 @@ const issueSchema = z.object({
         .describe("タスクの簡潔なタイトル"),
 });
 
-const placeholderResponse = (toolName: string) =>
-    toTextResponse(
-        `${toolName} はAPI連携を伴わない定義のみのツールです。入力内容のバリデーション用途として利用してください。`,
-    );
+const toJsonResponse = (payload: Record<string, unknown>) =>
+    toTextResponse(JSON.stringify(payload, null, 2));
 
 server.registerTool(
     "start_task",
@@ -51,7 +54,21 @@ server.registerTool(
                 .describe("着手時点の抽象的な状況や方針"),
         }),
     },
-    async () => placeholderResponse("start_task"),
+    async ({ issue, initial_summary }) => {
+        const session = await taskRepository.createTaskSession({
+            issueProvider: issue.provider,
+            issueId: issue.id ?? null,
+            issueTitle: issue.title,
+            initialSummary: initial_summary,
+        });
+
+        return toJsonResponse({
+            task_session_id: session.id,
+            status: session.status,
+            issued_at: session.createdAt,
+            message: "タスクの追跡を開始しました。",
+        });
+    },
 );
 
 server.registerTool(
@@ -71,7 +88,21 @@ server.registerTool(
             raw_context: rawContextSchema,
         }),
     },
-    async () => placeholderResponse("update_task"),
+    async ({ task_session_id, summary, raw_context }) => {
+        const { session, update } = await taskRepository.addTaskUpdate({
+            taskSessionId: task_session_id,
+            summary,
+            rawContext: raw_context,
+        });
+
+        return toJsonResponse({
+            task_session_id: session.id,
+            update_id: update.id,
+            status: session.status,
+            summary: update.summary,
+            message: "進捗を保存しました。",
+        });
+    },
 );
 
 server.registerTool(
@@ -91,7 +122,21 @@ server.registerTool(
             raw_context: rawContextSchema,
         }),
     },
-    async () => placeholderResponse("report_blocked"),
+    async ({ task_session_id, reason, raw_context }) => {
+        const { session, blockReport } = await taskRepository.reportBlock({
+            taskSessionId: task_session_id,
+            reason,
+            rawContext: raw_context,
+        });
+
+        return toJsonResponse({
+            task_session_id: session.id,
+            block_report_id: blockReport.id,
+            status: session.status,
+            reason: blockReport.reason,
+            message: "詰まり情報を登録しました。",
+        });
+    },
 );
 
 server.registerTool(
@@ -114,7 +159,21 @@ server.registerTool(
                 .describe("完了内容の抽象的サマリ"),
         }),
     },
-    async () => placeholderResponse("complete_task"),
+    async ({ task_session_id, pr_url, summary }) => {
+        const { session, completion } = await taskRepository.completeTask({
+            taskSessionId: task_session_id,
+            prUrl: pr_url,
+            summary,
+        });
+
+        return toJsonResponse({
+            task_session_id: session.id,
+            completion_id: completion.id,
+            status: session.status,
+            pr_url: completion.prUrl,
+            message: "完了報告を保存しました。",
+        });
+    },
 );
 
 export default server;
