@@ -81,6 +81,7 @@
     "tailwind-merge": "3.4.0",
     "uuidv7": "1.0.2",
     "vaul": "1.1.2",
+    "ws": "8.18.3",
     "zod": "4.1.13"
   },
   "devDependencies": {
@@ -90,6 +91,7 @@
     "@types/node": "20",
     "@types/react": "19",
     "@types/react-dom": "19",
+    "@types/ws": "8.18.1",
     "drizzle-kit": "0.31.7",
     "eslint": "9",
     "eslint-config-next": "16.0.5",
