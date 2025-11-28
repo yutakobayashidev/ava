@@ -7,13 +7,6 @@ import { absoluteUrl } from "@/lib/utils";
 
 const app = createHonoApp()
 
-const applyCorsHeaders = (response: Response, methods: string = 'POST, OPTIONS') => {
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', methods);
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return response;
-};
-
 app.post("/api/oauth/register", async (c) => {
 
   const body = await c.req.json()
@@ -21,10 +14,10 @@ app.post("/api/oauth/register", async (c) => {
   const { client_name, redirect_uris } = body;
 
   if (!client_name || !redirect_uris) {
-    return applyCorsHeaders(c.json(
+    return c.json(
       { error: 'Missing required fields' },
       400,
-    ));
+    );
   }
 
   const clientSecret = randomBytes(32).toString('hex');
@@ -42,22 +35,20 @@ app.post("/api/oauth/register", async (c) => {
       })
       .returning();
 
-    return applyCorsHeaders(c.json({
+    return c.json({
       client_id: newClient.clientId,
       client_secret: clientSecret,
       redirect_uris,
-    }));
+    });
   } catch (e) {
     console.error(e);
-    return applyCorsHeaders(c.json(
+    return c.json(
       { error: 'Error creating client' },
       500,
-    ));
+    );
   }
 
 })
-
-app.options("/api/oauth/token", (c) => applyCorsHeaders(c.text("OK")));
 
 app.post("/api/oauth/token", async (c) => {
   console.log("Received token request");
@@ -74,12 +65,12 @@ app.post("/api/oauth/token", async (c) => {
 
   if (grant_type !== 'authorization_code') {
     console.log("Unsupported grant type:", grant_type);
-    return applyCorsHeaders(c.json({ error: 'Unsupported grant type' }, 400));
+    return c.json({ error: 'Unsupported grant type' }, 400);
   }
 
   if (!code || !redirect_uri || !client_id) {
     console.log("Invalid request: missing parameters");
-    return applyCorsHeaders(c.json({ error: 'Invalid request' }, 400));
+    return c.json({ error: 'Invalid request' }, 400);
   }
 
   try {
@@ -90,7 +81,7 @@ app.post("/api/oauth/token", async (c) => {
       .where(eq(schema.clients.clientId, client_id));
     if (!client) {
       console.log("Invalid client.", { client_id });
-      return applyCorsHeaders(c.json({ error: 'Invalid client' }, 401));
+      return c.json({ error: 'Invalid client' }, 401);
     }
 
     console.log("Finding auth code:", code);
@@ -105,19 +96,19 @@ app.post("/api/oauth/token", async (c) => {
       authCode.redirectUri !== redirect_uri
     ) {
       console.log("Invalid code or redirect_uri mismatch.", { authCode, client_id: client.id, redirect_uri });
-      return applyCorsHeaders(c.json({ error: 'Invalid code' }, 400));
+      return c.json({ error: 'Invalid code' }, 400);
     }
     console.log("Found auth code for user:", authCode.userId);
 
     if (authCode.expiresAt < new Date()) {
       console.log("Auth code expired at:", authCode.expiresAt);
-      return applyCorsHeaders(c.json({ error: 'Code expired' }, 400));
+      return c.json({ error: 'Code expired' }, 400);
     }
     console.log("Auth code is valid.");
 
     if (authCode.codeChallenge) {
       if (!code_verifier) {
-        return applyCorsHeaders(c.json({ error: 'Missing code_verifier for PKCE' }, 400));
+        return c.json({ error: 'Missing code_verifier for PKCE' }, 400);
       }
 
       let pkceValid = false;
@@ -134,11 +125,11 @@ app.post("/api/oauth/token", async (c) => {
       }
 
       if (!pkceValid) {
-        return applyCorsHeaders(c.json({ error: 'Invalid code_verifier for PKCE' }, 400));
+        return c.json({ error: 'Invalid code_verifier for PKCE' }, 400);
       }
     } else if (client.clientSecret && client.clientSecret !== client_secret) {
       console.log("Invalid client_secret.", { client_id });
-      return applyCorsHeaders(c.json({ error: 'Invalid client' }, 401));
+      return c.json({ error: 'Invalid client' }, 401);
     }
 
     console.log("Deleting auth code:", authCode.id);
@@ -158,26 +149,21 @@ app.post("/api/oauth/token", async (c) => {
     });
     console.log("Access token created.");
 
-    return applyCorsHeaders(c.json({
+    return c.json({
       access_token: accessToken,
       token_type: 'Bearer',
       expires_in: 3600,
-    }));
+    });
   } catch (e) {
     console.error("Error in token endpoint:", e);
-    return applyCorsHeaders(c.json({ error: 'Server error' }, 500));
+    return c.json({ error: 'Server error' }, 500);
   }
 });
 
-app.options("/.well-known/oauth-authorization-server", (c) =>
-  applyCorsHeaders(c.text("OK"), 'GET, OPTIONS'),
-);
-
 app.get("/.well-known/oauth-authorization-server", (c) => {
-  const issuer = absoluteUrl("");
 
   const metadata = {
-    issuer,
+    issuer: absoluteUrl(""),
     authorization_endpoint: absoluteUrl("/oauth/authorize"),
     token_endpoint: absoluteUrl("/api/oauth/token"),
     registration_endpoint: absoluteUrl("/api/oauth/register"),
@@ -188,37 +174,20 @@ app.get("/.well-known/oauth-authorization-server", (c) => {
     code_challenge_methods_supported: ["plain", "S256"],
   };
 
-  return applyCorsHeaders(c.json(metadata), 'GET, OPTIONS');
+  return c.json(metadata);
 });
 
-app.options("/.well-known/oauth-protected-resource", (c) =>
-  applyCorsHeaders(c.text("OK"), 'GET, OPTIONS'),
-);
-
 app.get("/.well-known/oauth-protected-resource", (c) => {
-  const issuer = absoluteUrl("");
 
   const metadata = {
     resource: absoluteUrl("/mcp"),
-    authorization_servers: [issuer],
+    authorization_servers: [absoluteUrl("")],
     scopes_supported: ["api:read", "api:write"],
     bearer_methods_supported: ["header"],
     resource_documentation: absoluteUrl("/docs"),
   };
 
-  return applyCorsHeaders(c.json(metadata), 'GET, OPTIONS');
+  return c.json(metadata);
 });
-
-app.options("/api/oauth/register", async (c) => {
-  const response = c.text("OK", { status: 200 });
-
-  // Add CORS headers for preflight requests
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  return response;
-
-})
 
 export default app

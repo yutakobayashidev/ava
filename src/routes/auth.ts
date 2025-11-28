@@ -8,8 +8,14 @@ import { sha256 } from "@oslojs/crypto/sha2";
 import { randomUUID } from "crypto";
 import { createHonoApp } from "@/app/factory";
 import { absoluteUrl } from "@/lib/utils";
+import { cors } from "hono/cors";
 
-const app = createHonoApp()
+const app = createHonoApp().use(
+  cors({
+    origin: (origin) => origin,
+    credentials: true,
+  }),
+);
 
 const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
 const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
