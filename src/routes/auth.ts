@@ -7,14 +7,13 @@ import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { randomUUID } from "crypto";
 import { createHonoApp } from "@/app/factory";
+import { absoluteUrl } from "@/lib/utils";
 
 const app = createHonoApp
 
 const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
 const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-
-const slackRedirectUri = new URL("/login/slack/callback", baseUrl).toString();
+const slackRedirectUri = absoluteUrl("/login/slack/callback");
 
 export const slack = new Slack(
     slackClientId,

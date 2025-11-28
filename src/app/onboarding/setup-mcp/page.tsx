@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Terminal, AlertCircle } from "lucide-react";
 import { getCurrentSession } from "@/lib/session";
+import { absoluteUrl } from "@/lib/utils";
 import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
 import { CopyButton } from "./CopyButton";
@@ -26,7 +27,7 @@ export default async function SetupMcpPage() {
     mcpServers: {
       task: {
         type: "http",
-        url: `${process.env.NEXT_PUBLIC_BASE_URL}/mcp`,
+        url: absoluteUrl("/mcp"),
       },
     },
   };
