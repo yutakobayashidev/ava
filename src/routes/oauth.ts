@@ -3,22 +3,20 @@ import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
 import { createHonoApp } from '@/app/factory';
 import { absoluteUrl } from "@/lib/utils";
+import { zValidator } from '@hono/zod-validator'
+import { z } from "zod"
 
 const app = createHonoApp()
 
-app.post("/api/oauth/register", async (c) => {
+app.post("/api/oauth/register", zValidator(
+  "json",
+  z.object({
+    client_name: z.string(),
+    redirect_uris: z.array(z.string()),
+  })
+), async (c) => {
 
-  const body = await c.req.json()
-
-  const { client_name, redirect_uris } = body;
-
-  if (!client_name || !redirect_uris) {
-    return c.json(
-      { error: 'Missing required fields' },
-      400,
-    );
-  }
-
+  const { client_name, redirect_uris } = await c.req.valid("json")
   const clientSecret = randomBytes(32).toString('hex');
   const generatedClientId = randomBytes(16).toString('hex');
 
@@ -50,28 +48,20 @@ app.post("/api/oauth/register", async (c) => {
 
 })
 
-app.post("/api/oauth/token", async (c) => {
+app.post("/api/oauth/token", zValidator("form", z.object({
+  grant_type: z.literal("authorization_code"),
+  client_id: z.string(),
+  client_secret: z.string(),
+  code: z.string().min(1, "Missing code"),
+  redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
+  code_verifier: z.string().max(190).optional(),
+})), async (c) => {
   console.log("Received token request");
 
-  const formData = await c.req.formData();
-  const grant_type = formData.get('grant_type') as string;
-  const code = formData.get('code') as string;
-  const redirect_uri = formData.get('redirect_uri') as string;
-  const client_id = formData.get('client_id') as string;
-  const client_secret = formData.get('client_secret') as string | null;
-  const code_verifier = formData.get('code_verifier') as string | undefined;
+  const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier } = await c.req.valid("form")
 
   console.log("Form data:", { grant_type, code, redirect_uri, client_id });
 
-  if (grant_type !== 'authorization_code') {
-    console.log("Unsupported grant type:", grant_type);
-    return c.json({ error: 'Unsupported grant type' }, 400);
-  }
-
-  if (!code || !redirect_uri || !client_id) {
-    console.log("Invalid request: missing parameters");
-    return c.json({ error: 'Invalid request' }, 400);
-  }
 
   try {
     console.log("Finding client for client_id:", client_id);
