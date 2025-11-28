@@ -42,6 +42,12 @@ type CompleteTaskInput = {
     summary: string;
 };
 
+type ResolveBlockInput = {
+    taskSessionId: string;
+    workspaceId: string;
+    blockReportId: string;
+};
+
 type ListOptions = {
     limit?: number;
 };
@@ -188,6 +194,18 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         const now = new Date();
 
         return db.transaction(async (tx) => {
+            // 未解決のブロッキングを取得
+            const unresolvedBlocks = await tx
+                .select()
+                .from(schema.taskBlockReports)
+                .where(
+                    and(
+                        eq(schema.taskBlockReports.taskSessionId, params.taskSessionId),
+                        isNull(schema.taskBlockReports.resolvedAt),
+                    ),
+                )
+                .orderBy(desc(schema.taskBlockReports.createdAt));
+
             const [session] = await tx
                 .update(schema.taskSessions)
                 .set({
@@ -235,6 +253,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             return {
                 session: validSession,
                 completion: ensureRecord(completion),
+                unresolvedBlocks,
             };
         });
     };
@@ -263,6 +282,59 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
             .where(eq(schema.taskBlockReports.taskSessionId, taskSessionId))
             .orderBy(desc(schema.taskBlockReports.createdAt))
             .limit(limit);
+    };
+
+    const getUnresolvedBlockReports = async (taskSessionId: string) => {
+        return db
+            .select()
+            .from(schema.taskBlockReports)
+            .where(
+                and(
+                    eq(schema.taskBlockReports.taskSessionId, taskSessionId),
+                    isNull(schema.taskBlockReports.resolvedAt),
+                ),
+            )
+            .orderBy(desc(schema.taskBlockReports.createdAt));
+    };
+
+    const resolveBlockReport = async (params: ResolveBlockInput) => {
+        const now = new Date();
+
+        return db.transaction(async (tx) => {
+            const [blockReport] = await tx
+                .update(schema.taskBlockReports)
+                .set({ resolvedAt: now })
+                .where(
+                    and(
+                        eq(schema.taskBlockReports.id, params.blockReportId),
+                        eq(schema.taskBlockReports.taskSessionId, params.taskSessionId),
+                    ),
+                )
+                .returning();
+
+            const validBlockReport = ensureRecord(blockReport);
+
+            // タスクセッションのステータスをin_progressに戻す
+            const [session] = await tx
+                .update(schema.taskSessions)
+                .set({
+                    status: STATUS.inProgress,
+                    blockedAt: null,
+                    updatedAt: now,
+                })
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
+                .returning();
+
+            return {
+                session: ensureRecord(session),
+                blockReport: validBlockReport,
+            };
+        });
     };
 
     const findCompletionByTaskSessionId = async (taskSessionId: string) => {
@@ -325,6 +397,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         completeTask,
         listUpdates,
         listBlockReports,
+        getUnresolvedBlockReports,
+        resolveBlockReport,
         findCompletionByTaskSessionId,
         listTaskSessions,
         updateSlackThread,
@@ -337,6 +411,7 @@ export type {
     AddTaskUpdateInput,
     ReportBlockInput,
     CompleteTaskInput,
+    ResolveBlockInput,
     ListOptions,
     ListTaskSessionsInput,
 };

@@ -4,7 +4,7 @@ import { z } from "zod/v3";
 import { db } from "../clients/drizzle";
 import { createTaskRepository } from "../repos";
 import * as schema from "../db/schema";
-import { notifyTaskStarted, notifyTaskBlocked, notifyTaskCompleted, notifyTaskUpdate } from "../lib/taskNotifications";
+import { notifyTaskStarted, notifyTaskBlocked, notifyTaskCompleted, notifyTaskUpdate, notifyBlockResolved } from "../lib/taskNotifications";
 
 type User = typeof schema.users.$inferSelect;
 type Workspace = typeof schema.workspaces.$inferSelect;
@@ -197,7 +197,7 @@ export function createMcpServer(user: User, workspace: Workspace) {
             }),
         },
         async ({ task_session_id, pr_url, summary }) => {
-            const { session, completion } = await taskRepository.completeTask({
+            const { session, completion, unresolvedBlocks } = await taskRepository.completeTask({
                 taskSessionId: task_session_id,
                 workspaceId: workspace.id,
                 prUrl: pr_url,
@@ -211,13 +211,64 @@ export function createMcpServer(user: User, workspace: Workspace) {
                 prUrl: pr_url,
             });
 
-            return toJsonResponse({
+            const response: Record<string, unknown> = {
                 task_session_id: session.id,
                 completion_id: completion.id,
                 status: session.status,
                 pr_url: completion.prUrl,
                 slack_notification: slackNotification,
                 message: "完了報告を保存しました。",
+            };
+
+            if (unresolvedBlocks.length > 0) {
+                response.unresolved_blocks = unresolvedBlocks.map((block) => ({
+                    block_report_id: block.id,
+                    reason: block.reason,
+                    created_at: block.createdAt,
+                }));
+                response.message = "完了報告を保存しました。未解決のブロッキングがあります。resolve_blockedツールで解決を報告してください。";
+            }
+
+            return toJsonResponse(response);
+        },
+    );
+
+    server.registerTool(
+        "resolve_blocked",
+        {
+            title: "resolve_blocked",
+            description: "ブロッキングが解決したことを報告する入力仕様。",
+            inputSchema: z.object({
+                task_session_id: z
+                    .string()
+                    .min(1, "task_session_idは必須です")
+                    .describe("start_taskで払い出されたタスクID"),
+                block_report_id: z
+                    .string()
+                    .min(1, "block_report_idは必須です")
+                    .describe("解決したブロッキングのID（complete_taskレスポンスやreport_blockedレスポンスから取得）"),
+            }),
+        },
+        async ({ task_session_id, block_report_id }) => {
+            const { session, blockReport } = await taskRepository.resolveBlockReport({
+                taskSessionId: task_session_id,
+                workspaceId: workspace.id,
+                blockReportId: block_report_id,
+            });
+
+            const slackNotification = await notifyBlockResolved({
+                sessionId: session.id,
+                workspaceId: workspace.id,
+                blockReason: blockReport.reason,
+            });
+
+            return toJsonResponse({
+                task_session_id: session.id,
+                block_report_id: blockReport.id,
+                status: session.status,
+                resolved_at: blockReport.resolvedAt,
+                slack_notification: slackNotification,
+                message: "ブロッキングの解決を報告しました。",
             });
         },
     );
