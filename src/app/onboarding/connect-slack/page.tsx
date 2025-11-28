@@ -7,12 +7,6 @@ import { createWorkspaceRepository } from "@/repos";
 import { listChannels, type SlackChannel } from "@/clients/slack";
 import { OnboardingProgress } from "../OnboardingProgress";
 
-type SearchParams = {
-  installed?: string;
-  team?: string;
-  error?: string;
-};
-
 export default async function ConnectSlackPage({
   searchParams,
 }: PageProps<"/onboarding/connect-slack">) {
