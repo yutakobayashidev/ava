@@ -18,6 +18,36 @@ export const taskStatusEnum = pgEnum("task_status", [
     "completed",
 ]);
 
+export const workspaceProviderEnum = pgEnum("workspace_provider", ["slack"]);
+
+export const workspaces = pgTable(
+    "workspaces",
+    {
+        id: uuid("id").defaultRandom().primaryKey().notNull(),
+        provider: workspaceProviderEnum("provider").notNull(),
+        externalId: text("external_id").notNull(),
+        name: text("name").notNull(),
+        domain: text("domain"),
+        botUserId: text("bot_user_id"),
+        botAccessToken: text("bot_access_token"),
+        botRefreshToken: text("bot_refresh_token"),
+        installedAt: timestamp("installed_at", { withTimezone: true }),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true })
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+    },
+    (table) => ({
+        providerExternalUnique: uniqueIndex("workspaces_provider_external_unique").on(
+            table.provider,
+            table.externalId,
+        ),
+    }),
+);
+
 export const taskSessions = pgTable(
     "task_sessions",
     {
@@ -132,3 +162,14 @@ export const taskCompletionRelations = relations(taskCompletions, ({ one }) => (
         references: [taskSessions.id],
     }),
 }));
+
+export type TaskSession = typeof taskSessions.$inferSelect;
+export type NewTaskSession = typeof taskSessions.$inferInsert;
+export type TaskUpdate = typeof taskUpdates.$inferSelect;
+export type NewTaskUpdate = typeof taskUpdates.$inferInsert;
+export type TaskBlockReport = typeof taskBlockReports.$inferSelect;
+export type NewTaskBlockReport = typeof taskBlockReports.$inferInsert;
+export type TaskCompletion = typeof taskCompletions.$inferSelect;
+export type NewTaskCompletion = typeof taskCompletions.$inferInsert;
+export type Workspace = typeof workspaces.$inferSelect;
+export type NewWorkspace = typeof workspaces.$inferInsert;
