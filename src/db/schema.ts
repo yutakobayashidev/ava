@@ -48,6 +48,86 @@ export const workspaces = pgTable(
     }),
 );
 
+export const clients = pgTable(
+    "clients",
+    {
+        id: text("id").primaryKey().notNull(),
+        clientId: text("client_id").notNull(),
+        clientSecret: text("client_secret"),
+        name: text("name").notNull(),
+        redirectUris: text("redirect_uris").array().notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+        updatedAt: timestamp("updated_at", { withTimezone: true })
+            .defaultNow()
+            .$onUpdate(() => new Date())
+            .notNull(),
+    },
+    (table) => ({
+        clientIdUnique: uniqueIndex("clients_client_id_unique").on(table.clientId),
+    }),
+);
+
+export const users = pgTable(
+    "users",
+    {
+        id: text("id").primaryKey().notNull(),
+        name: text("name"),
+        email: text("email").unique(),
+        emailVerified: timestamp("email_verified", { withTimezone: true }),
+        image: text("image"),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+);
+
+export const authCodes = pgTable(
+    "auth_codes",
+    {
+        id: text("id").primaryKey().notNull(),
+        code: text("code").notNull().unique(),
+        expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+        clientId: text("client_id")
+            .references(() => clients.id, { onDelete: "cascade" })
+            .notNull(),
+        userId: text("user_id")
+            .references(() => users.id, { onDelete: "cascade" })
+            .notNull(),
+        redirectUri: text("redirect_uri").notNull(),
+        codeChallenge: text("code_challenge"),
+        codeChallengeMethod: text("code_challenge_method"),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => ({
+        codeIdx: uniqueIndex("auth_codes_code_unique").on(table.code),
+    }),
+);
+
+export const accessTokens = pgTable(
+    "access_tokens",
+    {
+        id: text("id").primaryKey().notNull(),
+        token: text("token").notNull().unique(),
+        expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+        clientId: text("client_id")
+            .references(() => clients.id, { onDelete: "cascade" })
+            .notNull(),
+        userId: text("user_id")
+            .references(() => users.id, { onDelete: "cascade" })
+            .notNull(),
+        createdAt: timestamp("created_at", { withTimezone: true })
+            .defaultNow()
+            .notNull(),
+    },
+    (table) => ({
+        tokenIdx: uniqueIndex("access_tokens_token_unique").on(table.token),
+    }),
+);
+
 export const taskSessions = pgTable(
     "task_sessions",
     {
@@ -163,6 +243,38 @@ export const taskCompletionRelations = relations(taskCompletions, ({ one }) => (
     }),
 }));
 
+export const userRelations = relations(users, ({ many }) => ({
+    authCodes: many(authCodes),
+    accessTokens: many(accessTokens),
+}));
+
+export const authCodeRelations = relations(authCodes, ({ one }) => ({
+    user: one(users, {
+        fields: [authCodes.userId],
+        references: [users.id],
+    }),
+    client: one(clients, {
+        fields: [authCodes.clientId],
+        references: [clients.id],
+    }),
+}));
+
+export const accessTokenRelations = relations(accessTokens, ({ one }) => ({
+    user: one(users, {
+        fields: [accessTokens.userId],
+        references: [users.id],
+    }),
+    client: one(clients, {
+        fields: [accessTokens.clientId],
+        references: [clients.id],
+    }),
+}));
+
+export const clientRelations = relations(clients, ({ many }) => ({
+    authCodes: many(authCodes),
+    accessTokens: many(accessTokens),
+}));
+
 export type TaskSession = typeof taskSessions.$inferSelect;
 export type NewTaskSession = typeof taskSessions.$inferInsert;
 export type TaskUpdate = typeof taskUpdates.$inferSelect;
@@ -173,3 +285,11 @@ export type TaskCompletion = typeof taskCompletions.$inferSelect;
 export type NewTaskCompletion = typeof taskCompletions.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type AuthCode = typeof authCodes.$inferSelect;
+export type NewAuthCode = typeof authCodes.$inferInsert;
+export type AccessToken = typeof accessTokens.$inferSelect;
+export type NewAccessToken = typeof accessTokens.$inferInsert;
+export type Client = typeof clients.$inferSelect;
+export type NewClient = typeof clients.$inferInsert;

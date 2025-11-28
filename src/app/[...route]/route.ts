@@ -5,7 +5,7 @@ import {
     StreamableHTTPTransport,
 } from "@hono/mcp";
 import mcp from "../mcp";
-
+import oauthRoutes from "./oauth"
 const transport = new StreamableHTTPTransport();
 
 const app = new Hono().use(
@@ -14,6 +14,8 @@ const app = new Hono().use(
         credentials: true,
     }),
 );
+
+app.route("/", oauthRoutes)
 
 app.all(
     "/mcp",
