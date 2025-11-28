@@ -204,7 +204,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
     const baseUrl = resolveBaseUrl(c.req.raw);
 
     const metadata = {
-        resource: `${baseUrl}/sse`,
+        resource: `${baseUrl}/mcp`,
         authorization_servers: [baseUrl],
         scopes_supported: ["api:read", "api:write"],
         bearer_methods_supported: ["header"],
