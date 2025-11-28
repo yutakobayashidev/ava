@@ -20,7 +20,6 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
-  typedRoutes: true,
   async headers() {
     return [
       {

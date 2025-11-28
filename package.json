@@ -20,6 +20,7 @@
     "lint:claude": "claude -p 'あなたはリンターです。mainブランチとの変更を確認し、タイポに関する問題を報告してください。ファイル名と行番号を1行目に、問題の説明を2行目に報告してください。他のテキストは返さないでください。'"
   },
   "dependencies": {
+    "@ai-sdk/openai": "2.0.74",
     "@hono/mcp": "0.2.0",
     "@hookform/resolvers": "5.2.2",
     "@modelcontextprotocol/sdk": "1.23.0",
@@ -51,7 +52,9 @@
     "@radix-ui/react-toggle": "1.1.10",
     "@radix-ui/react-toggle-group": "1.1.11",
     "@radix-ui/react-tooltip": "1.2.8",
+    "ai": "5.0.104",
     "arctic": "3.7.0",
+    "babel-plugin-react-compiler": "1.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
