@@ -74,14 +74,18 @@ export const users = pgTable(
     {
         id: text("id").primaryKey().notNull(),
         name: text("name"),
-        email: text("email").unique(),
-        slackId: text("slack_id").unique(),
+        email: text("email"),
+        slackId: text("slack_id"),
         emailVerified: timestamp("email_verified", { withTimezone: true }),
         image: text("image"),
         createdAt: timestamp("created_at", { withTimezone: true })
             .defaultNow()
             .notNull(),
     },
+    (table) => ({
+        emailUnique: uniqueIndex("users_email_unique").on(table.email),
+        slackIdUnique: uniqueIndex("users_slack_id_unique").on(table.slackId),
+    }),
 );
 
 export const sessions = pgTable(
@@ -105,7 +109,7 @@ export const authCodes = pgTable(
     "auth_codes",
     {
         id: text("id").primaryKey().notNull(),
-        code: text("code").notNull().unique(),
+        code: text("code").notNull(),
         expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
         clientId: text("client_id")
             .references(() => clients.id, { onDelete: "cascade" })
@@ -121,7 +125,7 @@ export const authCodes = pgTable(
             .notNull(),
     },
     (table) => ({
-        codeIdx: uniqueIndex("auth_codes_code_unique").on(table.code),
+        codeUnique: uniqueIndex("auth_codes_code_unique").on(table.code),
     }),
 );
 
@@ -129,7 +133,7 @@ export const accessTokens = pgTable(
     "access_tokens",
     {
         id: text("id").primaryKey().notNull(),
-        token: text("token").notNull().unique(),
+        token: text("token").notNull(),
         expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
         clientId: text("client_id")
             .references(() => clients.id, { onDelete: "cascade" })
@@ -142,7 +146,7 @@ export const accessTokens = pgTable(
             .notNull(),
     },
     (table) => ({
-        tokenIdx: uniqueIndex("access_tokens_token_unique").on(table.token),
+        tokenUnique: uniqueIndex("access_tokens_token_unique").on(table.token),
     }),
 );
 
@@ -150,6 +154,9 @@ export const taskSessions = pgTable(
     "task_sessions",
     {
         id: uuid("id").defaultRandom().primaryKey().notNull(),
+        userId: text("user_id")
+            .references(() => users.id, { onDelete: "cascade" })
+            .notNull(),
         issueProvider: issueProviderEnum("issue_provider").notNull(),
         issueId: text("issue_id"),
         issueTitle: text("issue_title").notNull(),
@@ -166,6 +173,7 @@ export const taskSessions = pgTable(
             .notNull(),
     },
     (table) => ({
+        userIdx: index("task_sessions_user_idx").on(table.userId),
         issueProviderIdx: index("task_sessions_issue_provider_idx").on(table.issueProvider),
         statusIdx: index("task_sessions_status_idx").on(table.status),
     }),
@@ -234,7 +242,11 @@ export const taskCompletions = pgTable(
     }),
 );
 
-export const taskSessionRelations = relations(taskSessions, ({ many }) => ({
+export const taskSessionRelations = relations(taskSessions, ({ one, many }) => ({
+    user: one(users, {
+        fields: [taskSessions.userId],
+        references: [users.id],
+    }),
     updates: many(taskUpdates),
     blockReports: many(taskBlockReports),
     completions: many(taskCompletions),
@@ -265,6 +277,7 @@ export const userRelations = relations(users, ({ many }) => ({
     authCodes: many(authCodes),
     accessTokens: many(accessTokens),
     sessions: many(sessions),
+    taskSessions: many(taskSessions),
 }));
 
 export const sessionRelations = relations(sessions, ({ one }) => ({

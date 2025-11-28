@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import {
     StreamableHTTPTransport,
 } from "@hono/mcp";
-import mcp from "../mcp";
+import { createMcpServer } from "../mcp";
 import oauthRoutes from "./oauth"
 import { oauthMiddleware } from '@/src/middleware/oauth';
 import { generateState, OAuth2Tokens, Slack } from "arctic";
@@ -16,9 +16,15 @@ import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { randomUUID } from "crypto";
 
-const transport = new StreamableHTTPTransport();
+type User = typeof schema.users.$inferSelect;
 
-const app = new Hono().use(
+type Env = {
+    Variables: {
+        user: User
+    }
+}
+
+const app = new Hono<Env>().use(
     cors({
         origin: (origin) => origin,
         credentials: true,
@@ -174,9 +180,11 @@ app.all(
     "/mcp",
     oauthMiddleware,
     async (c) => {
-        if (!mcp.isConnected()) {
-            await mcp.connect(transport);
-        }
+        const user = c.get('user');
+        const mcp = createMcpServer(user);
+        const transport = new StreamableHTTPTransport();
+
+        await mcp.connect(transport);
 
         return transport.handleRequest(c);
     },

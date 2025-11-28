@@ -39,5 +39,15 @@ export const oauthMiddleware = createMiddleware(async (c, next) => {
         return unauthorizedResponse();
     }
 
+    const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, accessToken.userId));
+
+    if (!user) return unauthorizedResponse();
+
+    c.set('user', user);
+    c.set('accessToken', accessToken);
+
     await next();
 });

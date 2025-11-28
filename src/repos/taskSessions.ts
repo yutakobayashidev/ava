@@ -12,6 +12,7 @@ type TaskRepositoryDeps = {
 };
 
 type CreateTaskSessionInput = {
+    userId: string;
     issueProvider: IssueProvider;
     issueId?: string | null;
     issueTitle: string;
@@ -40,6 +41,12 @@ type ListOptions = {
     limit?: number;
 };
 
+type ListTaskSessionsInput = {
+    userId: string;
+    status?: TaskStatus;
+    limit?: number;
+};
+
 const STATUS: Record<"inProgress" | "blocked" | "completed", TaskStatus> = {
     inProgress: "in_progress",
     blocked: "blocked",
@@ -58,6 +65,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         const [session] = await db
             .insert(schema.taskSessions)
             .values({
+                userId: params.userId,
                 issueProvider: params.issueProvider,
                 issueId: params.issueId ?? null,
                 issueTitle: params.issueTitle,
@@ -229,6 +237,23 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         return completion ?? null;
     };
 
+    const listTaskSessions = async (params: ListTaskSessionsInput) => {
+        const limit = params.limit ?? 50;
+
+        const conditions = [eq(schema.taskSessions.userId, params.userId)];
+
+        if (params.status) {
+            conditions.push(eq(schema.taskSessions.status, params.status));
+        }
+
+        return db
+            .select()
+            .from(schema.taskSessions)
+            .where(and(...conditions))
+            .orderBy(desc(schema.taskSessions.updatedAt))
+            .limit(limit);
+    };
+
     return {
         createTaskSession,
         findTaskSessionById,
@@ -238,6 +263,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         listUpdates,
         listBlockReports,
         findCompletionByTaskSessionId,
+        listTaskSessions,
     };
 };
 
@@ -248,4 +274,5 @@ export type {
     ReportBlockInput,
     CompleteTaskInput,
     ListOptions,
+    ListTaskSessionsInput,
 };
