@@ -51,7 +51,7 @@ app.post("/api/oauth/register", zValidator(
 app.post("/api/oauth/token", zValidator("form", z.object({
   grant_type: z.literal("authorization_code"),
   client_id: z.string().min(1),
-  client_secret: z.string().min(1),
+  client_secret: z.string().optional(),
   code: z.string().min(1, "Missing code"),
   redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
   code_verifier: z.string().max(190).optional(),
