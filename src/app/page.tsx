@@ -39,7 +39,7 @@ export default async function LandingPage() {
             <span className="block text-blue-600 mt-2">Gentle Updates.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            コンテキストスイッチが続いても、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
+            コンテキストスイッチを減らし、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -148,7 +148,7 @@ export default async function LandingPage() {
               </p>
               <div className="space-y-4">
                 <ProblemRow text="タスク開始・進捗・ブロッカー・完了を自動でSlackへ" />
-                <ProblemRow text="コード書くことに集中、報告文を考える時間はゼロに" />
+                <ProblemRow text="コードを書くことに集中、報告文を考える時間はゼロに" />
                 <ProblemRow text="チームは進捗を把握でき、必要なときだけサポート" />
                 <ProblemRow text="エージェントが働いた履歴を、そのまま成果として共有" />
               </div>
