@@ -2,14 +2,11 @@ import { Database, db } from "@/clients/drizzle"
 import { createFactory } from "hono/factory"
 import * as schema from "@/db/schema";
 
-type User = typeof schema.users.$inferSelect;
-type Workspace = typeof schema.workspaces.$inferSelect;
-
 export type Env = {
   Variables: {
     db: Database
-    user: User
-    workspace: Workspace
+    user: schema.User
+    workspace: schema.Workspace
   }
 }
 

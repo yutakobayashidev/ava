@@ -1,4 +1,4 @@
-import { postMessage } from "../clients/slack";
+import { postMessage, addReaction } from "../clients/slack";
 import { db } from "../clients/drizzle";
 import * as schema from "../db/schema";
 import { createWorkspaceRepository, createTaskRepository } from "../repos";
@@ -375,6 +375,19 @@ export const notifyTaskCompleted = async (
             text,
             threadTs: session.slackThreadTs,
         });
+
+        // Add completion reaction to the thread's first message
+        try {
+            await addReaction({
+                token: config.token,
+                channel: session.slackChannel,
+                timestamp: session.slackThreadTs,
+                name: "white_check_mark",
+            });
+        } catch (reactionError) {
+            // Log error but don't fail the entire operation
+            console.error("Failed to add reaction to completed task", reactionError);
+        }
 
         return {
             delivered: true,

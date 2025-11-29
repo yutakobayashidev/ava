@@ -28,6 +28,18 @@ type SlackConversationsListResponse = {
     error?: string;
 };
 
+type AddReactionParams = {
+    token: string;
+    channel: string;
+    timestamp: string;
+    name: string;
+};
+
+type SlackReactionResponse = {
+    ok: boolean;
+    error?: string;
+};
+
 export type SlackChannel = {
     id: string;
     name: string;
@@ -110,4 +122,38 @@ export const listChannels = async (token: string): Promise<SlackChannel[]> => {
     } while (cursor);
 
     return channels;
+};
+
+export const addReaction = async ({
+    token,
+    channel,
+    timestamp,
+    name,
+}: AddReactionParams) => {
+    const response = await fetch("https://slack.com/api/reactions.add", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            channel,
+            timestamp,
+            name,
+        }),
+    });
+
+    const payload = (await response.json()) as SlackReactionResponse;
+
+    if (!response.ok || !payload.ok) {
+        // already_reacted エラーは無視する（既にリアクションが追加されている場合）
+        if (payload.error === "already_reacted") {
+            return { success: true };
+        }
+
+        const message = payload.error ?? response.statusText;
+        throw new Error(`Slack API error: ${message}`);
+    }
+
+    return { success: true };
 };
