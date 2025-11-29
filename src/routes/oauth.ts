@@ -9,7 +9,7 @@ import { z } from "zod";
 const app = createHonoApp();
 
 app.post(
-  "/oauth/register",
+  "/register",
   zValidator(
     "json",
     z.object({
@@ -76,7 +76,7 @@ const tokenGrantSchema = z.discriminatedUnion(
   },
 );
 
-app.post("/oauth/token", zValidator("form", tokenGrantSchema), async (c) => {
+app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
   console.log("Received token request");
 
   const formData = await c.req.valid("form");

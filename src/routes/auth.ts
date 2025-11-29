@@ -27,7 +27,7 @@ export const slack = new Slack(
   slackRedirectUri,
 );
 
-app.get("/login/slack", async (c) => {
+app.get("/slack", async (c) => {
   const state = generateState();
   const url = slack.createAuthorizationURL(state, [
     "openid",
@@ -115,7 +115,7 @@ export async function createSession(
   return session;
 }
 
-app.get("/login/slack/callback", async (c) => {
+app.get("/slack/callback", async (c) => {
   const { code, state } = c.req.query();
   const storedState = getCookie(c, "slack_oauth_state");
 
