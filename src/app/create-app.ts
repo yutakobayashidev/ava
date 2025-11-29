@@ -17,6 +17,17 @@ export type Env = {
 
 /**
  * Honoのコンテキストから Env["Variables"] 形式のctxを取得するヘルパー
+ *
+ * Usecaseに渡すコンテキストを一箇所で定義することで、
+ * コードの重複を避け、型安全性を保つ。
+ *
+ * @example
+ * ```ts
+ * app.get("/", async (c) => {
+ *   const result = await someUsecase(params, getUsecaseContext(c));
+ *   return c.json(result);
+ * });
+ * ```
  */
 export const getUsecaseContext = (c: Context<Env>): Env["Variables"] => ({
   db: c.get("db"),
