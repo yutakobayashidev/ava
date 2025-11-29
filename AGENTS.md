@@ -33,11 +33,21 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 
 - エンドポイント: `POST/GET /mcp`（Hono でハンドル、HTTP/SSE）。
 - 認可: OAuth 2.1 + PKCE。`Authorization: Bearer <access_token>` が必須。
-  - 認可エンドポイント: `/oauth/authorize`
+  - 認可エンドポイント: `/oauth/authorize`（Next.js page）
   - トークンエンドポイント: `/api/oauth/token`
   - 動的クライアント登録: `/api/oauth/register`
   - メタデータ: `/.well-known/oauth-authorization-server` / `/.well-known/oauth-protected-resource`
 - アクセストークンは DB（`access_tokens`）に保存し、期限切れは拒否。
+
+### ルーティング構成
+
+- `/mcp` - MCP サーバー（Hono、単独ルート）
+- `/api/*` - その他の API エンドポイント（Hono、catch-all ルート）
+  - `/api/oauth/*` - OAuth 関連
+  - `/api/login/*` - 認証フロー
+  - `/api/slack/*` - Slack 連携
+  - `/api/health` - ヘルスチェック
+- その他 - Next.js App Router（page.tsx、not-found.tsx など）
 
 ---
 
@@ -71,8 +81,9 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 
 ## Slack 連携
 
-- ログイン: `/login/slack` で OpenID Connect。ユーザーを作成しセッション Cookie を発行。
-- ボットインストール: `/slack/install/start` → Slack OAuth（スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`）。リダイレクト URI は `NEXT_PUBLIC_BASE_URL + /slack/install/callback` を利用（個別の env は不要）。
+- ログイン: `/api/login/slack` で OpenID Connect。ユーザーを作成しセッション Cookie を発行。
+- ボットインストール: `/slack/install/start` → Slack OAuth（スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`, `commands`）。リダイレクト URI は `NEXT_PUBLIC_BASE_URL + /api/slack/install/callback` を利用（個別の env は不要）。
+- Slack コマンド: `/daily-report` → Request URL: `NEXT_PUBLIC_BASE_URL + /api/slack/commands`
 - 通知先チャンネル: オンボーディング `/onboarding/connect-slack` で選択し、`workspaces.notification_channel_id` に保存。
 - 投稿内容: 開始/進捗/詰まり/休止/再開/完了をチャンネルの同一スレッドに流す。コード断片や機密は投稿しない。
 

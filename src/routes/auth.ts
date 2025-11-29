@@ -19,7 +19,7 @@ const app = createHonoApp().use(
 
 const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
 const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-const slackRedirectUri = absoluteUrl("/login/slack/callback");
+const slackRedirectUri = absoluteUrl("/api/login/slack/callback");
 
 export const slack = new Slack(
   slackClientId,

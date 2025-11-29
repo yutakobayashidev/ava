@@ -26,7 +26,7 @@ export default async function Page() {
 
         <Button asChild size="lg" className="h-11 w-full">
           <Link
-            href="/login/slack"
+            href="/api/login/slack"
             className="flex items-center justify-center gap-2"
           >
             <Slack className="h-4 w-4" />

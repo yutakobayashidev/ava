@@ -33,6 +33,14 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-unsafe-type-assertion": "error",
       "drizzle/enforce-delete-with-where": [
         "error",

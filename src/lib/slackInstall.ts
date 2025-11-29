@@ -39,7 +39,7 @@ type SlackOAuthResponse =
 export const getSlackInstallConfig = (): SlackInstallConfig => {
   const clientId = process.env.SLACK_APP_CLIENT_ID!;
   const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-  const redirectUri = absoluteUrl("/slack/install/callback");
+  const redirectUri = absoluteUrl("/api/slack/install/callback");
 
   return {
     clientId,
