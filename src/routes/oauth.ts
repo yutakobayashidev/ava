@@ -292,38 +292,51 @@ app.post("/api/oauth/token", zValidator("form", tokenGrantSchema), async (c) => 
         }
       }
 
-      // Mark the old refresh token as used
-      await db
-        .update(schema.refreshTokens)
-        .set({ usedAt: new Date() })
-        .where(eq(schema.refreshTokens.id, storedRefreshToken.id));
-
-      // Generate new access token
+      // Generate new tokens
       const newAccessToken = randomBytes(32).toString('hex');
       const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-      const [createdAccessToken] = await db.insert(schema.accessTokens).values({
-        id: uuidv7(),
-        token: newAccessToken,
-        expiresAt: accessTokenExpiresAt,
-        clientId: storedRefreshToken.clientId,
-        userId: storedRefreshToken.userId,
-        workspaceId: storedRefreshToken.workspaceId,
-      }).returning();
-
-      // Generate new refresh token (rotation)
       const newRefreshToken = randomBytes(32).toString('hex');
       const newRefreshTokenHash = createHash('sha256').update(newRefreshToken).digest('hex');
       const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-      await db.insert(schema.refreshTokens).values({
-        id: uuidv7(),
-        tokenHash: newRefreshTokenHash,
-        accessTokenId: createdAccessToken.id,
-        clientId: storedRefreshToken.clientId,
-        userId: storedRefreshToken.userId,
-        workspaceId: storedRefreshToken.workspaceId,
-        expiresAt: refreshTokenExpiresAt,
+      // Transaction: Delete old access token, mark old refresh token as used, create new tokens
+      await db.transaction(async (tx) => {
+        // Delete the old access token
+        await tx
+          .delete(schema.accessTokens)
+          .where(eq(schema.accessTokens.id, storedRefreshToken.accessTokenId));
+
+        // Mark the old refresh token as used
+        await tx
+          .update(schema.refreshTokens)
+          .set({ usedAt: new Date() })
+          .where(eq(schema.refreshTokens.id, storedRefreshToken.id));
+
+        // Create new access token
+        const [newAccessTokenRecord] = await tx
+          .insert(schema.accessTokens)
+          .values({
+            id: uuidv7(),
+            token: newAccessToken,
+            expiresAt: accessTokenExpiresAt,
+            clientId: storedRefreshToken.clientId,
+            userId: storedRefreshToken.userId,
+            workspaceId: storedRefreshToken.workspaceId,
+          })
+          .returning();
+
+        // Create new refresh token
+        await tx.insert(schema.refreshTokens).values({
+          id: uuidv7(),
+          tokenHash: newRefreshTokenHash,
+          accessTokenId: newAccessTokenRecord.id,
+          clientId: storedRefreshToken.clientId,
+          userId: storedRefreshToken.userId,
+          workspaceId: storedRefreshToken.workspaceId,
+          expiresAt: refreshTokenExpiresAt,
+        });
+
       });
 
       console.log("Refresh token rotated successfully for user:", storedRefreshToken.userId);
