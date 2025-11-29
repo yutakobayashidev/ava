@@ -435,7 +435,7 @@ export default async function LandingPage() {
                 size="lg"
                 className="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl h-auto text-white hover:text-white"
               >
-                <a href="https://github.com">ドキュメントを見る</a>
+                <Link href="/docs">ドキュメントを見る</Link>
               </Button>
             </div>
           </div>
