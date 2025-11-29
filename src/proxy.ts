@@ -15,11 +15,14 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // ログインページとOAuthフローはスキップ
+  // ログインページとOAuthフロー、APIルートはスキップ
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/oauth") ||
-    pathname.startsWith("/slack/install")
+    pathname.startsWith("/slack/install") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/mcp") ||
+    pathname.startsWith("/.well-known")
   ) {
     return NextResponse.next();
   }

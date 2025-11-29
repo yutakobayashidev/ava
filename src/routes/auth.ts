@@ -19,7 +19,7 @@ const app = createHonoApp().use(
 
 const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
 const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-const slackRedirectUri = absoluteUrl("/login/slack/callback");
+const slackRedirectUri = absoluteUrl("/api/login/slack/callback");
 
 export const slack = new Slack(
   slackClientId,
@@ -27,7 +27,7 @@ export const slack = new Slack(
   slackRedirectUri,
 );
 
-app.get("/slack", async (c) => {
+app.get("/login/slack", async (c) => {
   const state = generateState();
   const url = slack.createAuthorizationURL(state, [
     "openid",
@@ -115,7 +115,7 @@ export async function createSession(
   return session;
 }
 
-app.get("/slack/callback", async (c) => {
+app.get("/login/slack/callback", async (c) => {
   const { code, state } = c.req.query();
   const storedState = getCookie(c, "slack_oauth_state");
 

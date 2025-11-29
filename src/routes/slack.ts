@@ -31,7 +31,7 @@ const redirectWithMessage = (
   return url.toString();
 };
 
-app.get("/install/callback", async (c) => {
+app.get("/slack/install/callback", async (c) => {
   const sessionToken = getCookie(c, "session");
 
   const { user } = sessionToken
@@ -122,7 +122,7 @@ app.get("/install/callback", async (c) => {
 });
 
 app.post(
-  "/commands",
+  "/slack/commands",
   verifySlackSignature,
   zValidator(
     "form",
