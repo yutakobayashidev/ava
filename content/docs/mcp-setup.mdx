@@ -7,6 +7,27 @@ description: AvaをClaude Code、Cursor、Windsurfなどに接続する方法
 
 Claude Code、Cursorなどのコーディングエージェントは、AI技術を使ってコーディング作業を支援してくれるツールです。AvaはMCP（Model Context Protocol）を通じてこれらのツールと連携し、作業の進捗を自動的にSlackに報告します。
 
+<Accordions type="single">
+  <Accordion title="MCPとは？">
+    **MCP（Model Context Protocol）** は、AIアプリケーションが外部ツールやデータソースと連携するためのオープンな標準プロトコルです。
+
+    MCPを使うことで、Claude CodeなどのAIエージェントが：
+    - データベースにアクセスする
+    - 外部APIを呼び出す
+    - ファイルシステムを操作する
+    - カスタムツールを実行する
+
+    などの操作を安全に実行できます。
+
+    **Avaとの関係:**
+    - Ava はMCPサーバーとして動作します
+    - Claude CodeなどのAIエージェントがMCPクライアントとしてAvaに接続します
+    - AIエージェントはAvaが提供するツール（`start_task`、`update_task`など）を使って進捗を報告します
+
+    詳しくは [MCP公式ドキュメント](https://modelcontextprotocol.io/docs/getting-started/intro) をご覧ください。
+  </Accordion>
+</Accordions>
+
 ## 設定方法
 
 <Tabs items={['Claude Code', 'Cursor']} persist groupId="coding-agent">
@@ -55,6 +76,29 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     - `report_blocked` - 詰まりを報告
     - `complete_task` - タスクを完了
     - `list_tasks` - タスク一覧を表示
+
+    ### 5. Avaスキルをインストール（推奨）
+
+    Avaの使い方をClaude Codeに教えるスキルをインストールすることで、より効果的に使えます。
+
+    Claude Codeで以下のコマンドを実行：
+
+    ```
+    /plugin marketplace add yutakobayashidev/ava-skills
+    ```
+
+    次に、スキルをインストール：
+
+    ```
+    /plugin install ava-mcp-usage@ava-skills
+    ```
+
+    **スキルをインストールすると:**
+    - Avaの使い方のベストプラクティスが自動的に適用されます
+    - 自分で設定を考える手間が省けます（デフォルトプリセット）
+    - プライバシーに配慮した報告が自動的に行われます
+
+    もちろん、自分で[Claude Skills](https://support.claude.com/ja/articles/12512176-%E3%82%B9%E3%82%AD%E3%83%AB%E3%81%A8%E3%81%AF%E4%BD%95%E3%81%A7%E3%81%99%E3%81%8B)を作成したり、CLAUDE.mdに独自のルールを追記することで、報告の仕方をカスタマイズすることもできます。
   </Tab>
 
   <Tab value="Cursor">
