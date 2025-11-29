@@ -25,7 +25,7 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 - Next.js 16 + Hono でアプリと API を統合。PostgreSQL は Drizzle で管理。
 - Slack OpenID でログイン、別フローでワークスペースにボットをインストールし通知先チャンネルを保存。
 - `/mcp` に HTTP で公開する MCP サーバ（`ava-mcp`）。タスク情報は DB に保持し、Slack にはサマリのみ投稿。
-- `/api/daily-summary` で本日完了タスクを LLM 要約し、Slack に日次報告を投稿（OPENAI_API_KEY が必要）。
+- Slack slash command `/daily-report` で本日のタスクを LLM 要約し、実行ユーザーのみに ephemeral message で表示（OPENAI_API_KEY が必要）。
 
 ---
 
@@ -95,7 +95,7 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 ## 開発メモ
 
 - MCP クライアント設定例（ローカル）: `.mcp.json` に `{ "mcpServers": { "task": { "type": "http", "url": "https://localhost:3000/mcp" } } }` を置く。初回接続時に OAuth 同意がブラウザで開く。
-- 日次まとめ: `POST /api/daily-summary` で本日完了タスクを要約し、通知チャンネルに投稿（OPENAI_API_KEY が必要、未設定なら失敗）。
+- 日次まとめ: Slack で `/daily-report` コマンドを実行すると、本日完了および更新されたタスクを LLM で要約し、実行ユーザーのみに ephemeral message で表示（OPENAI_API_KEY が必要、未設定なら失敗）。
 
 Slack でリアルタイムにスレッド更新が行われます。
 

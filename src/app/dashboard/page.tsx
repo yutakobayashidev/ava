@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DailySummaryButton } from "./DailySummaryButton";
 
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -97,16 +96,11 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">
-              Dashboard
-            </h1>
-            <p className="text-slate-600">
-              タスクの進捗状況と所要時間を確認できます
-            </p>
-          </div>
-          <DailySummaryButton />
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
+          <p className="text-slate-600">
+            タスクの進捗状況と所要時間を確認できます
+          </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

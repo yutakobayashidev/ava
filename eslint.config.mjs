@@ -59,6 +59,7 @@ const eslintConfig = defineConfig([
       ...vitest.configs.recommended.rules,
       "vitest/consistent-test-it": ["error", { fn: "it" }],
       "vitest/require-top-level-describe": ["error"],
+      "@typescript-eslint/no-unsafe-type-assertion": "off",
     },
   },
   {

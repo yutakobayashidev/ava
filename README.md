@@ -8,7 +8,8 @@ Slack ログイン → ワークスペース連携 → MCP 接続までワンス
 - Slack サインイン（OpenID Connect）とワークスペースへのボットインストール
 - MCP HTTP サーバ `/mcp` でタスク開始/更新/詰まり/完了/一覧を扱い、Slack スレッドへ投稿
 - オンボーディングで通知チャンネル選択と `.mcp.json` 生成
-- ダッシュボードでタスク一覧と日次サマリ生成（OpenAI で完了タスクを要約し Slack 投稿）
+- ダッシュボードでタスク一覧を表示
+- Slack slash command `/daily-report` で日次サマリを生成（実行ユーザーのみに表示される ephemeral message）
 - OAuth 2.1 + PKCE の認可・トークン・クライアント登録エンドポイントを同居
 
 ## 技術スタック
@@ -25,6 +26,7 @@ Slack ログイン → ワークスペース連携 → MCP 接続までワンス
 - Slack アプリ（OIDC と Bot の両方を有効化）
   - Bot スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`
   - リダイレクト URI: `https://<BASE>/login/slack/callback`, `https://<BASE>/slack/install/callback`
+  - Slash Command: `/daily-report` → Request URL: `https://<BASE>/slack/commands`
 
 ## 環境変数例 (`.env`)
 
@@ -41,7 +43,7 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/ai_task
 SLACK_APP_CLIENT_ID=xxx
 SLACK_APP_CLIENT_SECRET=xxx
 
-OPENAI_API_KEY=sk-... # /api/daily-summary 用。未設定なら日次サマリは失敗します
+OPENAI_API_KEY=sk-... # /daily-report 用。未設定なら日次サマリは失敗します
 ```
 
 - `NEXT_PUBLIC_BASE_URL` は OAuth メタデータや Slack リダイレクト URL を組み立てるため必須。
@@ -95,7 +97,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 claude
 
 ## 日次サマリ
 
-- エンドポイント: `POST /api/daily-summary`（ダッシュボードの「今日のまとめを生成」ボタン経由）
-- 対象: 本日 `completed` になったタスク
-- 振る舞い: OpenAI でまとめを生成し、通知チャンネルに `:calendar:` で投稿
-- 必要条件: `OPENAI_API_KEY` と Slack 通知チャンネルの設定
+- Slack slash command: `/daily-report`
+- 対象: 本日 `completed` になったタスク、および本日更新された `in_progress` / `blocked` タスク
+- 振る舞い: OpenAI でまとめを生成し、実行したユーザーのみに表示される ephemeral message で返す
+- 必要条件: `OPENAI_API_KEY` と Slack ボットのインストール

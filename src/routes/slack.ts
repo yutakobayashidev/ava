@@ -1,9 +1,18 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp } from "@/app/create-app";
-import { createWorkspaceRepository } from "@/repos";
+import {
+  createWorkspaceRepository,
+  createTaskRepository,
+  createUserRepository,
+} from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
+import { verifySlackSignature } from "@/middleware/slack";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+import dailyReportInteraction from "@/interactions/daily-report";
+import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 
 const app = createHonoApp();
 
@@ -111,5 +120,41 @@ app.get("/install/callback", async (c) => {
     );
   }
 });
+
+app.post(
+  "/commands",
+  verifySlackSignature,
+  zValidator(
+    "form",
+    z.object({
+      api_app_id: z.string(),
+      team_id: z.string(),
+      user_id: z.string(),
+      channel_id: z.string(),
+      text: z.string().optional(),
+      command: z.enum(["/daily-report"]),
+    }),
+  ),
+  async (c) => {
+    const { team_id: teamId, user_id: userId, command } = c.req.valid("form");
+
+    const [db] = [c.get("db")];
+    const repositories = {
+      workspaceRepository: createWorkspaceRepository({ db }),
+      taskRepository: createTaskRepository({ db }),
+      userRepository: createUserRepository({ db }),
+    };
+
+    const result = await handleApplicationCommands({
+      command,
+      teamId,
+      userId,
+      repositories,
+      commands: [dailyReportInteraction],
+    });
+
+    return c.json(result);
+  },
+);
 
 export default app;

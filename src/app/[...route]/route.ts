@@ -5,7 +5,6 @@ import oauthRoutes from "../../routes/oauth";
 import authRoutes from "../../routes/auth";
 import slackRoutes from "../../routes/slack";
 import healthRoutes from "../../routes/health";
-import dailySummaryRoutes from "../../routes/daily-summary";
 import { oauthMiddleware } from "@/middleware/oauth";
 import { createHonoApp } from "../create-app";
 
@@ -15,7 +14,6 @@ app.route("/", oauthRoutes);
 app.route("/login", authRoutes);
 app.route("/slack", slackRoutes);
 app.route("/api/health", healthRoutes);
-app.route("/api/daily-summary", dailySummaryRoutes);
 
 app.all("/mcp", oauthMiddleware, async (c) => {
   const [user, workspace] = [c.get("user"), c.get("workspace")];
