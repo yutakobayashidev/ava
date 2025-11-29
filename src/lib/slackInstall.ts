@@ -4,9 +4,10 @@ const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
 const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
 const DEFAULT_SCOPES = [
+  "channels:read",
   "chat:write",
   "chat:write.public",
-  "channels:read",
+  "commands",
   "groups:read",
   "reactions:write",
 ];
