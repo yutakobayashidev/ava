@@ -6,6 +6,7 @@ import { createMcpServer } from "../mcp";
 import oauthRoutes from "../../routes/oauth"
 import authRoutes from "../../routes/auth"
 import slackRoutes from "../../routes/slack"
+import dailySummaryRoutes from "../../routes/daily-summary"
 import { oauthMiddleware } from '@/middleware/oauth';
 import { createHonoApp } from '../create-app';
 
@@ -14,6 +15,7 @@ const app = createHonoApp()
 app.route("/", oauthRoutes)
 app.route("/login", authRoutes)
 app.route("/slack", slackRoutes)
+app.route("/api/daily-summary", dailySummaryRoutes)
 
 app.all(
   "/mcp",
