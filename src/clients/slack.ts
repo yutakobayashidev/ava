@@ -1,3 +1,5 @@
+import "server-only";
+
 import { WebClient } from "@slack/web-api";
 
 type PostMessageParams = {

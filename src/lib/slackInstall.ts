@@ -1,3 +1,5 @@
+import "server-only";
+
 import { absoluteUrl } from "./utils";
 
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
