@@ -17,10 +17,6 @@ app.route("/slack", slackRoutes);
 app.route("/api/health", healthRoutes);
 app.route("/api/daily-summary", dailySummaryRoutes);
 
-app.get("/health", async (c) => {
-  return c.json({ status: "ok" });
-});
-
 app.all("/mcp", oauthMiddleware, async (c) => {
   const [user, workspace] = [c.get("user"), c.get("workspace")];
   const mcp = createMcpServer(user, workspace);
