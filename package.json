@@ -11,6 +11,8 @@
     "build": "fumadocs-mdx && next build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
+    "test:e2e": "NODE_ENV=test playwright test",
+    "test:e2e:ui": "NODE_ENV=test playwright test --ui",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
@@ -96,8 +98,10 @@
     "zod": "4.1.13"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
     "@next/bundle-analyzer": "16.0.5",
     "@next/env": "16.0.5",
+    "@playwright/test": "1.57.0",
     "@tailwindcss/postcss": "4",
     "@types/node": "20",
     "@types/react": "19",
@@ -112,6 +116,7 @@
     "eslint-config-next": "16.0.5",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-drizzle": "0.2.3",
+    "eslint-plugin-playwright": "2.3.0",
     "jsdom": "27.2.0",
     "lefthook": "2.0.4",
     "prettier": "3.7.1",

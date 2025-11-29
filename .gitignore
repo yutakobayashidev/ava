@@ -43,3 +43,15 @@ next-env.d.ts
 .source
 
 certificates
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/tests/temp/
+
+*storybook.log
+storybook-static
+
+.auth
