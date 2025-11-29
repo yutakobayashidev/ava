@@ -3,7 +3,13 @@ import { absoluteUrl } from "./utils";
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
 const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
-const DEFAULT_SCOPES = ["chat:write", "chat:write.public", "channels:read", "groups:read"];
+const DEFAULT_SCOPES = [
+    "chat:write",
+    "chat:write.public",
+    "channels:read",
+    "groups:read",
+    "reactions:write",
+];
 
 type SlackInstallConfig = {
     clientId: string;
