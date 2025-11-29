@@ -18,3 +18,4 @@ app.all("/", oauthMiddleware, async (c) => {
 
 export const GET = handle(app);
 export const POST = handle(app);
+export const OPTIONS = handle(app);
