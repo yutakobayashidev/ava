@@ -3,6 +3,10 @@
     "ava": {
       "type": "http",
       "url": "https://ava-dusky-gamma.vercel.app/mcp"
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
     }
   }
 }
