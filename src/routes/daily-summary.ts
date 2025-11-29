@@ -1,61 +1,46 @@
-import { NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/session";
-import { db } from "@/clients/drizzle";
+import { createHonoApp } from "@/app/create-app";
 import { createTaskRepository } from "@/repos";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { postMessage } from "@/clients/slack";
-import { createWorkspaceRepository } from "@/repos";
+import { oauthMiddleware } from "@/middleware/oauth";
 import type { Workspace } from "@/db/schema";
 
-export async function POST() {
+const app = createHonoApp();
+
+app.post("/", oauthMiddleware, async (c) => {
   try {
-    const { user } = await getCurrentSession();
+    const user = c.get("user");
+    const workspace = c.get("workspace");
+    const db = c.get("db");
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const taskRepository = createTaskRepository({ db });
 
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
-
-  if (!workspace) {
-    return NextResponse.json(
-      { error: "Workspace not connected for user" },
-      { status: 400 },
-    );
-  }
-
-  // 今日の開始と終了の時刻を取得
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
+    // 今日の開始と終了の時刻を取得
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     // 全タスクを取得（完了・進行中・ブロック中すべて）
-  const allCompletedTasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status: "completed",
-    limit: 100,
-  });
-  const inProgressTasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status: "in_progress",
-    limit: 100,
-  });
-  const blockedTasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status: "blocked",
-    limit: 100,
-  });
+    const allCompletedTasks = await taskRepository.listTaskSessions({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: "completed",
+      limit: 100,
+    });
+    const inProgressTasks = await taskRepository.listTaskSessions({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: "in_progress",
+      limit: 100,
+    });
+    const blockedTasks = await taskRepository.listTaskSessions({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: "blocked",
+      limit: 100,
+    });
 
     // 今日完了したタスクをフィルタリング
     const todayCompletedTasks = allCompletedTasks.filter((task) => {
@@ -65,16 +50,15 @@ export async function POST() {
     });
 
     // 今日更新された進行中・ブロック中タスクをフィルタリング
-    const todayActiveTasks = [...inProgressTasks, ...blockedTasks].filter((task) => {
-      const updatedAt = new Date(task.updatedAt);
-      return updatedAt >= today && updatedAt < tomorrow;
-    });
+    const todayActiveTasks = [...inProgressTasks, ...blockedTasks].filter(
+      (task) => {
+        const updatedAt = new Date(task.updatedAt);
+        return updatedAt >= today && updatedAt < tomorrow;
+      }
+    );
 
     if (todayCompletedTasks.length === 0 && todayActiveTasks.length === 0) {
-      return NextResponse.json(
-        { error: "今日のタスク活動がありません" },
-        { status: 400 }
-      );
+      return c.json({ error: "今日のタスク活動がありません" }, 400);
     }
 
     // 各完了タスクの詳細情報を取得
@@ -83,15 +67,17 @@ export async function POST() {
         const completion = await taskRepository.findCompletionByTaskSessionId(
           task.id
         );
-        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks =
+          await taskRepository.getUnresolvedBlockReports(task.id);
         return {
           title: task.issueTitle,
           initialSummary: task.initialSummary,
           completionSummary: completion?.summary || "",
           prUrl: completion?.prUrl || "",
-          duration: task.completedAt && task.createdAt
-            ? task.completedAt.getTime() - task.createdAt.getTime()
-            : 0,
+          duration:
+            task.completedAt && task.createdAt
+              ? task.completedAt.getTime() - task.createdAt.getTime()
+              : 0,
           unresolvedBlocks: unresolvedBlocks.map((block) => ({
             reason: block.reason,
             createdAt: block.createdAt,
@@ -103,7 +89,8 @@ export async function POST() {
     // 進行中・ブロック中タスクの詳細情報を取得
     const activeTasksWithDetails = await Promise.all(
       todayActiveTasks.map(async (task) => {
-        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks =
+          await taskRepository.getUnresolvedBlockReports(task.id);
         const updates = await taskRepository.listUpdates(task.id, { limit: 5 });
         return {
           title: task.issueTitle,
@@ -119,12 +106,15 @@ export async function POST() {
     );
 
     // LLMで1日のまとめを生成
-    const summary = await generateDailySummary(completedTasksWithDetails, activeTasksWithDetails);
+    const summary = await generateDailySummary(
+      completedTasksWithDetails,
+      activeTasksWithDetails
+    );
 
     // Slackに投稿
-  const slackResult = await postToSlack(summary, workspace);
+    const slackResult = await postToSlack(summary, workspace);
 
-    return NextResponse.json({
+    return c.json({
       success: true,
       completedTasksCount: todayCompletedTasks.length,
       activeTasksCount: todayActiveTasks.length,
@@ -133,12 +123,9 @@ export async function POST() {
     });
   } catch (error) {
     console.error("Daily summary error:", error);
-    return NextResponse.json(
-      { error: "Failed to generate daily summary" },
-      { status: 500 }
-    );
+    return c.json({ error: "Failed to generate daily summary" }, 500);
   }
-}
+});
 
 async function generateDailySummary(
   completedTasks: Array<{
@@ -172,33 +159,39 @@ async function generateDailySummary(
     return `${minutes}分`;
   };
 
-  const completedSection = completedTasks.length > 0 ? `
+  const completedSection =
+    completedTasks.length > 0
+      ? `
 完了タスク (${completedTasks.length}件):
 ${completedTasks
-      .map(
-        (task, i) => `
+  .map(
+    (task, i) => `
 ${i + 1}. 【${task.title}】
    - 初期サマリ: ${task.initialSummary}
    - 完了サマリ: ${task.completionSummary}
    - 所要時間: ${formatDuration(task.duration)}
    - PR: ${task.prUrl}
-   ${task.unresolvedBlocks.length > 0 ? `- ⚠️ 未解決のブロッキング: ${task.unresolvedBlocks.map(b => b.reason).join(", ")}` : ""}
+   ${task.unresolvedBlocks.length > 0 ? `- ⚠️ 未解決のブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
 `
-      )
-      .join("\n")}` : "";
+  )
+  .join("\n")}`
+      : "";
 
-  const activeSection = activeTasks.length > 0 ? `
+  const activeSection =
+    activeTasks.length > 0
+      ? `
 進行中・ブロック中タスク (${activeTasks.length}件):
 ${activeTasks
-      .map(
-        (task, i) => `
+  .map(
+    (task, i) => `
 ${i + 1}. 【${task.title}】 (${task.status === "blocked" ? "ブロック中" : "進行中"})
    - 初期サマリ: ${task.initialSummary}
    ${task.latestUpdate ? `- 最新の更新: ${task.latestUpdate}` : ""}
-   ${task.unresolvedBlocks.length > 0 ? `- ⚠️ ブロッキング: ${task.unresolvedBlocks.map(b => b.reason).join(", ")}` : ""}
+   ${task.unresolvedBlocks.length > 0 ? `- ⚠️ ブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
 `
-      )
-      .join("\n")}` : "";
+  )
+  .join("\n")}`
+      : "";
 
   const prompt = `
 以下は本日のタスク活動の一覧です。1日の業務報告として、簡潔で分かりやすいまとめを日本語で生成してください。
@@ -260,3 +253,5 @@ async function postToSlack(summary: string, workspace: Workspace) {
     };
   }
 }
+
+export default app;
