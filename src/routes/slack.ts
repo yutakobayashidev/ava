@@ -1,5 +1,3 @@
- 
-
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp } from "@/app/create-app";
