@@ -4,6 +4,7 @@ import nextTs from "eslint-config-next/typescript";
 import prettier from "eslint-config-prettier/flat";
 import drizzle from "eslint-plugin-drizzle";
 import tseslint from "typescript-eslint";
+import vitest from "@vitest/eslint-plugin";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -44,6 +45,19 @@ const eslintConfig = defineConfig([
           drizzleObjectName: ["db"],
         },
       ],
+    },
+  },
+  {
+    name: "test",
+    files: ["**/*.spec.ts*", "**/*.test.ts*", "**/*.test-d.ts*"],
+    ignores: ["e2e/**"],
+    plugins: {
+      vitest,
+    },
+    rules: {
+      ...vitest.configs.recommended.rules,
+      "vitest/consistent-test-it": ["error", { fn: "it" }],
+      "vitest/require-top-level-describe": ["error"],
     },
   },
 ]);
