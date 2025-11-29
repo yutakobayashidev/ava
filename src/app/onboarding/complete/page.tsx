@@ -89,7 +89,7 @@ export default async function CompletePage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">
-                      Claude Codeでコーディング開始
+                      コーディングエージェントでコーディング開始
                     </h3>
                     <p className="text-sm text-slate-600">
                       普段通りにコードを書くだけ。エージェントが自動的に進捗をSlackに投稿します。

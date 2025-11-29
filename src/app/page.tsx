@@ -9,6 +9,9 @@ import {
   Zap,
 } from "lucide-react";
 import { getCurrentSession } from "@/lib/session";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 export default async function LandingPage() {
   const { user } = await getCurrentSession();
@@ -23,33 +26,39 @@ export default async function LandingPage() {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-24 md:py-32">
         <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-8">
+          <Badge
+            variant="secondary"
+            className="mb-8 px-4 py-2 text-sm bg-blue-50 text-blue-700 border-transparent"
+          >
             <Zap className="h-4 w-4" />
-            Stop context switching. Start shipping.
-          </div>
+            静かに寄り添う進捗共有
+          </Badge>
           <h1 className="text-6xl md:text-8xl font-bold text-slate-900 mb-6 tracking-tight">
-            Code in Flow.
-            <span className="block text-blue-600 mt-2">
-              AI Handles the Rest.
-            </span>
+            Quiet Progress.
+            <span className="block text-blue-600 mt-2">Gentle Updates.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            集中作業に最適化されたタスク管理。コーディングエージェントが自動的に進捗をSlackに同期—コンテキストスイッチ不要。
+            注意が散漫になったり差し込みでコンテキストスイッチが続いても、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+            <Button
+              asChild
+              size="lg"
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl h-auto"
             >
-              無料で始める
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <a
-              href="https://github.com"
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-slate-200 text-slate-700 rounded-xl font-semibold hover:border-slate-300 hover:bg-slate-50 transition-all"
+              <Link href="/login">
+                無料で始める
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="px-8 py-4 border-2 rounded-xl h-auto"
             >
-              GitHubで見る
-            </a>
+              <a href="https://github.com">GitHubで見る</a>
+            </Button>
           </div>
         </div>
       </section>
@@ -60,112 +69,164 @@ export default async function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
-                Built for Deep Work
+                安心して集中できる仕組みを
               </h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-                AIが進捗報告を自動化。あなたはフロー状態を保ったまま、コードに集中できます。
+                コーディングエージェントが思考の外部化を手伝い、静かに深呼吸してコードに集中できます。Slackのスレッドでは、必要なときだけ人がやさしく介入できます。
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="flex items-start gap-4">
+              <Card className="flex-row items-start gap-4 p-6">
                 <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    No Context Switching
+                    コンテキストスイッチに優しく
                   </h3>
                   <p className="text-slate-600">
-                    コードに集中したまま、AIが自動的にチームへ進捗を伝達します。
+                    差し込みや注意の散漫さで流れが切れても大丈夫。AIが静かに進捗を拾い上げ、あとから振り返れるように残します。
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start gap-4">
+              </Card>
+              <Card className="flex-row items-start gap-4 p-6">
                 <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    Process Transparency
+                    プロセスが伝わる安心
                   </h3>
                   <p className="text-slate-600">
-                    すべてのステップが記録・共有され、最終成果物だけでなくプロセスも正当に評価されます。
+                    すべてのステップが静かに共有され、最終成果物だけでなくプロセスも正当に伝わります。沈黙が不安に変わりません。
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start gap-4">
+              </Card>
+              <Card className="flex-row items-start gap-4 p-6">
                 <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    Trust by Default
+                    報告文の苦痛から解放
                   </h3>
                   <p className="text-slate-600">
-                    沈黙は停滞を意味しません。自動更新により、集中を妨げずにチームへ状況を伝えられます。
+                    「いま何を書けば？」と悩む時間を削減。AIが言語化を手伝い、集中を妨げずにチームへ状況を伝えられます。
                   </p>
                 </div>
-              </div>
-              <div className="flex items-start gap-4">
+              </Card>
+              <Card className="flex-row items-start gap-4 p-6">
                 <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    No Micromanagement
+                    必要なときだけ声をかけられる
                   </h3>
                   <p className="text-slate-600">
-                    透明性の高い可視化により、頻繁な確認会議が不要になります。
+                    Slackのスレッドに静かに積み上がるので、過度なチェックインは不要。必要なときだけ人が介入し、やさしくサポートできます。
                   </p>
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
       {/* Problem Statement */}
-      <section className="bg-slate-50 py-24 md:py-32">
+      <section className="bg-gradient-to-b from-slate-50 via-white to-slate-50 py-24 md:py-32">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-                The Cost of Context Switching
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            <div className="space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-relaxed">
+                エージェントでコンテキストスイッチを削減
               </h2>
-              <p className="text-xl text-slate-600">
-                進捗報告のたびに集中が途切れる。その代償は思っているより大きい。
+              <p className="text-xl text-slate-600 leading-relaxed">
+                AIエージェントとコーディングするだけで、
+                進捗管理もエージェントに任せて、開発に集中できます。
               </p>
+              <div className="space-y-4">
+                <ProblemRow text="タスク開始・進捗・ブロッカー・完了を自動でSlackへ" />
+                <ProblemRow text="コード書くことに集中、報告文を考える時間はゼロに" />
+                <ProblemRow text="チームは進捗を把握でき、必要なときだけサポート" />
+                <ProblemRow text="エージェントが働いた履歴を、そのまま成果として共有" />
+              </div>
             </div>
-            <div className="bg-white p-8 md:p-12 rounded-2xl border border-slate-200">
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                こんな経験はありませんか？
-              </h3>
-              <ul className="space-y-4 text-slate-700">
-                <li className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>
-                    フロー状態でコードを書いていたら、気づいたら数時間経っていて報告を忘れていた
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>
-                    進捗報告の文章を書く方が、コードを書くより難しく感じる
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>
-                    報告しないとチェックインされ、さらに集中が途切れる悪循環
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-slate-400 shrink-0 mt-1" />
-                  <span>
-                    作業の可視性は欲しいけど、コミュニケーションのオーバーヘッドは避けたい
-                  </span>
-                </li>
-              </ul>
+            <div className="relative">
+              <div
+                className="absolute inset-0 blur-3xl bg-gradient-to-br from-blue-100 via-white to-teal-100 rounded-3xl"
+                aria-hidden
+              />
+              <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-semibold">
+                      AI
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Slack Thread</p>
+                      <p className="font-semibold text-slate-900">
+                        #dev-updates
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      title: "APIエンドポイント統合作業",
+                      desc: "進捗まとめと懸念をスレッドに記録しました。",
+                      time: "10:12",
+                      tone: "bg-blue-50 text-blue-800",
+                    },
+                    {
+                      title: "ブロッカー: テスト用認証ヘッダー",
+                      desc: "ベンチトークンがエラー。サンプルを共有いただけると助かります。",
+                      time: "11:04",
+                      tone: "bg-orange-50 text-orange-800",
+                    },
+                    {
+                      title: "PR ready for review",
+                      desc: "Slack通知→GitHub自動連携。レビュー依頼のみ人が介入。",
+                      time: "12:48",
+                      tone: "bg-emerald-50 text-emerald-800",
+                    },
+                  ].map((item) => (
+                    <Card
+                      key={item.title}
+                      className="rounded-2xl p-4 bg-slate-50/80 gap-2"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-slate-900">
+                          {item.title}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs font-semibold px-2.5 py-1 border-transparent ${item.tone}`}
+                        >
+                          {item.time}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+                <Card className="rounded-2xl bg-slate-50 p-4 flex-row items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold">
+                    PM
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      マネージャー
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      スレッド見ました。サンプルヘッダー送ります、他に必要な情報あれば教えてください。
+                    </p>
+                  </div>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -174,37 +235,140 @@ export default async function LandingPage() {
       {/* Features Section */}
       <section className="py-24 md:py-32">
         <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr,0.95fr] gap-12 items-start">
+            <div className="space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
+                コードに集中、進捗は自動でデリバリー
+              </h2>
+              <p className="text-xl text-slate-600 leading-relaxed">
+                Claude
+                CodeやCursorなどのお使いのコーディングエージェントと一緒にコードを書くだけで、エージェントが進捗をやさしくスレッドに投稿し、人が必要ならその場でコメントして介入できます。
+              </p>
+            </div>
+            <div className="space-y-0">
+              <FlowCard
+                icon={<MessageSquare className="h-5 w-5 text-blue-700" />}
+                title="タスク開始"
+                dotClass="bg-blue-600"
+                description="エージェントがタスク開始とコンテキストをSlackスレッドへ。チームは静かに状況を把握。"
+              />
+              <FlowCard
+                icon={<ArrowRight className="h-5 w-5 text-blue-700" />}
+                title="進捗更新"
+                dotClass="bg-blue-600"
+                description="細かな進捗も自動で積み上がり、報告文を考える負担を軽減。必要なときだけ人が返信。"
+              />
+              <FlowCard
+                icon={<AlertCircle className="h-5 w-5 text-blue-700" />}
+                title="ブロック報告"
+                dotClass="bg-blue-600"
+                description="詰まりは同じスレッドに即通知。気まずいお願いなしで、メンバーがそのままフォロー。"
+              />
+              <FlowCard
+                icon={<GitPullRequest className="h-5 w-5 text-blue-700" />}
+                title="タスク完了"
+                dotClass="bg-blue-600"
+                description="完了とPRをまとめて投稿。静かな進行を保ったまま、レビュー待ちもスムーズに。"
+                isLast
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Dashboard & Summary Section */}
+      <section className="border-t border-slate-200 py-24 md:py-32 bg-white">
+        <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-                How It Works
+                いつでも振り返る
               </h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-                コーディングエージェント + MCP + Slack =
-                何もしなくても自動で進捗報告
+                ダッシュボードで全タスクの進捗と所要時間を一覧表示。ワンクリックで1日の業務まとめをAIが生成し、Slackへ自動投稿。
               </p>
             </div>
+
             <div className="grid md:grid-cols-2 gap-8">
-              <FeatureCard
-                icon={<MessageSquare className="h-8 w-8 text-blue-600" />}
-                title="タスク開始"
-                description="コーディングエージェントがタスクを開始すると、コンテキスト、セッションID、初期アプローチとともに自動的にSlackへ投稿されます。"
-              />
-              <FeatureCard
-                icon={<ArrowRight className="h-8 w-8 text-green-600" />}
-                title="進捗更新"
-                description="リアルタイムの進捗がSlackスレッドに同期されます。チームは聞かなくても状況を把握できます。"
-              />
-              <FeatureCard
-                icon={<AlertCircle className="h-8 w-8 text-orange-600" />}
-                title="ブロック報告"
-                description="行き詰まったら、即座にチームへ通知。気まずいお願いなしで、サポートを得られます。"
-              />
-              <FeatureCard
-                icon={<GitPullRequest className="h-8 w-8 text-purple-600" />}
-                title="タスク完了"
-                description="完了したら、PRが自動的にSlackへ共有されレビュー待ちに。より早く出荷、より少ないコミュニケーション。"
-              />
+              <Card className="p-8 gap-6">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <svg
+                      className="h-6 w-6 text-blue-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900">
+                    タスクダッシュボード
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    すべてのタスクの状態、開始・完了日時、所要時間を一覧表示。進行中・ブロック中・完了のステータスを即座に把握できます。
+                  </p>
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      タスク一覧と詳細サマリ
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      ステータスバッジで状態を可視化
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      所要時間の自動計算
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-8 gap-6">
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <svg
+                      className="h-6 w-6 text-blue-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900">
+                    1日の自動まとめ
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    ボタン一つで、今日完了・進行中・ブロック中のタスクをAIが要約。完了タスクの成果、所要時間、未解決の課題を含めてSlackへ自動投稿。
+                  </p>
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      AIによる自然な文章生成
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      完了タスクとPRの自動列挙
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      ブロッキング課題の明記
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
         </div>
@@ -216,27 +380,27 @@ export default async function LandingPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
-                Get Started in Minutes
+                静かに始める3ステップ
               </h2>
               <p className="text-xl text-slate-600">
-                3つの簡単なステップで、コンテキストスイッチを永遠に排除
+                少しの設定で、進捗共有をやさしく自動化。
               </p>
             </div>
             <div className="space-y-8">
               <Step
                 number="1"
-                title="MCPサーバーを接続"
-                description="お使いのコーディングエージェントにAI Task ManagerのMCPサーバーを追加。設定1行で完了。"
+                title="Slackワークスペースを連携"
+                description="Slackでアプリをインストールし、通知チャンネルを選択。スレッドでの投稿を確認しながら、いつでも人が介入できます。"
               />
               <Step
                 number="2"
-                title="Slackワークスペースを連携"
-                description="OAuthで認証し、通知チャンネルを選択。30秒で完了。"
+                title="MCPサーバーを接続"
+                description="お使いのコーディングエージェントにAI Task ManagerのMCPサーバーを追加。設定は1行、すぐに始められます。"
               />
               <Step
                 number="3"
                 title="コーディング開始"
-                description="これだけ。エージェントがすべてのタスク更新を自動的にSlackに同期。もう二度と考える必要はありません。"
+                description="あとはいつも通りコードを書く。エージェントがすべてのタスク更新を静かにSlackに同期し、必要なときだけ声をかけられる状態を保ちます。"
               />
             </div>
           </div>
@@ -248,29 +412,31 @@ export default async function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
-              Ready to Stop Context Switching?
+              静かな伴走で、進捗を届けませんか？
             </h2>
             <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto">
-              フロー状態でコードを書き続けながら、AIがコミュニケーションのオーバーヘッドを処理する開発者の仲間入りを。
+              注意が散漫になる日や、報告文を書く気力が湧かない日も大丈夫。AIがSlackスレッドに進捗を積み上げ、必要なら人がすぐ寄り添えます。
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
+              <Button
+                asChild
+                size="lg"
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl h-auto"
               >
-                無料で始める
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-              <a
-                href="https://github.com"
-                className="inline-flex items-center justify-center px-8 py-4 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition-all border border-slate-700"
+                <Link href="/login">
+                  無料で始める
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl h-auto text-white hover:text-white"
               >
-                ドキュメントを見る
-              </a>
+                <a href="https://github.com">ドキュメントを見る</a>
+              </Button>
             </div>
-            <p className="text-slate-400 mt-8">
-              クレジットカード不要 • 個人開発者は無料
-            </p>
           </div>
         </div>
       </section>
@@ -300,24 +466,6 @@ export default async function LandingPage() {
   );
 }
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-      <div className="mb-4">{icon}</div>
-      <h3 className="text-2xl font-bold text-slate-900 mb-3">{title}</h3>
-      <p className="text-slate-600 leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
 function Step({
   number,
   title,
@@ -337,6 +485,154 @@ function Step({
       <div>
         <h3 className="text-2xl font-bold text-slate-900 mb-2">{title}</h3>
         <p className="text-slate-600 leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlowCard({
+  icon,
+  title,
+  description,
+  dotClass,
+  isLast = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  dotClass: string;
+  isLast?: boolean;
+}) {
+  return (
+    <div className="relative pl-12 pb-10 last:pb-0">
+      {!isLast && (
+        <div
+          className="absolute left-[6px] top-4 bottom-0 w-px bg-gradient-to-b from-slate-200 via-slate-200 to-transparent"
+          aria-hidden
+        />
+      )}
+      <div
+        className={`absolute left-0 top-2 h-4 w-4 rounded-full border-2 border-white shadow-sm ${dotClass}`}
+      />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+            {icon}
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProblemRow({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-3 group">
+      <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-600 mt-2.5" />
+      <p className="text-lg text-slate-700 leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function PreviewMock() {
+  const entries = [
+    {
+      title: "Slack Thread #dev-updates",
+      items: [
+        {
+          label: "進捗",
+          color: "bg-blue-50 text-blue-800",
+          text: "MCP連携を追加し、ステータスを自動投稿。差し込みタスクもスレッドに残す。",
+        },
+        {
+          label: "ブロック",
+          color: "bg-orange-50 text-orange-800",
+          text: "Staging認証ヘッダーが 401。共有いただければ即復帰できます。",
+        },
+        {
+          label: "完了",
+          color: "bg-emerald-50 text-emerald-800",
+          text: "PR #128 を作成、レビュー依頼のみ人が対応。AIが要約を投稿済み。",
+        },
+      ],
+    },
+  ];
+
+  return (
+    <div className="relative">
+      <div
+        className="absolute -inset-4 bg-gradient-to-br from-blue-100 via-white to-teal-100 blur-3xl"
+        aria-hidden
+      />
+      <div className="relative bg-white/90 backdrop-blur-md border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">
+            実際のUIに近いプレビュー
+          </p>
+          <span className="text-xs text-slate-400">live</span>
+        </div>
+        <div className="p-6 space-y-4">
+          {entries.map((entry) => (
+            <div key={entry.title} className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  {entry.title}
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="px-2.5 py-1 text-xs bg-slate-100 text-slate-700 border-transparent font-semibold"
+                >
+                  人もコメント可能
+                </Badge>
+              </div>
+              <div className="grid gap-3">
+                {entry.items.map((item) => (
+                  <Card
+                    key={item.text}
+                    className="rounded-2xl bg-slate-50/60 p-4 gap-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs font-semibold px-2 py-1 border-transparent ${item.color}`}
+                      >
+                        {item.label}
+                      </Badge>
+                      <span className="text-xs text-slate-500">
+                        Slackスレッドに投稿
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed">
+                      {item.text}
+                    </p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-slate-200 px-6 py-4 bg-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
+              PM
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                マネージャーが返信
+              </p>
+              <p className="text-sm text-slate-600">
+                コメントでフォロー。必要に応じて人がすぐ介入できるスレッド運用です。
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
