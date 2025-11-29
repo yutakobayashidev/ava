@@ -14,13 +14,6 @@ type AddReactionParams = {
   name: string;
 };
 
-type PostEphemeralParams = {
-  token: string;
-  channel: string;
-  user: string;
-  text: string;
-};
-
 export type SlackChannel = {
   id: string;
   name: string;
@@ -115,27 +108,4 @@ export const addReaction = async ({
     }
     throw error;
   }
-};
-
-export const postEphemeral = async ({
-  token,
-  channel,
-  user,
-  text,
-}: PostEphemeralParams) => {
-  const client = new WebClient(token);
-
-  const result = await client.chat.postEphemeral({
-    channel,
-    user,
-    text,
-  });
-
-  if (!result.ok) {
-    throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
-  }
-
-  return {
-    messageTs: result.message_ts,
-  };
 };
