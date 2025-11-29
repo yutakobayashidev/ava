@@ -1,3 +1,5 @@
+import { WebClient } from "@slack/web-api";
+
 type PostMessageParams = {
     token: string;
     channel: string;
@@ -5,39 +7,11 @@ type PostMessageParams = {
     threadTs?: string;
 };
 
-type SlackConversation = {
-    id: string;
-    name: string;
-    is_private?: boolean;
-    is_archived?: boolean;
-};
-
-type SlackPostMessageResponse = {
-    ok: boolean;
-    channel?: string;
-    ts?: string;
-    error?: string;
-};
-
-type SlackConversationsListResponse = {
-    ok: boolean;
-    channels?: SlackConversation[];
-    response_metadata?: {
-        next_cursor?: string;
-    };
-    error?: string;
-};
-
 type AddReactionParams = {
     token: string;
     channel: string;
     timestamp: string;
     name: string;
-};
-
-type SlackReactionResponse = {
-    ok: boolean;
-    error?: string;
 };
 
 export type SlackChannel = {
@@ -52,70 +26,53 @@ export const postMessage = async ({
     text,
     threadTs,
 }: PostMessageParams) => {
-    const response = await fetch("https://slack.com/api/chat.postMessage", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            channel,
-            text,
-            thread_ts: threadTs,
-        }),
+    const client = new WebClient(token);
+
+    const result = await client.chat.postMessage({
+        channel,
+        text,
+        thread_ts: threadTs,
     });
 
-    const payload = (await response.json()) as SlackPostMessageResponse;
-
-    if (!response.ok || !payload.ok) {
-        const message = payload.error ?? response.statusText;
-        throw new Error(`Slack API error: ${message}`);
+    if (!result.ok) {
+        throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
     }
 
     return {
-        channel: payload.channel ?? channel,
-        ts: payload.ts,
+        channel: result.channel ?? channel,
+        ts: result.ts,
     };
 };
 
 export const listChannels = async (token: string): Promise<SlackChannel[]> => {
+    const client = new WebClient(token);
     const channels: SlackChannel[] = [];
     let cursor: string | undefined;
 
     do {
-        const url = new URL("https://slack.com/api/conversations.list");
-        url.searchParams.set("limit", "200");
-        url.searchParams.set("types", "public_channel,private_channel");
-        if (cursor) {
-            url.searchParams.set("cursor", cursor);
-        }
-
-        const response = await fetch(url, {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+        const result = await client.conversations.list({
+            limit: 200,
+            types: "public_channel,private_channel",
+            cursor,
         });
 
-        const payload = (await response.json()) as SlackConversationsListResponse;
-
-        if (!response.ok || !payload.ok) {
-            const message = payload.error ?? response.statusText;
-            throw new Error(`Slack API error: ${message}`);
+        if (!result.ok) {
+            throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
         }
 
-        channels.push(
-            ...(payload.channels ?? [])
-                .filter((channel) => !channel.is_archived)
-                .map((channel) => ({
-                    id: channel.id,
-                    name: channel.name,
-                    isPrivate: channel.is_private ?? false,
-                })),
-        );
+        if (result.channels) {
+            channels.push(
+                ...result.channels
+                    .filter((channel) => !channel.is_archived)
+                    .map((channel) => ({
+                        id: channel.id!,
+                        name: channel.name!,
+                        isPrivate: channel.is_private ?? false,
+                    })),
+            );
+        }
 
-        cursor = payload.response_metadata?.next_cursor || undefined;
+        cursor = result.response_metadata?.next_cursor || undefined;
         if (cursor === "") {
             cursor = undefined;
         }
@@ -130,30 +87,25 @@ export const addReaction = async ({
     timestamp,
     name,
 }: AddReactionParams) => {
-    const response = await fetch("https://slack.com/api/reactions.add", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+    const client = new WebClient(token);
+
+    try {
+        const result = await client.reactions.add({
             channel,
             timestamp,
             name,
-        }),
-    });
+        });
 
-    const payload = (await response.json()) as SlackReactionResponse;
-
-    if (!response.ok || !payload.ok) {
-        // already_reacted エラーは無視する（既にリアクションが追加されている場合）
-        if (payload.error === "already_reacted") {
-            return { success: true };
+        if (!result.ok) {
+            throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
         }
 
-        const message = payload.error ?? response.statusText;
-        throw new Error(`Slack API error: ${message}`);
+        return { success: true };
+    } catch (error) {
+        // already_reacted エラーは無視する（既にリアクションが追加されている場合）
+        if (error instanceof Error && error.message.includes("already_reacted")) {
+            return { success: true };
+        }
+        throw error;
     }
-
-    return { success: true };
 };
