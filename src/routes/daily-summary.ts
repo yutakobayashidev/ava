@@ -5,6 +5,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { postMessage } from "@/clients/slack";
 import { oauthMiddleware } from "@/middleware/oauth";
 import type { Workspace } from "@/db/schema";
+import { fillPrompt } from "@/utils/prompts";
+import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 
 const app = createHonoApp();
 
@@ -193,22 +195,10 @@ ${i + 1}. 【${task.title}】 (${task.status === "blocked" ? "ブロック中" :
   .join("\n")}`
       : "";
 
-  const prompt = `
-以下は本日のタスク活動の一覧です。1日の業務報告として、簡潔で分かりやすいまとめを日本語で生成してください。
-
-${completedSection}
-${activeSection}
-
-まとめのガイドライン:
-- 10〜15行程度で簡潔に
-- 完了タスクの成果を明確に記載
-- 進行中・ブロック中のタスクがある場合は、状況を簡潔に記載
-- 未解決のブロッキングがある場合は、注意喚起として明記
-- 各タスクの要点を箇条書きで
-- チャットで報告するような自然な口調で
-- 絵文字は使わない
-- 「本日は〜」のような書き出しで始める
-  `.trim();
+  const prompt = fillPrompt(DAILY_SUMMARY_PROMPT, {
+    completedSection,
+    activeSection,
+  });
 
   const openai = createOpenAI({ apiKey });
 
