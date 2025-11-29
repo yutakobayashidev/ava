@@ -52,6 +52,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     debugIds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/docs/:path*.mdx',
+        destination: '/llms.mdx/:path*',
+      },
+    ];
+  },
   experimental: {
     browserDebugInfoInTerminal: true,
     turbopackFileSystemCacheForDev: true,

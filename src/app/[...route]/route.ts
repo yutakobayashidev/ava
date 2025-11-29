@@ -7,7 +7,7 @@ import oauthRoutes from "../../routes/oauth"
 import authRoutes from "../../routes/auth"
 import slackRoutes from "../../routes/slack"
 import { oauthMiddleware } from '@/middleware/oauth';
-import { createHonoApp } from '../factory';
+import { createHonoApp } from '../create-app';
 
 const app = createHonoApp()
 
@@ -19,8 +19,7 @@ app.all(
   "/mcp",
   oauthMiddleware,
   async (c) => {
-    const user = c.get('user');
-    const workspace = c.get('workspace');
+    const [user, workspace] = [c.get('user'), c.get('workspace')]
     const mcp = createMcpServer(user, workspace);
     const transport = new StreamableHTTPTransport();
 

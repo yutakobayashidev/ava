@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentSession } from "@/lib/session";
+import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
+
+const { rewrite: rewriteLLM } = rewritePath('/docs/*path', '/llms.mdx/*path');
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 静的ファイルやAPIルートはスキップ
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/static") ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp)$/)
-  ) {
-    return NextResponse.next();
+  if (isMarkdownPreferred(request)) {
+    const result = rewriteLLM(request.nextUrl.pathname);
+    if (result) {
+      return NextResponse.rewrite(new URL(result, request.nextUrl));
+    }
   }
 
   // ログインページとOAuthフローはスキップ

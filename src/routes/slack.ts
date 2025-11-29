@@ -1,6 +1,6 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
-import { createHonoApp } from "@/app/factory";
+import { createHonoApp } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
