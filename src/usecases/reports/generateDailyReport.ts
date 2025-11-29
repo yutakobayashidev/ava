@@ -1,5 +1,9 @@
 import type { Env } from "@/app/create-app";
-import { createTaskRepository } from "@/repos";
+import {
+  createTaskRepository,
+  createWorkspaceRepository,
+  createUserRepository,
+} from "@/repos";
 import { fillPrompt } from "@/utils/prompts";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import { generateText } from "@/lib/ai";
@@ -27,9 +31,14 @@ type ActiveTaskDetail = {
 };
 
 export type GenerateDailyReport = {
-  userId: string;
-  workspaceId: string;
+  slackTeamId: string;
+  slackUserId: string;
 };
+
+type DailyReportResult =
+  | { success: false; error: "workspace_not_found" | "user_not_found" }
+  | { success: false; error: "no_activity" }
+  | { success: true; summary: string };
 
 function formatDuration(ms: number): string {
   const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -100,11 +109,30 @@ function buildDailySummaryPrompt(
 export const generateDailyReport = async (
   params: GenerateDailyReport,
   ctx: Env["Variables"],
-) => {
-  const { userId, workspaceId } = params;
+): Promise<DailyReportResult> => {
+  const { slackTeamId, slackUserId } = params;
   const { db, ai } = ctx;
 
+  const workspaceRepository = createWorkspaceRepository({ db });
+  const userRepository = createUserRepository({ db });
   const taskRepository = createTaskRepository({ db });
+
+  // ワークスペースを取得
+  const workspace = await workspaceRepository.findWorkspaceByExternalId({
+    provider: "slack",
+    externalId: slackTeamId,
+  });
+
+  if (!workspace || !workspace.botAccessToken) {
+    return { success: false, error: "workspace_not_found" };
+  }
+
+  // SlackユーザーIDからDBユーザーを取得
+  const user = await userRepository.findUserBySlackId(slackUserId);
+
+  if (!user) {
+    return { success: false, error: "user_not_found" };
+  }
 
   // 今日の開始と終了の時刻を取得
   const today = new Date();
@@ -114,20 +142,20 @@ export const generateDailyReport = async (
 
   // 全タスクを取得
   const allCompletedTasks = await taskRepository.listTaskSessions({
-    userId,
-    workspaceId,
+    userId: user.id,
+    workspaceId: workspace.id,
     status: "completed",
     limit: 100,
   });
   const inProgressTasks = await taskRepository.listTaskSessions({
-    userId,
-    workspaceId,
+    userId: user.id,
+    workspaceId: workspace.id,
     status: "in_progress",
     limit: 100,
   });
   const blockedTasks = await taskRepository.listTaskSessions({
-    userId,
-    workspaceId,
+    userId: user.id,
+    workspaceId: workspace.id,
     status: "blocked",
     limit: 100,
   });
@@ -148,10 +176,7 @@ export const generateDailyReport = async (
   );
 
   if (todayCompletedTasks.length === 0 && todayActiveTasks.length === 0) {
-    return {
-      hasActivity: false,
-      summary: null,
-    };
+    return { success: false, error: "no_activity" };
   }
 
   // 各完了タスクの詳細情報を取得
@@ -210,7 +235,7 @@ export const generateDailyReport = async (
   const { text: summary } = await aiGenerateText(prompt);
 
   return {
-    hasActivity: true,
+    success: true,
     summary,
   };
 };

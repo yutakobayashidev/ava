@@ -1,19 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { handleApplicationCommands } from "./handleSlackCommands";
-import type {
-  WorkspaceRepository,
-  TaskRepository,
-  UserRepository,
-} from "@/repos";
 import type { Env } from "@/app/create-app";
 
 describe("handleApplicationCommands", () => {
-  const mockRepositories = {
-    workspaceRepository: {} as WorkspaceRepository,
-    taskRepository: {} as TaskRepository,
-    userRepository: {} as UserRepository,
-  };
-
   const mockCtx = {} as Env["Variables"];
 
   it("should call matching command handler", async () => {
@@ -33,7 +22,6 @@ describe("handleApplicationCommands", () => {
       command: "/test-command",
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       commands,
       ctx: mockCtx,
     });
@@ -41,7 +29,6 @@ describe("handleApplicationCommands", () => {
     expect(mockHandler).toHaveBeenCalledWith({
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       ctx: mockCtx,
     });
     expect(result).toEqual({
@@ -64,7 +51,6 @@ describe("handleApplicationCommands", () => {
       command: "/unknown-command",
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       commands,
       ctx: mockCtx,
     });
@@ -101,7 +87,6 @@ describe("handleApplicationCommands", () => {
       command: "/command-2",
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       commands,
       ctx: mockCtx,
     });
@@ -110,7 +95,6 @@ describe("handleApplicationCommands", () => {
     expect(mockHandler2).toHaveBeenCalledWith({
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       ctx: mockCtx,
     });
     expect(result).toEqual({
@@ -124,7 +108,6 @@ describe("handleApplicationCommands", () => {
       command: "/any-command",
       teamId: "T123",
       userId: "U123",
-      repositories: mockRepositories,
       commands: [],
       ctx: mockCtx,
     });

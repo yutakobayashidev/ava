@@ -1,11 +1,7 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp } from "@/app/create-app";
-import {
-  createWorkspaceRepository,
-  createTaskRepository,
-  createUserRepository,
-} from "@/repos";
+import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
 import { verifySlackSignature } from "@/middleware/slack";
@@ -140,17 +136,10 @@ app.post(
   async (ctx) => {
     const { team_id: teamId, user_id: userId, command } = ctx.req.valid("form");
 
-    const db = ctx.get("db");
-
     const result = await handleApplicationCommands({
       command,
       teamId,
       userId,
-      repositories: {
-        workspaceRepository: createWorkspaceRepository({ db }),
-        taskRepository: createTaskRepository({ db }),
-        userRepository: createUserRepository({ db }),
-      },
       commands: [dailyReportInteraction],
       ctx: {
         db: ctx.get("db"),
