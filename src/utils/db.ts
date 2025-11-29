@@ -1,5 +1,3 @@
-import "server-only";
-
 export function createDBUrl({
   user = process.env.DATABASE_USER,
   password = process.env.DATABASE_PASSWORD,
