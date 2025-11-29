@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
-import { db } from "../../../clients/drizzle";
-import * as schema from "../../../db/schema";
+import { db } from "@/clients/drizzle";
+import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
