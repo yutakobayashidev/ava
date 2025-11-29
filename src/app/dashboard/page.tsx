@@ -48,6 +48,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   const config =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     variants[status as keyof typeof variants] || variants.in_progress;
 
   return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -96,9 +97,7 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">
-            Dashboard
-          </h1>
+          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
           <p className="text-slate-600">
             タスクの進捗状況と所要時間を確認できます
           </p>

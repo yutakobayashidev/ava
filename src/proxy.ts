@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getCurrentSession } from "@/lib/session";
-import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
+import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
 
-const { rewrite: rewriteLLM } = rewritePath('/docs/*path', '/llms.mdx/*path');
+const { rewrite: rewriteLLM } = rewritePath("/docs/*path", "/llms.mdx/*path");
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

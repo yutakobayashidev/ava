@@ -4,92 +4,97 @@ const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
 const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
 const DEFAULT_SCOPES = [
-    "chat:write",
-    "chat:write.public",
-    "channels:read",
-    "groups:read",
-    "reactions:write",
+  "chat:write",
+  "chat:write.public",
+  "channels:read",
+  "groups:read",
+  "reactions:write",
 ];
 
 type SlackInstallConfig = {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-    scopes: string[];
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scopes: string[];
 };
 
 type SlackOAuthSuccess = {
-    access_token: string;
-    refresh_token?: string;
-    bot_user_id?: string;
-    scope?: string;
-    team?: {
-        id: string;
-        name: string;
-        domain?: string;
-    };
-    app_id?: string;
+  access_token: string;
+  refresh_token?: string;
+  bot_user_id?: string;
+  scope?: string;
+  team?: {
+    id: string;
+    name: string;
+    domain?: string;
+  };
+  app_id?: string;
 };
 
-type SlackOAuthResponse = ({ ok: true } & SlackOAuthSuccess) | { ok: false; error?: string };
+type SlackOAuthResponse =
+  | ({ ok: true } & SlackOAuthSuccess)
+  | { ok: false; error?: string };
 
 export const getSlackInstallConfig = (): SlackInstallConfig => {
-    const clientId = process.env.SLACK_APP_CLIENT_ID!;
-    const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-    const redirectUri = absoluteUrl("/slack/install/callback");
+  const clientId = process.env.SLACK_APP_CLIENT_ID!;
+  const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
+  const redirectUri = absoluteUrl("/slack/install/callback");
 
-    return {
-        clientId,
-        clientSecret,
-        redirectUri,
-        scopes: DEFAULT_SCOPES,
-    };
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+    scopes: DEFAULT_SCOPES,
+  };
 };
 
 export const buildSlackInstallUrl = (state: string): string => {
-    const config = getSlackInstallConfig();
+  const config = getSlackInstallConfig();
 
-    const url = new URL(SLACK_OAUTH_ENDPOINT);
-    url.searchParams.set("client_id", config.clientId);
-    url.searchParams.set("redirect_uri", config.redirectUri);
-    url.searchParams.set("scope", config.scopes.join(","));
-    url.searchParams.set("state", state);
+  const url = new URL(SLACK_OAUTH_ENDPOINT);
+  url.searchParams.set("client_id", config.clientId);
+  url.searchParams.set("redirect_uri", config.redirectUri);
+  url.searchParams.set("scope", config.scopes.join(","));
+  url.searchParams.set("state", state);
 
-    return url.toString();
+  return url.toString();
 };
 
 export const exchangeSlackInstallCode = async (code: string) => {
-    const config = getSlackInstallConfig();
+  const config = getSlackInstallConfig();
 
-    const body = new URLSearchParams({
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        code,
-        redirect_uri: config.redirectUri,
-    });
+  const body = new URLSearchParams({
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
+    code,
+    redirect_uri: config.redirectUri,
+  });
 
-    const response = await fetch(SLACK_TOKEN_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body,
-    });
+  const response = await fetch(SLACK_TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
 
-    const payload = (await response.json()) as SlackOAuthResponse;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const payload = (await response.json()) as SlackOAuthResponse;
 
-    if (!response.ok || !payload.ok) {
-        const message = payload.ok ? response.statusText : payload.error ?? "unknown_error";
-        throw new Error(`Slack OAuth error: ${message}`);
-    }
+  if (!response.ok || !payload.ok) {
+    const message = payload.ok
+      ? response.statusText
+      : (payload.error ?? "unknown_error");
+    throw new Error(`Slack OAuth error: ${message}`);
+  }
 
-    return {
-        accessToken: payload.access_token,
-        refreshToken: payload.refresh_token,
-        botUserId: payload.bot_user_id,
-        teamId: payload.team?.id ?? "unknown",
-        teamName: payload.team?.name ?? "unknown",
-        teamDomain: payload.team?.domain,
-        scope: payload.scope,
-    };
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    botUserId: payload.bot_user_id,
+    teamId: payload.team?.id ?? "unknown",
+    teamName: payload.team?.name ?? "unknown",
+    teamDomain: payload.team?.domain,
+    scope: payload.scope,
+  };
 };

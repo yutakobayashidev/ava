@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 import { config } from "./env";
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from "fumadocs-mdx/next";
 
-config()
+config();
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
     removeConsole:
       process.env.NODE_ENV === "production"
         ? {
-          exclude: ["error"],
-        }
+            exclude: ["error"],
+          }
         : false,
   },
   logging: {
@@ -55,8 +55,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/docs/:path*.mdx',
-        destination: '/llms.mdx/:path*',
+        source: "/docs/:path*.mdx",
+        destination: "/llms.mdx/:path*",
       },
     ];
   },

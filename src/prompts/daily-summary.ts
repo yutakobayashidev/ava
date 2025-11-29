@@ -1,4 +1,5 @@
-export const DAILY_SUMMARY_PROMPT = `以下は本日のタスク活動の一覧です。1日の業務報告として、簡潔で分かりやすいまとめを日本語で生成してください。
+export const DAILY_SUMMARY_PROMPT =
+  `以下は本日のタスク活動の一覧です。1日の業務報告として、簡潔で分かりやすいまとめを日本語で生成してください。
 
 {{completedSection}}
 {{activeSection}}

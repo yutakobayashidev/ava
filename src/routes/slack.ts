@@ -1,7 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp } from "@/app/create-app";
-import { createWorkspaceRepository, createTaskRepository, createUserRepository } from "@/repos";
+import {
+  createWorkspaceRepository,
+  createTaskRepository,
+  createUserRepository,
+} from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
 import { postEphemeral } from "@/clients/slack";
@@ -15,17 +21,25 @@ const app = createHonoApp();
 
 const STATE_COOKIE = "slack_install_state";
 
-const redirectWithMessage = (req: Request, path: string, params: Record<string, string>) => {
+const redirectWithMessage = (
+  req: Request,
+  path: string,
+  params: Record<string, string>,
+) => {
   const base = new URL(req.url).origin;
   const url = new URL(path, base);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  Object.entries(params).forEach(([key, value]) =>
+    url.searchParams.set(key, value),
+  );
   return url.toString();
 };
 
 app.get("/install/callback", async (c) => {
   const sessionToken = getCookie(c, "session");
 
-  const { user } = sessionToken ? await validateSessionToken(sessionToken) : { user: null };
+  const { user } = sessionToken
+    ? await validateSessionToken(sessionToken)
+    : { user: null };
   if (!user) {
     return c.redirect("/login?callbackUrl=/slack/install");
   }
@@ -36,19 +50,23 @@ app.get("/install/callback", async (c) => {
 
   if (!code) {
     return c.redirect(
-      redirectWithMessage(c.req.raw, "/slack/install", { error: "missing_code" }),
+      redirectWithMessage(c.req.raw, "/slack/install", {
+        error: "missing_code",
+      }),
     );
   }
 
   if (!storedState || storedState !== state) {
     return c.redirect(
-      redirectWithMessage(c.req.raw, "/slack/install", { error: "state_mismatch" }),
+      redirectWithMessage(c.req.raw, "/slack/install", {
+        error: "state_mismatch",
+      }),
     );
   }
 
   try {
     const oauthResult = await exchangeSlackInstallCode(code);
-    const db = c.get('db');
+    const db = c.get("db");
     const workspaceRepository = createWorkspaceRepository({ db });
 
     const existing = await workspaceRepository.findWorkspaceByExternalId({
@@ -177,7 +195,7 @@ app.post("/commands", verifySlackSignature, async (c) => {
       (task) => {
         const updatedAt = new Date(task.updatedAt);
         return updatedAt >= today && updatedAt < tomorrow;
-      }
+      },
     );
 
     if (todayCompletedTasks.length === 0 && todayActiveTasks.length === 0) {
@@ -194,10 +212,11 @@ app.post("/commands", verifySlackSignature, async (c) => {
     const completedTasksWithDetails = await Promise.all(
       todayCompletedTasks.map(async (task) => {
         const completion = await taskRepository.findCompletionByTaskSessionId(
-          task.id
+          task.id,
         );
-        const unresolvedBlocks =
-          await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
+          task.id,
+        );
         return {
           title: task.issueTitle,
           initialSummary: task.initialSummary,
@@ -212,14 +231,15 @@ app.post("/commands", verifySlackSignature, async (c) => {
             createdAt: block.createdAt,
           })),
         };
-      })
+      }),
     );
 
     // 進行中・ブロック中タスクの詳細情報を取得
     const activeTasksWithDetails = await Promise.all(
       todayActiveTasks.map(async (task) => {
-        const unresolvedBlocks =
-          await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
+          task.id,
+        );
         const updates = await taskRepository.listUpdates(task.id, { limit: 5 });
         return {
           title: task.issueTitle,
@@ -231,13 +251,13 @@ app.post("/commands", verifySlackSignature, async (c) => {
             createdAt: block.createdAt,
           })),
         };
-      })
+      }),
     );
 
     // LLMで1日のまとめを生成
     const summary = await generateDailySummary(
       completedTasksWithDetails,
-      activeTasksWithDetails
+      activeTasksWithDetails,
     );
 
     // ephemeral messageとして送信
@@ -276,7 +296,7 @@ async function generateDailySummary(
       reason: string;
       createdAt: Date;
     }>;
-  }>
+  }>,
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY!;
 
@@ -292,17 +312,17 @@ async function generateDailySummary(
       ? `
 完了タスク (${completedTasks.length}件):
 ${completedTasks
-        .map(
-          (task, i) => `
+  .map(
+    (task, i) => `
 ${i + 1}. 【${task.title}】
    - 初期サマリ: ${task.initialSummary}
    - 完了サマリ: ${task.completionSummary}
    - 所要時間: ${formatDuration(task.duration)}
    - PR: ${task.prUrl}
    ${task.unresolvedBlocks.length > 0 ? `- ⚠️ 未解決のブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
-`
-        )
-        .join("\n")}`
+`,
+  )
+  .join("\n")}`
       : "";
 
   const activeSection =
@@ -310,15 +330,15 @@ ${i + 1}. 【${task.title}】
       ? `
 進行中・ブロック中タスク (${activeTasks.length}件):
 ${activeTasks
-        .map(
-          (task, i) => `
+  .map(
+    (task, i) => `
 ${i + 1}. 【${task.title}】 (${task.status === "blocked" ? "ブロック中" : "進行中"})
    - 初期サマリ: ${task.initialSummary}
    ${task.latestUpdate ? `- 最新の更新: ${task.latestUpdate}` : ""}
    ${task.unresolvedBlocks.length > 0 ? `- ⚠️ ブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
-`
-        )
-        .join("\n")}`
+`,
+  )
+  .join("\n")}`
       : "";
 
   const prompt = fillPrompt(DAILY_SUMMARY_PROMPT, {

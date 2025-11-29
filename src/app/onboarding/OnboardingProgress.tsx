@@ -28,7 +28,9 @@ export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
               <span className="uppercase tracking-[0.18em] text-[11px] font-semibold text-slate-500">
                 Onboarding
               </span>
-              <span className="text-sm text-slate-500">Step {currentStep} / 3</span>
+              <span className="text-sm text-slate-500">
+                Step {currentStep} / 3
+              </span>
             </div>
             <span className="text-xs text-slate-500">
               進捗をクリアに、セットアップをスムーズに。
@@ -45,7 +47,11 @@ export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {STEPS.map((step) => {
               const status =
-                step.id < currentStep ? "done" : step.id === currentStep ? "current" : "upcoming";
+                step.id < currentStep
+                  ? "done"
+                  : step.id === currentStep
+                    ? "current"
+                    : "upcoming";
 
               return (
                 <div
@@ -67,7 +73,11 @@ export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
                           : "bg-slate-200 text-slate-700"
                     }`}
                   >
-                    {status === "done" ? <Check className="h-4 w-4" /> : step.id}
+                    {status === "done" ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      step.id
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <span
@@ -81,7 +91,9 @@ export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
                     >
                       {step.label}
                     </span>
-                    <span className="text-xs text-slate-500">{step.caption}</span>
+                    <span className="text-xs text-slate-500">
+                      {step.caption}
+                    </span>
                   </div>
                 </div>
               );

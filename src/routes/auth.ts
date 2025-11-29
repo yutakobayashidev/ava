@@ -1,5 +1,5 @@
 import { generateState, OAuth2Tokens, Slack } from "arctic";
-import { getCookie, setCookie } from 'hono/cookie';
+import { getCookie, setCookie } from "hono/cookie";
 import { uuidv7 } from "uuidv7";
 import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
@@ -29,7 +29,11 @@ export const slack = new Slack(
 
 app.get("/slack", async (c) => {
   const state = generateState();
-  const url = slack.createAuthorizationURL(state, ["openid", "profile", "email"]);
+  const url = slack.createAuthorizationURL(state, [
+    "openid",
+    "profile",
+    "email",
+  ]);
 
   setCookie(c, "slack_oauth_state", state, {
     path: "/",
@@ -37,15 +41,15 @@ app.get("/slack", async (c) => {
     httpOnly: true,
     maxAge: 60 * 10,
     sameSite: "lax",
-  })
+  });
 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: url.toString()
-    }
+      Location: url.toString(),
+    },
   });
-})
+});
 
 type SlackUser = {
   sub: string;
@@ -87,7 +91,11 @@ export function generateSessionToken(): string {
 
 export type Session = typeof schema.sessions.$inferSelect;
 
-export async function createSession(db: Database, token: string, userId: string): Promise<Session> {
+export async function createSession(
+  db: Database,
+  token: string,
+  userId: string,
+): Promise<Session> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
@@ -120,19 +128,18 @@ app.get("/slack/callback", async (c) => {
     return c.text("Bad request", 400);
   }
 
-
   let tokens: OAuth2Tokens;
   try {
     tokens = await slack.validateAuthorizationCode(code);
   } catch {
     // Invalid code or client credentials
     return new Response("Please restart the process.", {
-      status: 400
+      status: 400,
     });
   }
   const slackUser = await getSlackUser(tokens);
 
-  const db = c.get('db');
+  const db = c.get("db");
   let [existingUser] = await db
     .select()
     .from(schema.users)
@@ -165,16 +172,15 @@ app.get("/slack/callback", async (c) => {
     path: "/",
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    expires: session.expiresAt
-  })
+    expires: session.expiresAt,
+  });
 
   return new Response(null, {
     status: 302,
     headers: {
-      Location: "/"
-    }
+      Location: "/",
+    },
   });
+});
 
-})
-
-export default app
+export default app;
