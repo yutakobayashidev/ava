@@ -7,7 +7,7 @@ import { createHonoApp } from "../../create-app";
 
 const app = createHonoApp().basePath("/api");
 
-app.route("/", oauthRoutes);
+app.route("/oauth", oauthRoutes);
 app.route("/login", authRoutes);
 app.route("/slack", slackRoutes);
 app.route("/health", healthRoutes);

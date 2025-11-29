@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
-
 import { db } from "../clients/drizzle";
 import { createTaskRepository } from "../repos";
 import * as schema from "../db/schema";
@@ -14,10 +13,10 @@ import {
   notifyBlockResolved,
 } from "../lib/taskNotifications";
 
-type User = typeof schema.users.$inferSelect;
-type Workspace = typeof schema.workspaces.$inferSelect;
-
-export function createMcpServer(user: User, workspace: Workspace) {
+export function createMcpServer(
+  user: schema.User,
+  workspace: schema.Workspace,
+) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
