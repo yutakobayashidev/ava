@@ -18,7 +18,8 @@ Ava works best when you tell it what to watch: **"Keep an eye on this work."**
 Key principles:
 - Treat all coding work as tasks worth tracking
 - Report only the current task
-- Small, frequent updates are fine
+- **Proactive, frequent updates**: Report progress at every meaningful milestone without waiting for user prompts
+- Update granularly: schema changes, file edits, endpoint implementations, test additions - all worth reporting
 - Ask for help immediately when blocked
 - Ask user for consent before marking tasks complete
 - Short commands are sufficient
@@ -41,15 +42,25 @@ Start task: ログインのエラー処理改善
 - **Before starting a new task**: If there's already an active task in this session, ask the user: "Should I complete the current task first, or would you like to start a new Claude Code session for this different work?"
 
 ### update_task
-Report progress, even small changes.
+Report progress proactively at every meaningful milestone, even without user prompts.
 
 ```
 Update task: リトライ実装が完了
 ```
 
+**When to update (proactively):**
+- After creating or editing a schema file
+- After implementing an endpoint or API route
+- After adding validation logic
+- After writing tests
+- After fixing a bug or error
+- After refactoring a component
+- Any other meaningful progress point
+
 **Tips:**
-- Small updates are valuable - they help later
-- No need for detailed explanations
+- **Don't wait for user prompts** - update proactively when you complete a milestone
+- Small, granular updates are highly valuable - they create a clear activity trail
+- No need for detailed explanations - brief summaries are sufficient
 - Each update goes to the same Slack thread
 
 ### report_blocked

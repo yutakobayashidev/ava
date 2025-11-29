@@ -156,6 +156,36 @@ export const accessTokens = pgTable(
   }),
 );
 
+export const refreshTokens = pgTable(
+  "refresh_tokens",
+  {
+    id: text("id").primaryKey().notNull(),
+    tokenHash: text("token_hash").notNull(),
+    accessTokenId: text("access_token_id")
+      .references(() => accessTokens.id, { onDelete: "cascade" })
+      .notNull(),
+    clientId: text("client_id")
+      .references(() => clients.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    workspaceId: text("workspace_id").references(() => workspaces.id, {
+      onDelete: "cascade",
+    }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("refresh_tokens_token_hash_unique").on(table.tokenHash),
+    accessTokenIdx: index("refresh_tokens_access_token_idx").on(table.accessTokenId),
+    userIdx: index("refresh_tokens_user_idx").on(table.userId),
+  }),
+);
+
 export const workspaceMembers = pgTable(
   "workspace_members",
   {
@@ -315,6 +345,7 @@ export const taskCompletionRelations = relations(taskCompletions, ({ one }) => (
 export const userRelations = relations(users, ({ many }) => ({
   authCodes: many(authCodes),
   accessTokens: many(accessTokens),
+  refreshTokens: many(refreshTokens),
   sessions: many(sessions),
   taskSessions: many(taskSessions),
   workspaceMemberships: many(workspaceMembers),
@@ -342,7 +373,7 @@ export const authCodeRelations = relations(authCodes, ({ one }) => ({
   }),
 }));
 
-export const accessTokenRelations = relations(accessTokens, ({ one }) => ({
+export const accessTokenRelations = relations(accessTokens, ({ one, many }) => ({
   user: one(users, {
     fields: [accessTokens.userId],
     references: [users.id],
@@ -355,11 +386,32 @@ export const accessTokenRelations = relations(accessTokens, ({ one }) => ({
     fields: [accessTokens.clientId],
     references: [clients.id],
   }),
+  refreshTokens: many(refreshTokens),
+}));
+
+export const refreshTokenRelations = relations(refreshTokens, ({ one }) => ({
+  accessToken: one(accessTokens, {
+    fields: [refreshTokens.accessTokenId],
+    references: [accessTokens.id],
+  }),
+  user: one(users, {
+    fields: [refreshTokens.userId],
+    references: [users.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [refreshTokens.workspaceId],
+    references: [workspaces.id],
+  }),
+  client: one(clients, {
+    fields: [refreshTokens.clientId],
+    references: [clients.id],
+  }),
 }));
 
 export const clientRelations = relations(clients, ({ many }) => ({
   authCodes: many(authCodes),
   accessTokens: many(accessTokens),
+  refreshTokens: many(refreshTokens),
 }));
 
 export const workspaceMemberRelations = relations(workspaceMembers, ({ one }) => ({
@@ -391,6 +443,8 @@ export type AuthCode = typeof authCodes.$inferSelect;
 export type NewAuthCode = typeof authCodes.$inferInsert;
 export type AccessToken = typeof accessTokens.$inferSelect;
 export type NewAccessToken = typeof accessTokens.$inferInsert;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
