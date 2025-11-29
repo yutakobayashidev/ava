@@ -1,0 +1,167 @@
+---
+title: AIコーディングエージェントとの連携
+description: AvaをClaude Code、Cursor、Windsurfなどに接続する方法
+---
+
+## AIコーディングエージェントとは
+
+Claude Code、Cursorなどのコーディングエージェントは、AI技術を使ってコーディング作業を支援してくれるツールです。AvaはMCP（Model Context Protocol）を通じてこれらのツールと連携し、作業の進捗を自動的にSlackに報告します。
+
+## 設定方法
+
+<Tabs items={['Claude Code', 'Cursor']} persist groupId="coding-agent">
+  <Tab value="Claude Code">
+    ### 1. Claude Codeを起動
+
+    お使いのエディタまたはCLIでClaude Codeを起動します。
+
+    ### 2. MCP サーバーを設定
+
+    `.mcp.json` ファイルを作成し、以下を追加：
+
+    ```json
+    {
+      "mcpServers": {
+        "ava": {
+          "type": "http",
+          "url": "https://ava-dusky-gamma.vercel.app/mcp"
+        }
+      }
+    }
+    ```
+
+    **設定ファイルの場所:**
+    - プロジェクト固有: プロジェクトルートに `.mcp.json`
+    - グローバル: ホームディレクトリに `.mcp.json`
+
+    ### 3. 初回接続と認証
+
+    Claude CodeからAvaに初めて接続すると、ブラウザが開いて認証画面が表示されます。
+
+    1. ブラウザで「許可」をクリック
+    2. 認証が完了すると自動的にClaude Codeに戻ります
+
+    ### 4. 接続の確認
+
+    Claude Codeで以下のように尋ねてみてください：
+
+    ```
+    利用可能なMCPツールを教えて
+    ```
+
+    以下のツールが表示されれば成功です：
+    - `start_task` - タスクを開始
+    - `update_task` - 進捗を更新
+    - `report_blocked` - 詰まりを報告
+    - `complete_task` - タスクを完了
+    - `list_tasks` - タスク一覧を表示
+  </Tab>
+
+  <Tab value="Cursor">
+    ### 1. Cursorを起動
+
+    Cursorエディタを開きます。
+
+    ### 2. MCP サーバーを設定
+
+    `.cursor/mcp.json` ファイルを作成し、以下を追加：
+
+    ```json
+    {
+      "mcpServers": {
+        "ava": {
+          "type": "http",
+          "url": "https://ava-dusky-gamma.vercel.app/mcp"
+        }
+      }
+    }
+    ```
+
+    **設定ファイルの場所:**
+    - プロジェクト固有: `.cursor/mcp.json`（プロジェクトルート）
+    - グローバル: `~/.cursor/mcp.json`（ホームディレクトリ）
+
+    ### 3. 設定を反映
+
+    Cursorを再起動するか、コマンドパレット（`Cmd+Shift+P` / `Ctrl+Shift+P`）から「Reload Window」を実行します。
+
+    ### 4. 初回接続と認証
+
+    1. Cursorの設定からMCPの設定画面を開く
+    2. Avaサーバーの横にある「Connect」ボタンをクリック
+    3. ブラウザが開いて認証画面が表示されます
+    4. ブラウザで「許可」をクリック
+    5. OAuth認証が完了すると自動的にCursorに戻ります
+
+    ### 5. 接続の確認
+
+    Cursorのチャットで以下のように尋ねてみてください：
+
+    ```
+    利用可能なMCPツールを教えて
+    ```
+
+    Avaのツール一覧が表示されれば成功です。
+  </Tab>
+</Tabs>
+
+## 他のMCPツールとの併用
+
+Avaは**進捗の共有とチームへの透明性確保に特化したツール**です。タスク管理自体は、GitHub IssuesやLinearなどの専用サービスを使うことを推奨します。
+
+### おすすめの併用パターン
+
+以下のMCPツールと組み合わせることで、より効率的な開発フローを実現できます：
+
+#### GitHub MCP
+GitHubのIssue管理とAvaの進捗報告を組み合わせることで、タスク管理とチームへの透明性を両立できます。
+
+```json
+{
+  "mcpServers": {
+    "ava": {
+      "type": "http",
+      "url": "https://ava-dusky-gamma.vercel.app/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
+  }
+}
+```
+
+**使用例:**
+1. GitHub MCPでIssueを取得・作成
+2. Avaで作業開始を報告（Issueタイトルを指定）
+3. 進捗はAvaが自動でSlackに投稿
+4. 完了時、Pull RequestのURLをAvaが報告
+
+#### GitHub CLI（gh）
+GitHub CLIを使ってIssueやPull Requestを直接操作することもできます。GitHub CLIはMCPサーバーではありませんが、コーディングエージェントから直接呼び出すことで、タスク管理を効率化できます。
+
+#### Linear MCP
+Linearでタスク管理している場合は、Linear MCPとの併用が便利です。
+
+```json
+{
+  "mcpServers": {
+    "ava": {
+      "type": "http",
+      "url": "https://ava-dusky-gamma.vercel.app/mcp"
+    },
+    "linear": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.linear.app/mcp"]
+    }
+  }
+}
+```
+
+## 次のステップ
+
+設定が完了したら、[使い方ガイド](/docs/usage-guide)で実際の使用方法を確認しましょう。
+
+## トラブルシューティング
+
+接続できない場合は、[トラブルシューティング](/docs/troubleshooting)を確認してください。

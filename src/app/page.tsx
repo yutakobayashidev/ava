@@ -38,7 +38,7 @@ export default async function LandingPage() {
             <span className="block text-blue-600 mt-2">Gentle Updates.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            注意が散漫になったり差し込みでコンテキストスイッチが続いても、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
+            コンテキストスイッチが続いても、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -449,9 +449,9 @@ export default async function LandingPage() {
               &copy; 2025 AI Task Manager. Built for deep work.
             </div>
             <div className="flex gap-6 text-sm">
-              <a href="#" className="hover:text-white transition-colors">
+              <Link href="/docs" className="hover:text-white transition-colors">
                 ドキュメント
-              </a>
+              </Link>
               <a href="#" className="hover:text-white transition-colors">
                 GitHub
               </a>
