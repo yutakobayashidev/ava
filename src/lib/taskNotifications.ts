@@ -14,6 +14,7 @@ type NotifyTaskStartedParams = {
     initialSummary: string;
     userName?: string | null;
     userEmail?: string | null;
+    userSlackId?: string | null;
 };
 
 type NotifyTaskBlockedParams = {
@@ -85,7 +86,9 @@ export const notifyTaskStarted = async (
     }
 
     const issueIdText = params.issueId ? ` (${params.issueId})` : "";
-    const userLabel = params.userName ?? params.userEmail ?? "unknown user";
+    const userLabel = params.userSlackId
+        ? `<@${params.userSlackId}>`
+        : params.userName ?? params.userEmail ?? "unknown user";
 
     const text = [
         ":rocket: Task started",

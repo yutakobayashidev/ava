@@ -80,6 +80,7 @@ export function createMcpServer(user: User, workspace: Workspace) {
                 initialSummary: initial_summary,
                 userName: user.name,
                 userEmail: user.email,
+                userSlackId: user.slackId,
             });
 
             return toJsonResponse({
