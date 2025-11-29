@@ -1,3 +1,5 @@
+import "server-only";
+
 import { source } from "@/lib/source";
 import type { InferPageType } from "fumadocs-core/source";
 

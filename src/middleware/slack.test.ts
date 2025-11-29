@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { createHonoApp } from "@/app/create-app";
 import { verifySlackSignature } from "./slack";
 
+vi.mock("server-only", () => ({}));
+
 describe("verifySlackSignature", () => {
   const SIGNING_SECRET = "test_signing_secret";
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

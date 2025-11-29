@@ -1,3 +1,5 @@
+import "server-only";
+
 import { drizzle as pgDrizzle } from "drizzle-orm/postgres-js";
 import { drizzle as neonDrizzle } from "drizzle-orm/neon-serverless";
 import postgres from "postgres";

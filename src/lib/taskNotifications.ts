@@ -1,3 +1,5 @@
+import "server-only";
+
 import { postMessage, addReaction } from "../clients/slack";
 import { db } from "../clients/drizzle";
 import * as schema from "../db/schema";
