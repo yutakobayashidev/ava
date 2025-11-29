@@ -42,6 +42,18 @@ type NotifyBlockResolvedParams = {
     blockReason: string;
 };
 
+type NotifyTaskPausedParams = {
+    sessionId: string;
+    workspaceId: string;
+    reason: string;
+};
+
+type NotifyTaskResumedParams = {
+    sessionId: string;
+    workspaceId: string;
+    summary: string;
+};
+
 type SlackNotificationResult = {
     delivered: boolean;
     channel?: string;
@@ -303,6 +315,136 @@ export const notifyBlockResolved = async (
     const text = [
         ":white_check_mark: Block resolved",
         `Previous issue: ${params.blockReason}`,
+    ].join("\n");
+
+    try {
+        const result = await postMessage({
+            token: config.token,
+            channel: session.slackChannel,
+            text,
+            threadTs: session.slackThreadTs,
+        });
+
+        return {
+            delivered: true,
+            channel: result.channel,
+            threadTs: result.ts,
+            workspaceId: config.workspaceId,
+            source: "workspace",
+        };
+    } catch (error) {
+        console.error("Failed to post Slack notification", error);
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: error instanceof Error ? error.message : "unknown_error",
+        };
+    }
+};
+
+export const notifyTaskPaused = async (
+    params: NotifyTaskPausedParams,
+): Promise<SlackNotificationResult> => {
+    const config = await resolveSlackConfig(params.workspaceId);
+
+    if (!config) {
+        return {
+            delivered: false,
+            reason: "missing_config",
+        };
+    }
+
+    // Get task session to retrieve thread info
+    const taskRepository = createTaskRepository({ db });
+    const session = await taskRepository.findTaskSessionById(
+        params.sessionId,
+        params.workspaceId,
+    );
+
+    if (!session) {
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: "Task session not found",
+        };
+    }
+
+    if (!session.slackThreadTs || !session.slackChannel) {
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: "No Slack thread found for this task",
+        };
+    }
+
+    const text = [
+        ":pause_button: Task paused",
+        `Reason: ${params.reason}`,
+    ].join("\n");
+
+    try {
+        const result = await postMessage({
+            token: config.token,
+            channel: session.slackChannel,
+            text,
+            threadTs: session.slackThreadTs,
+        });
+
+        return {
+            delivered: true,
+            channel: result.channel,
+            threadTs: result.ts,
+            workspaceId: config.workspaceId,
+            source: "workspace",
+        };
+    } catch (error) {
+        console.error("Failed to post Slack notification", error);
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: error instanceof Error ? error.message : "unknown_error",
+        };
+    }
+};
+
+export const notifyTaskResumed = async (
+    params: NotifyTaskResumedParams,
+): Promise<SlackNotificationResult> => {
+    const config = await resolveSlackConfig(params.workspaceId);
+
+    if (!config) {
+        return {
+            delivered: false,
+            reason: "missing_config",
+        };
+    }
+
+    // Get task session to retrieve thread info
+    const taskRepository = createTaskRepository({ db });
+    const session = await taskRepository.findTaskSessionById(
+        params.sessionId,
+        params.workspaceId,
+    );
+
+    if (!session) {
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: "Task session not found",
+        };
+    }
+
+    if (!session.slackThreadTs || !session.slackChannel) {
+        return {
+            delivered: false,
+            reason: "api_error",
+            error: "No Slack thread found for this task",
+        };
+    }
+
+    const text = [
+        ":arrow_forward: Task resumed",
+        `Summary: ${params.summary}`,
     ].join("\n");
 
     try {
