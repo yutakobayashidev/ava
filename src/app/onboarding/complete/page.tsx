@@ -48,7 +48,7 @@ export default async function CompletePage() {
               </div>
               <h1 className="text-5xl font-bold text-slate-900">準備完了!</h1>
               <p className="mt-3 text-xl text-slate-700">
-                これでコンテキストスイッチから解放されます。チームへの報連相はAIが自動で届けます。
+                これでコンテキストスイッチから解放されます。チームへの報告はAIが自動で届けます。
               </p>
               <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 font-medium shadow-sm">
@@ -134,14 +134,12 @@ export default async function CompletePage() {
                   ダッシュボードへ
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/docs"
                   className="inline-flex w-full items-center justify-center rounded-xl border-2 border-slate-200 px-8 py-4 text-center font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
                 >
                   ドキュメントを見る
-                </a>
+                </Link>
               </div>
             </div>
 
