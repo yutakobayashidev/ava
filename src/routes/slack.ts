@@ -1,6 +1,6 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp, getUsecaseContext } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
@@ -141,13 +141,7 @@ app.post(
       teamId,
       userId,
       commands: [dailyReportInteraction],
-      ctx: {
-        db: ctx.get("db"),
-        ai: ctx.get("ai"),
-        // Slack commands don't have user/workspace in context
-        user: undefined!,
-        workspace: undefined!,
-      },
+      ctx: getUsecaseContext(ctx),
     });
 
     return ctx.json(result);
