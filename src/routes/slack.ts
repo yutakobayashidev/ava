@@ -13,6 +13,8 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
+import { env } from "hono/adapter";
+import { generateText } from "@/lib/ai";
 
 const app = createHonoApp();
 
@@ -31,31 +33,32 @@ const redirectWithMessage = (
   return url.toString();
 };
 
-app.get("/install/callback", async (c) => {
-  const sessionToken = getCookie(c, "session");
+app.get("/install/callback", async (ctx) => {
+  const sessionToken = getCookie(ctx, "session");
 
   const { user } = sessionToken
     ? await validateSessionToken(sessionToken)
     : { user: null };
   if (!user) {
-    return c.redirect("/login?callbackUrl=/slack/install");
+    return ctx.redirect("/login?callbackUrl=/slack/install");
   }
 
-  const code = c.req.query("code");
-  const state = c.req.query("state");
-  const storedState = getCookie(c, STATE_COOKIE);
+  const code = ctx.req.query("code");
+  const state = ctx.req.query("state");
+  const storedState = getCookie(ctx, STATE_COOKIE);
+  const { NODE_ENV } = env(ctx);
 
   if (!code) {
-    return c.redirect(
-      redirectWithMessage(c.req.raw, "/slack/install", {
+    return ctx.redirect(
+      redirectWithMessage(ctx.req.raw, "/slack/install", {
         error: "missing_code",
       }),
     );
   }
 
   if (!storedState || storedState !== state) {
-    return c.redirect(
-      redirectWithMessage(c.req.raw, "/slack/install", {
+    return ctx.redirect(
+      redirectWithMessage(ctx.req.raw, "/slack/install", {
         error: "state_mismatch",
       }),
     );
@@ -63,7 +66,7 @@ app.get("/install/callback", async (c) => {
 
   try {
     const oauthResult = await exchangeSlackInstallCode(code);
-    const db = c.get("db");
+    const db = ctx.get("db");
     const workspaceRepository = createWorkspaceRepository({ db });
 
     const existing = await workspaceRepository.findWorkspaceByExternalId({
@@ -101,22 +104,22 @@ app.get("/install/callback", async (c) => {
       });
     }
 
-    deleteCookie(c, STATE_COOKIE, {
+    deleteCookie(ctx, STATE_COOKIE, {
       path: "/",
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: NODE_ENV === "production",
     });
 
-    return c.redirect(
-      redirectWithMessage(c.req.raw, "/onboarding/connect-slack", {
+    return ctx.redirect(
+      redirectWithMessage(ctx.req.raw, "/onboarding/connect-slack", {
         installed: "1",
         team: oauthResult.teamName,
       }),
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "oauth_failed";
-    return c.redirect(
-      redirectWithMessage(c.req.raw, "/slack/install", { error: message }),
+    return ctx.redirect(
+      redirectWithMessage(ctx.req.raw, "/slack/install", { error: message }),
     );
   }
 });
@@ -135,25 +138,28 @@ app.post(
       command: z.enum(["/daily-report"]),
     }),
   ),
-  async (c) => {
-    const { team_id: teamId, user_id: userId, command } = c.req.valid("form");
+  async (ctx) => {
+    const { team_id: teamId, user_id: userId, command } = ctx.req.valid("form");
 
-    const [db] = [c.get("db")];
-    const repositories = {
-      workspaceRepository: createWorkspaceRepository({ db }),
-      taskRepository: createTaskRepository({ db }),
-      userRepository: createUserRepository({ db }),
-    };
+    const db = ctx.get("db");
+    const generateDailySummary = generateText(
+      ctx.get("ai").openai("gpt-4o-mini"),
+    );
 
     const result = await handleApplicationCommands({
       command,
       teamId,
       userId,
-      repositories,
+      repositories: {
+        workspaceRepository: createWorkspaceRepository({ db }),
+        taskRepository: createTaskRepository({ db }),
+        userRepository: createUserRepository({ db }),
+      },
       commands: [dailyReportInteraction],
+      generateDailySummary,
     });
 
-    return c.json(result);
+    return ctx.json(result);
   },
 );
 

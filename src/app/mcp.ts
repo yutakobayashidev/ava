@@ -1,28 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
-import { db } from "../clients/drizzle";
-import { createTaskRepository } from "../repos";
-import * as schema from "../db/schema";
-import {
-  notifyTaskStarted,
-  notifyTaskBlocked,
-  notifyTaskPaused,
-  notifyTaskResumed,
-  notifyTaskCompleted,
-  notifyTaskUpdate,
-  notifyBlockResolved,
-} from "../lib/taskNotifications";
+import type { Env } from "./create-app";
+import * as taskSessionUsecases from "../usecases/taskSessions";
 
-export function createMcpServer(
-  user: schema.User,
-  workspace: schema.Workspace,
-) {
+export function createMcpServer(ctx: Env["Variables"]) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
   });
-
-  const taskRepository = createTaskRepository({ db });
 
   const toTextResponse = (text: string) => ({
     content: [
@@ -64,34 +49,11 @@ export function createMcpServer(
       }),
     },
     async ({ issue, initial_summary }) => {
-      const session = await taskRepository.createTaskSession({
-        userId: user.id,
-        workspaceId: workspace.id,
-        issueProvider: issue.provider,
-        issueId: issue.id ?? null,
-        issueTitle: issue.title,
-        initialSummary: initial_summary,
-      });
-
-      const slackNotification = await notifyTaskStarted({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        issueTitle: issue.title,
-        issueProvider: issue.provider,
-        issueId: issue.id ?? null,
-        initialSummary: initial_summary,
-        userName: user.name,
-        userEmail: user.email,
-        userSlackId: user.slackId,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        status: session.status,
-        issued_at: session.createdAt,
-        slack_notification: slackNotification,
-        message: "タスクの追跡を開始しました。",
-      });
+      const result = await taskSessionUsecases.startTasks(
+        { issue, initial_summary },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -113,27 +75,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, summary, raw_context }) => {
-      const { session, update } = await taskRepository.addTaskUpdate({
-        taskSessionId: task_session_id,
-        workspaceId: workspace.id,
-        summary,
-        rawContext: raw_context,
-      });
-
-      const slackNotification = await notifyTaskUpdate({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        summary,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        update_id: update.id,
-        status: session.status,
-        summary: update.summary,
-        slack_notification: slackNotification,
-        message: "進捗を保存しました。",
-      });
+      const result = await taskSessionUsecases.updateTask(
+        { task_session_id, summary, raw_context },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -155,27 +101,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, reason, raw_context }) => {
-      const { session, blockReport } = await taskRepository.reportBlock({
-        taskSessionId: task_session_id,
-        workspaceId: workspace.id,
-        reason,
-        rawContext: raw_context,
-      });
-
-      const slackNotification = await notifyTaskBlocked({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        reason,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        block_report_id: blockReport.id,
-        status: session.status,
-        reason: blockReport.reason,
-        slack_notification: slackNotification,
-        message: "詰まり情報を登録しました。",
-      });
+      const result = await taskSessionUsecases.reportBlocked(
+        { task_session_id, reason, raw_context },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -197,27 +127,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, reason, raw_context }) => {
-      const { session, pauseReport } = await taskRepository.pauseTask({
-        taskSessionId: task_session_id,
-        workspaceId: workspace.id,
-        reason,
-        rawContext: raw_context,
-      });
-
-      const slackNotification = await notifyTaskPaused({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        reason,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        pause_report_id: pauseReport.id,
-        status: session.status,
-        paused_at: session.pausedAt,
-        slack_notification: slackNotification,
-        message: "タスクを一時休止しました。",
-      });
+      const result = await taskSessionUsecases.pauseTask(
+        { task_session_id, reason, raw_context },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -239,26 +153,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, summary, raw_context }) => {
-      const { session } = await taskRepository.resumeTask({
-        taskSessionId: task_session_id,
-        workspaceId: workspace.id,
-        summary,
-        rawContext: raw_context,
-      });
-
-      const slackNotification = await notifyTaskResumed({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        summary,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        status: session.status,
-        resumed_at: session.resumedAt,
-        slack_notification: slackNotification,
-        message: "タスクを再開しました。",
-      });
+      const result = await taskSessionUsecases.resumeTask(
+        { task_session_id, summary, raw_context },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -283,41 +182,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, pr_url, summary }) => {
-      const { session, completion, unresolvedBlocks } =
-        await taskRepository.completeTask({
-          taskSessionId: task_session_id,
-          workspaceId: workspace.id,
-          prUrl: pr_url,
-          summary,
-        });
-
-      const slackNotification = await notifyTaskCompleted({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        summary,
-        prUrl: pr_url,
-      });
-
-      const response: Record<string, unknown> = {
-        task_session_id: session.id,
-        completion_id: completion.id,
-        status: session.status,
-        pr_url: completion.prUrl,
-        slack_notification: slackNotification,
-        message: "完了報告を保存しました。",
-      };
-
-      if (unresolvedBlocks.length > 0) {
-        response.unresolved_blocks = unresolvedBlocks.map((block) => ({
-          block_report_id: block.id,
-          reason: block.reason,
-          created_at: block.createdAt,
-        }));
-        response.message =
-          "完了報告を保存しました。未解決のブロッキングがあります。resolve_blockedツールで解決を報告してください。";
-      }
-
-      return toJsonResponse(response);
+      const result = await taskSessionUsecases.completeTask(
+        { task_session_id, pr_url, summary },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -340,26 +209,11 @@ export function createMcpServer(
       }),
     },
     async ({ task_session_id, block_report_id }) => {
-      const { session, blockReport } = await taskRepository.resolveBlockReport({
-        taskSessionId: task_session_id,
-        workspaceId: workspace.id,
-        blockReportId: block_report_id,
-      });
-
-      const slackNotification = await notifyBlockResolved({
-        sessionId: session.id,
-        workspaceId: workspace.id,
-        blockReason: blockReport.reason,
-      });
-
-      return toJsonResponse({
-        task_session_id: session.id,
-        block_report_id: blockReport.id,
-        status: session.status,
-        resolved_at: blockReport.resolvedAt,
-        slack_notification: slackNotification,
-        message: "ブロッキングの解決を報告しました。",
-      });
+      const result = await taskSessionUsecases.resolveBlocked(
+        { task_session_id, block_report_id },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 
@@ -382,27 +236,11 @@ export function createMcpServer(
       }),
     },
     async ({ status, limit }) => {
-      const sessions = await taskRepository.listTaskSessions({
-        userId: user.id,
-        workspaceId: workspace.id,
-        status,
-        limit,
-      });
-
-      return toJsonResponse({
-        total: sessions.length,
-        tasks: sessions.map((session) => ({
-          task_session_id: session.id,
-          issue_provider: session.issueProvider,
-          issue_id: session.issueId,
-          issue_title: session.issueTitle,
-          status: session.status,
-          created_at: session.createdAt,
-          updated_at: session.updatedAt,
-          blocked_at: session.blockedAt,
-          completed_at: session.completedAt,
-        })),
-      });
+      const result = await taskSessionUsecases.listTasks(
+        { status, limit },
+        ctx,
+      );
+      return toJsonResponse(result);
     },
   );
 

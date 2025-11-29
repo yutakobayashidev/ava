@@ -1,5 +1,6 @@
 import type { Env } from "@/app/create-app";
 import { createMiddleware } from "hono/factory";
+import { env } from "hono/adapter";
 
 // Slack の Slash Command リクエストのペイロード
 export interface SlackSlashCommandPayload {
@@ -31,6 +32,7 @@ export interface SlackContext {
 export const verifySlackSignature = createMiddleware<Env>(async (c, next) => {
   const signature = c.req.header("x-slack-signature");
   const timestamp = c.req.header("x-slack-request-timestamp");
+  const { SLACK_SIGNING_SECRET: signingSecret } = env(c);
 
   if (!signature || !timestamp) {
     return c.json({ error: "Missing Slack signature headers" }, 401);
@@ -40,11 +42,6 @@ export const verifySlackSignature = createMiddleware<Env>(async (c, next) => {
   const currentTime = Math.floor(Date.now() / 1000);
   if (Math.abs(currentTime - parseInt(timestamp)) > 60 * 5) {
     return c.json({ error: "Request timestamp too old" }, 401);
-  }
-
-  const signingSecret = process.env.SLACK_SIGNING_SECRET;
-  if (!signingSecret) {
-    return c.json({ error: "Server configuration error" }, 500);
   }
 
   // リクエストボディをテキストとして取得（クローンして元のリクエストは保持）

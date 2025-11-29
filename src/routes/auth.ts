@@ -1,4 +1,4 @@
-import { generateState, OAuth2Tokens, Slack } from "arctic";
+import { generateState, OAuth2Tokens } from "arctic";
 import { getCookie, setCookie } from "hono/cookie";
 import { uuidv7 } from "uuidv7";
 import type { Database } from "@/clients/drizzle";
@@ -7,8 +7,9 @@ import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { createHonoApp } from "@/app/create-app";
-import { absoluteUrl } from "@/lib/utils";
 import { cors } from "hono/cors";
+import { env } from "hono/adapter";
+import { slack } from "@/lib/oauth";
 
 const app = createHonoApp().use(
   cors({
@@ -17,17 +18,8 @@ const app = createHonoApp().use(
   }),
 );
 
-const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
-const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-const slackRedirectUri = absoluteUrl("/api/login/slack/callback");
-
-export const slack = new Slack(
-  slackClientId,
-  slackClientSecret,
-  slackRedirectUri,
-);
-
 app.get("/slack", async (c) => {
+  const { NODE_ENV } = env(c);
   const state = generateState();
   const url = slack.createAuthorizationURL(state, [
     "openid",
@@ -37,7 +29,7 @@ app.get("/slack", async (c) => {
 
   setCookie(c, "slack_oauth_state", state, {
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: NODE_ENV === "production",
     httpOnly: true,
     maxAge: 60 * 10,
     sameSite: "lax",
@@ -118,6 +110,7 @@ export async function createSession(
 app.get("/slack/callback", async (c) => {
   const { code, state } = c.req.query();
   const storedState = getCookie(c, "slack_oauth_state");
+  const { NODE_ENV } = env(c);
 
   if (
     !storedState ||
@@ -170,7 +163,7 @@ app.get("/slack/callback", async (c) => {
   setCookie(c, "session", sessionToken, {
     httpOnly: true,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: NODE_ENV === "production",
     sameSite: "lax",
     expires: session.expiresAt,
   });

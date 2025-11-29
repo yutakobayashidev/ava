@@ -7,8 +7,13 @@ import { createHonoApp } from "../create-app";
 const app = createHonoApp().basePath("/mcp");
 
 app.all("/", oauthMiddleware, async (c) => {
-  const [user, workspace] = [c.get("user"), c.get("workspace")];
-  const mcp = createMcpServer(user, workspace);
+  const ctx = {
+    user: c.get("user"),
+    workspace: c.get("workspace"),
+    db: c.get("db"),
+    ai: c.get("ai"),
+  };
+  const mcp = createMcpServer(ctx);
   const transport = new StreamableHTTPTransport();
 
   await mcp.connect(transport);

@@ -3,8 +3,6 @@ import type {
   TaskRepository,
   UserRepository,
 } from "@/repos";
-import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
 import { fillPrompt } from "@/utils/prompts";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 
@@ -36,7 +34,7 @@ type Repositories = {
   userRepository: UserRepository;
 };
 
-type HandlerParams = {
+type DailyReportContext = {
   teamId: string;
   userId: string;
   repositories: Repositories;
@@ -95,35 +93,24 @@ function formatActiveTasks(tasks: ActiveTaskDetail[]): string {
   return `進行中・ブロック中タスク (${tasks.length}件):\n${tasksList}`;
 }
 
-async function generateDailySummary(
+function buildDailySummaryPrompt(
   completedTasks: CompletedTaskDetail[],
   activeTasks: ActiveTaskDetail[],
-): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY!;
-
+): string {
   const completedSection = formatCompletedTasks(completedTasks);
   const activeSection = formatActiveTasks(activeTasks);
 
-  const prompt = fillPrompt(DAILY_SUMMARY_PROMPT, {
+  return fillPrompt(DAILY_SUMMARY_PROMPT, {
     completedSection,
     activeSection,
   });
-
-  const openai = createOpenAI({ apiKey });
-
-  const { text } = await generateText({
-    model: openai("gpt-4o-mini"),
-    prompt,
-  });
-
-  return text;
 }
 
 const handler = async ({
   teamId,
   userId,
   repositories: { workspaceRepository, taskRepository, userRepository },
-}: HandlerParams) => {
+}: DailyReportContext) => {
   // ワークスペースを取得
   const workspace = await workspaceRepository.findWorkspaceByExternalId({
     provider: "slack",
@@ -242,10 +229,11 @@ const handler = async ({
   );
 
   // LLMで1日のまとめを生成
-  const summary = await generateDailySummary(
+  const prompt = buildDailySummaryPrompt(
     completedTasksWithDetails,
     activeTasksWithDetails,
   );
+  const { text: summary } = await ai.generateDailySummary(prompt);
 
   // ephemeral messageとしてレスポンス
   return {

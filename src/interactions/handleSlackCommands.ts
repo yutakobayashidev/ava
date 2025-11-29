@@ -16,6 +16,7 @@ type SlackCommandHandler = {
     teamId: string;
     userId: string;
     repositories: Repositories;
+    generateDailySummary?: (prompt: string) => Promise<{ text: string }>;
   }) => Promise<{
     response_type: "ephemeral" | "in_channel";
     text: string;
@@ -28,12 +29,14 @@ export const handleApplicationCommands = async ({
   userId,
   repositories,
   commands,
+  generateDailySummary,
 }: {
   command: string;
   teamId: string;
   userId: string;
   repositories: Repositories;
   commands: SlackCommandHandler[];
+  generateDailySummary?: (prompt: string) => Promise<{ text: string }>;
 }) => {
   for (const cmd of commands) {
     if (cmd.commandName === command) {
@@ -41,6 +44,7 @@ export const handleApplicationCommands = async ({
         teamId,
         userId,
         repositories,
+        generateDailySummary,
       });
     }
   }
