@@ -48,6 +48,20 @@ type ResolveBlockInput = {
     blockReportId: string;
 };
 
+type PauseTaskInput = {
+    taskSessionId: string;
+    workspaceId: string;
+    reason: string;
+    rawContext?: Record<string, unknown>;
+};
+
+type ResumeTaskInput = {
+    taskSessionId: string;
+    workspaceId: string;
+    summary: string;
+    rawContext?: Record<string, unknown>;
+};
+
 type ListOptions = {
     limit?: number;
 };
@@ -59,9 +73,10 @@ type ListTaskSessionsInput = {
     limit?: number;
 };
 
-const STATUS: Record<"inProgress" | "blocked" | "completed", TaskStatus> = {
+const STATUS: Record<"inProgress" | "blocked" | "paused" | "completed", TaskStatus> = {
     inProgress: "in_progress",
     blocked: "blocked",
+    paused: "paused",
     completed: "completed",
 };
 
@@ -113,6 +128,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
                 .set({
                     status: STATUS.inProgress,
                     blockedAt: null,
+                    pausedAt: null,
                     updatedAt: now,
                 })
                 .where(
@@ -379,11 +395,89 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         return ensureRecord(session);
     };
 
+    const pauseTask = async (params: PauseTaskInput) => {
+        const now = new Date();
+
+        return db.transaction(async (tx) => {
+            const [session] = await tx
+                .update(schema.taskSessions)
+                .set({
+                    status: STATUS.paused,
+                    pausedAt: now,
+                    updatedAt: now,
+                })
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
+                .returning();
+
+            const validSession = ensureRecord(session);
+
+            const [pauseReport] = await tx
+                .insert(schema.taskPauseReports)
+                .values({
+                    id: uuidv7(),
+                    taskSessionId: params.taskSessionId,
+                    reason: params.reason,
+                    rawContext: params.rawContext ?? {},
+                })
+                .returning();
+
+            return {
+                session: validSession,
+                pauseReport: ensureRecord(pauseReport),
+            };
+        });
+    };
+
+    const resumeTask = async (params: ResumeTaskInput) => {
+        const now = new Date();
+
+        return db.transaction(async (tx) => {
+            const [session] = await tx
+                .update(schema.taskSessions)
+                .set({
+                    status: STATUS.inProgress,
+                    resumedAt: now,
+                    updatedAt: now,
+                })
+                .where(
+                    and(
+                        eq(schema.taskSessions.id, params.taskSessionId),
+                        eq(schema.taskSessions.workspaceId, params.workspaceId),
+                    ),
+                )
+                .returning();
+
+            const validSession = ensureRecord(session);
+
+            // 最新の未再開の pause report を更新
+            await tx
+                .update(schema.taskPauseReports)
+                .set({ resumedAt: now })
+                .where(
+                    and(
+                        eq(schema.taskPauseReports.taskSessionId, params.taskSessionId),
+                        isNull(schema.taskPauseReports.resumedAt),
+                    ),
+                );
+
+            return {
+                session: validSession,
+            };
+        });
+    };
+
     return {
         createTaskSession,
         findTaskSessionById,
         addTaskUpdate,
         reportBlock,
+        pauseTask,
+        resumeTask,
         completeTask,
         listUpdates,
         listBlockReports,
@@ -400,6 +494,8 @@ export type {
     CreateTaskSessionInput,
     AddTaskUpdateInput,
     ReportBlockInput,
+    PauseTaskInput,
+    ResumeTaskInput,
     CompleteTaskInput,
     ResolveBlockInput,
     ListOptions,

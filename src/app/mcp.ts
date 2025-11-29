@@ -4,7 +4,7 @@ import { z } from "zod/v3";
 import { db } from "../clients/drizzle";
 import { createTaskRepository } from "../repos";
 import * as schema from "../db/schema";
-import { notifyTaskStarted, notifyTaskBlocked, notifyTaskCompleted, notifyTaskUpdate, notifyBlockResolved } from "../lib/taskNotifications";
+import { notifyTaskStarted, notifyTaskBlocked, notifyTaskPaused, notifyTaskResumed, notifyTaskCompleted, notifyTaskUpdate, notifyBlockResolved } from "../lib/taskNotifications";
 
 type User = typeof schema.users.$inferSelect;
 type Workspace = typeof schema.workspaces.$inferSelect;
@@ -12,7 +12,7 @@ type Workspace = typeof schema.workspaces.$inferSelect;
 export function createMcpServer(user: User, workspace: Workspace) {
 
     const server = new McpServer({
-        name: "task-bridge-mcp",
+        name: "ava-mcp",
         version: "1.0.0",
     });
 
@@ -178,6 +178,89 @@ export function createMcpServer(user: User, workspace: Workspace) {
     );
 
     server.registerTool(
+        "pause_task",
+        {
+            title: "pause_task",
+            description: "タスクを一時休止するための入力仕様。",
+            inputSchema: z.object({
+                task_session_id: z
+                    .string()
+                    .min(1, "task_session_idは必須です")
+                    .describe("start_taskで払い出されたタスクID"),
+                reason: z
+                    .string()
+                    .min(1, "reasonは必須です")
+                    .describe("休止理由の要約"),
+                raw_context: rawContextSchema,
+            }),
+        },
+        async ({ task_session_id, reason, raw_context }) => {
+            const { session, pauseReport } = await taskRepository.pauseTask({
+                taskSessionId: task_session_id,
+                workspaceId: workspace.id,
+                reason,
+                rawContext: raw_context,
+            });
+
+            const slackNotification = await notifyTaskPaused({
+                sessionId: session.id,
+                workspaceId: workspace.id,
+                reason,
+            });
+
+            return toJsonResponse({
+                task_session_id: session.id,
+                pause_report_id: pauseReport.id,
+                status: session.status,
+                paused_at: session.pausedAt,
+                slack_notification: slackNotification,
+                message: "タスクを一時休止しました。",
+            });
+        },
+    );
+
+    server.registerTool(
+        "resume_task",
+        {
+            title: "resume_task",
+            description: "一時休止したタスクを再開するための入力仕様。",
+            inputSchema: z.object({
+                task_session_id: z
+                    .string()
+                    .min(1, "task_session_idは必須です")
+                    .describe("start_taskで払い出されたタスクID"),
+                summary: z
+                    .string()
+                    .min(1, "summaryは必須です")
+                    .describe("再開時のコメント"),
+                raw_context: rawContextSchema,
+            }),
+        },
+        async ({ task_session_id, summary, raw_context }) => {
+            const { session } = await taskRepository.resumeTask({
+                taskSessionId: task_session_id,
+                workspaceId: workspace.id,
+                summary,
+                rawContext: raw_context,
+            });
+
+            const slackNotification = await notifyTaskResumed({
+                sessionId: session.id,
+                workspaceId: workspace.id,
+                summary,
+            });
+
+            return toJsonResponse({
+                task_session_id: session.id,
+                status: session.status,
+                resumed_at: session.resumedAt,
+                slack_notification: slackNotification,
+                message: "タスクを再開しました。",
+            });
+        },
+    );
+
+    server.registerTool(
         "complete_task",
         {
             title: "complete_task",
@@ -281,7 +364,7 @@ export function createMcpServer(user: User, workspace: Workspace) {
             description: "ユーザーのタスク一覧を取得する。",
             inputSchema: z.object({
                 status: z
-                    .enum(["in_progress", "blocked", "completed"])
+                    .enum(["in_progress", "blocked", "paused", "completed"])
                     .optional()
                     .describe("フィルタリングするステータス（省略時は全ステータス）"),
                 limit: z
