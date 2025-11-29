@@ -45,3 +45,15 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: npx prettier --check . && npx eslint .
     timeout-minutes: 5
+
+  unit-test:
+    name: Unit Test
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-node
+      - run: pnpm test
+    timeout-minutes: 5

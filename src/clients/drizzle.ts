@@ -18,3 +18,5 @@ const db = (() => {
 
 export { db };
 export type Database = typeof db;
+
+export type PgDatabase = ReturnType<typeof pgDrizzle<typeof schema>>;
