@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import * as schema from "@/db/schema";
 import { Schema } from "../../env";
 import { AiSdkModels, createAiSdkModels } from "@/lib/ai";
+import { env } from "hono/adapter";
 
 export type Env = {
   Bindings: Schema;
@@ -41,7 +42,14 @@ export const createHonoApp = () =>
     initApp: (app) => {
       app.use(async (c, next) => {
         c.set("db", db);
-        c.set("ai", createAiSdkModels(c));
+        c.set(
+          "ai",
+          createAiSdkModels({
+            env: {
+              OPENAI_API_KEY: env(c).OPENAI_API_KEY,
+            },
+          }),
+        );
         // TODO: AI SDK
         await next();
       });

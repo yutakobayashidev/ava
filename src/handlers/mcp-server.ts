@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
-import type { Env } from "./create-app";
-import * as taskSessionUsecases from "../usecases/taskSessions";
+import type { Env } from "@/app/create-app";
+import * as taskSessionUsecases from "@/usecases/taskSessions";
 
 export function createMcpServer(ctx: Env["Variables"]) {
   const server = new McpServer({

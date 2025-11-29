@@ -1,4 +1,4 @@
-import app from "@/routes/health";
+import app from "@/handlers/api/health";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));

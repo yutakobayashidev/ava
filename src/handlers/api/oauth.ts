@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { uuidv7 } from "uuidv7";
-import * as schema from "../db/schema";
+import * as schema from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { createHonoApp } from "@/app/create-app";
 import { zValidator } from "@hono/zod-validator";
