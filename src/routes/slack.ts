@@ -1,8 +1,6 @@
 import { getCookie, deleteCookie } from "hono/cookie";
 
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
-import { createWorkspaceRepository } from "@/repos";
-import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { validateSessionToken } from "@/lib/session";
 import { verifySlackSignature } from "@/middleware/slack";
 import { zValidator } from "@hono/zod-validator";
@@ -10,6 +8,7 @@ import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { env } from "hono/adapter";
+import { installWorkspace } from "@/usecases/slack/installWorkspace";
 
 const app = createHonoApp();
 
@@ -59,62 +58,34 @@ app.get("/install/callback", async (ctx) => {
     );
   }
 
-  try {
-    const oauthResult = await exchangeSlackInstallCode(code);
-    const db = ctx.get("db");
-    const workspaceRepository = createWorkspaceRepository({ db });
+  const result = await installWorkspace(
+    {
+      code,
+      userId: user.id,
+    },
+    getUsecaseContext(ctx),
+  );
 
-    const existing = await workspaceRepository.findWorkspaceByExternalId({
-      provider: "slack",
-      externalId: oauthResult.teamId,
-    });
+  // Cookie削除（成功/失敗に関わらず）
+  deleteCookie(ctx, STATE_COOKIE, {
+    path: "/",
+    sameSite: "lax",
+    secure: NODE_ENV === "production",
+  });
 
-    if (existing) {
-      await workspaceRepository.updateWorkspaceCredentials({
-        workspaceId: existing.id,
-        botUserId: oauthResult.botUserId ?? null,
-        botAccessToken: oauthResult.accessToken,
-        botRefreshToken: oauthResult.refreshToken ?? null,
-        name: oauthResult.teamName,
-        domain: oauthResult.teamDomain ?? existing.domain,
-      });
-      await workspaceRepository.addMember({
-        workspaceId: existing.id,
-        userId: user.id,
-      });
-    } else {
-      const workspace = await workspaceRepository.createWorkspace({
-        provider: "slack",
-        externalId: oauthResult.teamId,
-        name: oauthResult.teamName,
-        domain: oauthResult.teamDomain ?? null,
-        botUserId: oauthResult.botUserId ?? null,
-        botAccessToken: oauthResult.accessToken,
-        botRefreshToken: oauthResult.refreshToken ?? null,
-        installedAt: new Date(),
-      });
-      await workspaceRepository.addMember({
-        workspaceId: workspace.id,
-        userId: user.id,
-      });
-    }
-
-    deleteCookie(ctx, STATE_COOKIE, {
-      path: "/",
-      sameSite: "lax",
-      secure: NODE_ENV === "production",
-    });
-
+  // 結果に応じてリダイレクト
+  if (result.success) {
     return ctx.redirect(
       redirectWithMessage(ctx.req.raw, "/onboarding/connect-slack", {
         installed: "1",
-        team: oauthResult.teamName,
+        team: result.teamName,
       }),
     );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "oauth_failed";
+  } else {
     return ctx.redirect(
-      redirectWithMessage(ctx.req.raw, "/slack/install", { error: message }),
+      redirectWithMessage(ctx.req.raw, "/slack/install", {
+        error: result.error,
+      }),
     );
   }
 });
