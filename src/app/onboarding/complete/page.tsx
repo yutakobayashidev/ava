@@ -139,7 +139,7 @@ export default async function CompletePage() {
                   className="inline-flex w-full items-center justify-center rounded-xl border-2 border-slate-200 px-8 py-4 text-center font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
                 >
                   ドキュメントを見る
-                </a>
+                </Link>
               </div>
             </div>
 
