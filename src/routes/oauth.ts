@@ -49,144 +49,181 @@ app.post("/api/oauth/register", zValidator(
 
 })
 
-app.post("/api/oauth/token", zValidator("form", z.object({
+// Schema for OAuth2.0 authorization code exchange
+const authCodeExchangeSchema = z.object({
   grant_type: z.literal("authorization_code"),
   client_id: z.string().min(1),
   client_secret: z.string().optional(),
   code: z.string().min(1, "Missing code"),
   redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
   code_verifier: z.string().max(190).optional(),
-})), async (c) => {
+});
+
+// Schema for OAuth2.0 token refresh request
+const refreshTokenSchema = z.object({
+  grant_type: z.literal("refresh_token"),
+  client_id: z.string().optional(),
+  client_secret: z.string().optional(),
+  refresh_token: z.string().min(1, "Missing refresh_token"),
+});
+
+// Token grant schema
+const tokenGrantSchema = z.discriminatedUnion(
+  "grant_type",
+  [authCodeExchangeSchema, refreshTokenSchema],
+  {
+    error: () => ({
+      message: "grant_type must be 'authorization_code' or 'refresh_token'",
+    }),
+  },
+);
+
+app.post("/api/oauth/token", zValidator("form", tokenGrantSchema), async (c) => {
   console.log("Received token request");
 
-  const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier } = await c.req.valid("form")
+  const formData = await c.req.valid("form");
+  const { grant_type } = formData;
 
-  console.log("Form data:", { grant_type, code, redirect_uri, client_id });
+  console.log("Form data:", { grant_type });
 
-  try {
-    console.log("Finding client for client_id:", client_id);
-    const db = c.get('db');
-    const [client] = await db
-      .select()
-      .from(schema.clients)
-      .where(eq(schema.clients.clientId, client_id));
-    if (!client) {
-      console.log("Invalid client.", { client_id });
-      return c.json({ error: 'invalid_client' }, 401);
-    }
+  if (grant_type === "authorization_code") {
+    // Authorization code exchange flow
+    const { code, redirect_uri, client_id, client_secret, code_verifier } = formData;
 
-    console.log("Finding auth code:", code);
-    const [authCode] = await db
-      .select()
-      .from(schema.authCodes)
-      .where(eq(schema.authCodes.code, code));
+    try {
 
-    if (
-      !authCode ||
-      authCode.clientId !== client.id ||
-      authCode.redirectUri !== redirect_uri
-    ) {
-      console.log("Invalid code or redirect_uri mismatch.", { authCode, client_id: client.id, redirect_uri });
-      return c.json({ error: 'invalid_grant' }, 400);
-    }
-    console.log("Found auth code for user:", authCode.userId);
-
-    if (authCode.expiresAt < new Date()) {
-      console.log("Auth code expired at:", authCode.expiresAt);
-      return c.json({ error: 'invalid_grant' }, 400);
-    }
-    console.log("Auth code is valid.");
-
-    // PKCE or client_secret validation
-    if (authCode.codeChallenge) {
-      if (!code_verifier) {
-        return c.json({ error: 'invalid_request' }, 400);
-      }
-
-      let pkceValid = false;
-      if (authCode.codeChallengeMethod === 'S256') {
-        const hash = createHash('sha256').update(code_verifier).digest();
-        const base64url = hash
-          .toString('base64')
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=+$/, '');
-        pkceValid = base64url === authCode.codeChallenge;
-      } else {
-        pkceValid = code_verifier === authCode.codeChallenge;
-      }
-
-      if (!pkceValid) {
-        return c.json({ error: 'invalid_grant' }, 400);
-      }
-    } else {
-      // No PKCE - client_secret is required
-      if (!client_secret || !client.clientSecret || client.clientSecret !== client_secret) {
-        console.log("Invalid client_secret.", { client_id });
+      console.log("Finding client for client_id:", client_id);
+      const db = c.get('db');
+      const [client] = await db
+        .select()
+        .from(schema.clients)
+        .where(eq(schema.clients.clientId, client_id));
+      if (!client) {
+        console.log("Invalid client.", { client_id });
         return c.json({ error: 'invalid_client' }, 401);
       }
-    }
 
-    // Delete auth code immediately after validation
-    console.log("Deleting auth code:", authCode.id);
-    await db.delete(schema.authCodes).where(eq(schema.authCodes.id, authCode.id));
-    console.log("Auth code deleted.");
-
-    if (!authCode.workspaceId) {
-      console.log("Auth code missing workspace_id", { authCodeId: authCode.id });
-      return c.json({ error: "invalid_grant" }, 400);
-    }
-
-    const [[workspace], [membership]] = await Promise.all([
-      db
+      console.log("Finding auth code:", code);
+      const [authCode] = await db
         .select()
-        .from(schema.workspaces)
-        .where(eq(schema.workspaces.id, authCode.workspaceId)),
-      db
-        .select()
-        .from(schema.workspaceMembers)
-        .where(
-          and(
-            eq(schema.workspaceMembers.workspaceId, authCode.workspaceId),
-            eq(schema.workspaceMembers.userId, authCode.userId),
-          ),
-        )
-        .limit(1),
-    ]);
+        .from(schema.authCodes)
+        .where(eq(schema.authCodes.code, code));
 
-    if (!workspace) {
-      console.log("Workspace not found for auth code", { workspaceId: authCode.workspaceId });
-      return c.json({ error: "invalid_grant" }, 400);
+      if (
+        !authCode ||
+        authCode.clientId !== client.id ||
+        authCode.redirectUri !== redirect_uri
+      ) {
+        console.log("Invalid code or redirect_uri mismatch.", { authCode, client_id: client.id, redirect_uri });
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+      console.log("Found auth code for user:", authCode.userId);
+
+      if (authCode.expiresAt < new Date()) {
+        console.log("Auth code expired at:", authCode.expiresAt);
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+      console.log("Auth code is valid.");
+
+      // PKCE or client_secret validation
+      if (authCode.codeChallenge) {
+        if (!code_verifier) {
+          return c.json({ error: 'invalid_request' }, 400);
+        }
+
+        let pkceValid = false;
+        if (authCode.codeChallengeMethod === 'S256') {
+          const hash = createHash('sha256').update(code_verifier).digest();
+          const base64url = hash
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+          pkceValid = base64url === authCode.codeChallenge;
+        } else {
+          pkceValid = code_verifier === authCode.codeChallenge;
+        }
+
+        if (!pkceValid) {
+          return c.json({ error: 'invalid_grant' }, 400);
+        }
+      } else {
+        // No PKCE - client_secret is required
+        if (!client_secret || !client.clientSecret || client.clientSecret !== client_secret) {
+          console.log("Invalid client_secret.", { client_id });
+          return c.json({ error: 'invalid_client' }, 401);
+        }
+      }
+
+      // Delete auth code immediately after validation
+      console.log("Deleting auth code:", authCode.id);
+      await db.delete(schema.authCodes).where(eq(schema.authCodes.id, authCode.id));
+      console.log("Auth code deleted.");
+
+      if (!authCode.workspaceId) {
+        console.log("Auth code missing workspace_id", { authCodeId: authCode.id });
+        return c.json({ error: "invalid_grant" }, 400);
+      }
+
+      const [[workspace], [membership]] = await Promise.all([
+        db
+          .select()
+          .from(schema.workspaces)
+          .where(eq(schema.workspaces.id, authCode.workspaceId)),
+        db
+          .select()
+          .from(schema.workspaceMembers)
+          .where(
+            and(
+              eq(schema.workspaceMembers.workspaceId, authCode.workspaceId),
+              eq(schema.workspaceMembers.userId, authCode.userId),
+            ),
+          )
+          .limit(1),
+      ]);
+
+      if (!workspace) {
+        console.log("Workspace not found for auth code", { workspaceId: authCode.workspaceId });
+        return c.json({ error: "invalid_grant" }, 400);
+      }
+
+      if (!membership) {
+        console.log("User not a member of workspace", { workspaceId: authCode.workspaceId, userId: authCode.userId });
+        return c.json({ error: "forbidden_workspace" }, 403);
+      }
+
+      const accessToken = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+      console.log("Creating access token for user:", authCode.userId);
+      await db.insert(schema.accessTokens).values({
+        id: uuidv7(),
+        token: accessToken,
+        expiresAt,
+        clientId: client.id,
+        userId: authCode.userId,
+        workspaceId: authCode.workspaceId,
+      });
+      console.log("Access token created.");
+
+      return c.json({
+        access_token: accessToken,
+        token_type: 'Bearer',
+        expires_in: 3600,
+      });
+    } catch (e) {
+      console.error("Error in token endpoint:", e);
+      return c.json({ error: 'server_error' }, 500);
     }
+  } else if (grant_type === "refresh_token") {
+    // Refresh token flow
+    const { refresh_token, client_id, client_secret } = formData;
 
-    if (!membership) {
-      console.log("User not a member of workspace", { workspaceId: authCode.workspaceId, userId: authCode.userId });
-      return c.json({ error: "forbidden_workspace" }, 403);
-    }
-
-    const accessToken = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    console.log("Creating access token for user:", authCode.userId);
-    await db.insert(schema.accessTokens).values({
-      id: uuidv7(),
-      token: accessToken,
-      expiresAt,
-      clientId: client.id,
-      userId: authCode.userId,
-      workspaceId: authCode.workspaceId,
-    });
-    console.log("Access token created.");
-
-    return c.json({
-      access_token: accessToken,
-      token_type: 'Bearer',
-      expires_in: 3600,
-    });
-  } catch (e) {
-    console.error("Error in token endpoint:", e);
-    return c.json({ error: 'server_error' }, 500);
+    // TODO: Implement refresh token logic
+    return c.json({ error: 'unsupported_grant_type' }, 400);
   }
+
+  return c.json({ error: 'unsupported_grant_type' }, 400);
 });
 
 app.get("/.well-known/oauth-authorization-server", (c) => {
