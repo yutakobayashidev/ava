@@ -1,4 +1,4 @@
-# AI Task Manager
+# Ava
 
 コーディング中の進捗を MCP 経由で Slack に自動連携する Next.js アプリ。
 Slack ログイン → ワークスペース連携 → MCP 接続までワンストップで用意されています。
@@ -75,7 +75,7 @@ OPENAI_API_KEY=sk-... # /api/daily-summary 用。未設定なら日次サマリ�
   ```
   {
     "mcpServers": {
-      "task": { "type": "http", "url": "https://localhost:3000/mcp" }
+      "ava": { "type": "http", "url": "https://localhost:3000/mcp" }
     }
   }
   ```
