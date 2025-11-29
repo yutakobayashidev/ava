@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../clients/drizzle";
 import * as schema from "../db/schema";
 import type { Context } from "hono";
-import type { Env } from "@/app/factory";
+import type { Env } from "@/app/create-app";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 

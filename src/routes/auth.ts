@@ -6,7 +6,7 @@ import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { createHonoApp } from "@/app/factory";
+import { createHonoApp } from "@/app/create-app";
 import { absoluteUrl } from "@/lib/utils";
 import { cors } from "hono/cors";
 

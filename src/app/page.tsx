@@ -48,7 +48,7 @@ export default async function LandingPage() {
               className="px-8 py-4 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl h-auto"
             >
               <Link href="/login">
-                無料で始める
+                Slackでログイン
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
@@ -58,7 +58,7 @@ export default async function LandingPage() {
               size="lg"
               className="px-8 py-4 border-2 rounded-xl h-auto"
             >
-              <a href="https://github.com">GitHubで見る</a>
+              <Link href="/docs">ドキュメントを見る</Link>
             </Button>
           </div>
         </div>

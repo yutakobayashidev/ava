@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import { uuidv7 } from 'uuidv7';
 import * as schema from "../db/schema";
 import { and, eq } from "drizzle-orm";
-import { createHonoApp } from '@/app/factory';
+import { createHonoApp } from '@/app/create-app';
 import { absoluteUrl } from "@/lib/utils";
 import { zValidator } from '@hono/zod-validator'
 import { z } from "zod"
@@ -20,9 +20,9 @@ app.post("/api/oauth/register", zValidator(
   const { client_name, redirect_uris } = await c.req.valid("json")
   const clientSecret = randomBytes(32).toString('hex');
   const generatedClientId = randomBytes(16).toString('hex');
+  const db = c.get('db');
 
   try {
-    const db = c.get('db');
     const [newClient] = await db
       .insert(schema.clients)
       .values({
@@ -89,11 +89,11 @@ app.post("/api/oauth/token", zValidator("form", tokenGrantSchema), async (c) => 
   if (grant_type === "authorization_code") {
     // Authorization code exchange flow
     const { code, redirect_uri, client_id, client_secret, code_verifier } = formData;
+    const db = c.get('db');
 
     try {
 
       console.log("Finding client for client_id:", client_id);
-      const db = c.get('db');
       const [client] = await db
         .select()
         .from(schema.clients)
