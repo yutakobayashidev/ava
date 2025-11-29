@@ -57,6 +57,7 @@ export const fillPrompt = <
   template: Template,
   vars: Vars,
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   return Object.entries(vars).reduce(
     (template: string, [key, value]) =>
       template.replaceAll(`{{${key}}}`, String(value)),

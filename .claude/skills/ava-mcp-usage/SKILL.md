@@ -16,6 +16,7 @@ Ava works best when you tell it what to watch: **"Keep an eye on this work."**
 **Important: Treat any coding work as a task**, even if the user doesn't explicitly say "task". When the user starts working on something, that's a task to track.
 
 Key principles:
+
 - Treat all coding work as tasks worth tracking
 - Report only the current task
 - **Proactive, frequent updates**: Report progress at every meaningful milestone without waiting for user prompts
@@ -28,6 +29,7 @@ Key principles:
 ## MCP Tools Quick Reference
 
 ### start_task
+
 Tell Ava what you're working on now. **Treat any coding work as a task**, even if not explicitly called a "task".
 
 ```
@@ -35,6 +37,7 @@ Start task: ログインのエラー処理改善
 ```
 
 **Tips:**
+
 - Treat all coding work as tasks worth tracking
 - Only report the task you're currently working on
 - Be specific but concise
@@ -42,6 +45,7 @@ Start task: ログインのエラー処理改善
 - **Before starting a new task**: If there's already an active task in this session, ask the user: "Should I complete the current task first, or would you like to start a new Claude Code session for this different work?"
 
 ### update_task
+
 Report progress proactively at every meaningful milestone, even without user prompts.
 
 ```
@@ -49,6 +53,7 @@ Update task: リトライ実装が完了
 ```
 
 **When to update (proactively):**
+
 - After creating or editing a schema file
 - After implementing an endpoint or API route
 - After adding validation logic
@@ -58,12 +63,14 @@ Update task: リトライ実装が完了
 - Any other meaningful progress point
 
 **Tips:**
+
 - **Don't wait for user prompts** - update proactively when you complete a milestone
 - Small, granular updates are highly valuable - they create a clear activity trail
 - No need for detailed explanations - brief summaries are sufficient
 - Each update goes to the same Slack thread
 
 ### report_blocked
+
 Share blockers without hesitation.
 
 ```
@@ -71,11 +78,13 @@ Report blocked: テスト環境でトークンが通らない
 ```
 
 **Tips:**
+
 - Don't hold back - reporting early helps
 - Brief descriptions are fine
 - Ava notifies your team in the Slack thread
 
 ### complete_task
+
 Mark completion after confirming with the user.
 
 ```
@@ -83,6 +92,7 @@ Complete task: レビュー完了してマージしました
 ```
 
 **Tips:**
+
 - PR creation is progress, not completion
 - Always ask the user before marking a task complete
 - Include PR URL if relevant
@@ -92,12 +102,14 @@ Complete task: レビュー完了してマージしました
 Ava sends only abstract summaries to Slack/MCP. Never send code or secrets.
 
 ### ❌ Do NOT send:
+
 - Full code
 - Secret keys or tokens
 - Detailed error logs
 - Repository confidential information
 
 ### ✅ Safe to send:
+
 - Abstract work summaries
 - Brief blocker descriptions
 - Completion summary with PR URL

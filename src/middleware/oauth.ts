@@ -12,7 +12,9 @@ type AuthContext = {
   workspace: typeof schema.workspaces.$inferSelect;
 };
 
-async function findUserAndWorkspaceByToken(token: string): Promise<AuthContext | null> {
+async function findUserAndWorkspaceByToken(
+  token: string,
+): Promise<AuthContext | null> {
   const [accessToken] = await db
     .select()
     .from(schema.accessTokens)
