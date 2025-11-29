@@ -29,6 +29,7 @@
     "**/*.ts",
     "**/*.tsx",
     "env.ts",
+    "src/app/.well-known/**/*",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
