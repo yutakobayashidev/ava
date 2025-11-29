@@ -26,7 +26,7 @@ Slack ログイン → ワークスペース連携 → MCP 接続までワンス
 - Slack アプリ（OIDC と Bot の両方を有効化）
   - Bot スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`
   - リダイレクト URI: `https://<BASE>/login/slack/callback`, `https://<BASE>/slack/install/callback`
-  - Slash Command: `/daily-report` → Request URL: `https://<BASE>/slack/commands/daily-report`
+  - Slash Command: `/daily-report` → Request URL: `https://<BASE>/slack/commands`
 
 ## 環境変数例 (`.env`)
 
