@@ -55,6 +55,7 @@
     "@radix-ui/react-toggle": "1.1.10",
     "@radix-ui/react-toggle-group": "1.1.11",
     "@radix-ui/react-tooltip": "1.2.8",
+    "@slack/web-api": "7.13.0",
     "@types/mdx": "2.0.13",
     "ai": "5.0.104",
     "arctic": "3.7.0",

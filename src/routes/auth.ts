@@ -55,13 +55,27 @@ type SlackUser = {
   picture: string;
 };
 
-
 async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
-  return fetch('https://slack.com/api/openid.connect.userInfo', {
-    headers: {
-      Authorization: `Bearer ${tokens.accessToken()}`
-    }
-  }).then((response) => response.json());
+  const { WebClient } = await import("@slack/web-api");
+  const client = new WebClient(tokens.accessToken());
+
+  const result = await client.openid.connect.userInfo();
+
+  if (!result.ok) {
+    throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
+  }
+
+  if (!result.sub || !result.email || !result.name || !result.picture) {
+    throw new Error("Missing required user information from Slack");
+  }
+
+  return {
+    sub: result.sub,
+    email: result.email,
+    email_verified: result.email_verified ?? false,
+    name: result.name,
+    picture: result.picture,
+  };
 }
 
 export function generateSessionToken(): string {
