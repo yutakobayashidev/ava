@@ -4,9 +4,17 @@
       "type": "http",
       "url": "https://ava-dusky-gamma.vercel.app/mcp"
     },
+    "next-devtools": {
+      "command": "npx",
+      "args": ["-y", "next-devtools-mcp@latest"]
+    },
     "vercel": {
       "type": "http",
       "url": "https://mcp.vercel.com"
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
     }
   }
 }

@@ -1,0 +1,72 @@
+import type { Env } from "@/app/create-app";
+import { createWorkspaceRepository } from "@/repos";
+import { exchangeSlackInstallCode } from "@/lib/slackInstall";
+
+export type InstallWorkspace = {
+  code: string;
+  userId: string;
+};
+
+type InstallWorkspaceResult =
+  | { success: true; teamName: string }
+  | { success: false; error: string };
+
+export const installWorkspace = async (
+  params: InstallWorkspace,
+  ctx: Env["Variables"],
+): Promise<InstallWorkspaceResult> => {
+  const { code, userId } = params;
+  const { db } = ctx;
+
+  try {
+    const oauthResult = await exchangeSlackInstallCode(code);
+    const workspaceRepository = createWorkspaceRepository({ db });
+
+    const existing = await workspaceRepository.findWorkspaceByExternalId({
+      provider: "slack",
+      externalId: oauthResult.teamId,
+    });
+
+    if (existing) {
+      // 既存ワークスペースの更新
+      await workspaceRepository.updateWorkspaceCredentials({
+        workspaceId: existing.id,
+        botUserId: oauthResult.botUserId ?? null,
+        botAccessToken: oauthResult.accessToken,
+        botRefreshToken: oauthResult.refreshToken ?? null,
+        name: oauthResult.teamName,
+        domain: oauthResult.teamDomain ?? existing.domain,
+      });
+      await workspaceRepository.addMember({
+        workspaceId: existing.id,
+        userId,
+      });
+    } else {
+      // 新規ワークスペースの作成
+      const workspace = await workspaceRepository.createWorkspace({
+        provider: "slack",
+        externalId: oauthResult.teamId,
+        name: oauthResult.teamName,
+        domain: oauthResult.teamDomain ?? null,
+        botUserId: oauthResult.botUserId ?? null,
+        botAccessToken: oauthResult.accessToken,
+        botRefreshToken: oauthResult.refreshToken ?? null,
+        installedAt: new Date(),
+      });
+      await workspaceRepository.addMember({
+        workspaceId: workspace.id,
+        userId,
+      });
+    }
+
+    return {
+      success: true,
+      teamName: oauthResult.teamName,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "oauth_failed",
+    };
+  }
+};

@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "2.0.74",
+    "@ai-sdk/provider": "2.0.0",
     "@hono/mcp": "0.2.0",
     "@hono/zod-validator": "0.7.5",
     "@hookform/resolvers": "5.2.2",

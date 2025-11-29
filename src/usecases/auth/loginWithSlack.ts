@@ -1,55 +1,15 @@
-import { generateState, OAuth2Tokens, Slack } from "arctic";
-import { getCookie, setCookie } from "hono/cookie";
+import type { Env } from "@/app/create-app";
+import type { OAuth2Tokens } from "arctic";
+import { slack } from "@/lib/oauth";
 import { uuidv7 } from "uuidv7";
-import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { createHonoApp } from "@/app/create-app";
-import { absoluteUrl } from "@/lib/utils";
-import { cors } from "hono/cors";
 
-const app = createHonoApp().use(
-  cors({
-    origin: (origin) => origin,
-    credentials: true,
-  }),
-);
-
-const slackClientId = process.env.SLACK_APP_CLIENT_ID!;
-const slackClientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-const slackRedirectUri = absoluteUrl("/api/login/slack/callback");
-
-export const slack = new Slack(
-  slackClientId,
-  slackClientSecret,
-  slackRedirectUri,
-);
-
-app.get("/slack", async (c) => {
-  const state = generateState();
-  const url = slack.createAuthorizationURL(state, [
-    "openid",
-    "profile",
-    "email",
-  ]);
-
-  setCookie(c, "slack_oauth_state", state, {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    maxAge: 60 * 10,
-    sameSite: "lax",
-  });
-
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: url.toString(),
-    },
-  });
-});
+export type LoginWithSlack = {
+  code: string;
+};
 
 type SlackUser = {
   sub: string;
@@ -58,6 +18,14 @@ type SlackUser = {
   name: string;
   picture: string;
 };
+
+type LoginWithSlackResult =
+  | {
+      success: true;
+      sessionToken: string;
+      session: typeof schema.sessions.$inferSelect;
+    }
+  | { success: false; error: "invalid_code" | "user_creation_failed" };
 
 async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
   const { WebClient } = await import("@slack/web-api");
@@ -82,20 +50,18 @@ async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
   };
 }
 
-export function generateSessionToken(): string {
+function generateSessionToken(): string {
   const tokenBytes = new Uint8Array(20);
   crypto.getRandomValues(tokenBytes);
   const token = encodeBase32(tokenBytes).toLowerCase();
   return token;
 }
 
-export type Session = typeof schema.sessions.$inferSelect;
-
-export async function createSession(
-  db: Database,
+async function createSession(
+  db: Env["Variables"]["db"],
   token: string,
   userId: string,
-): Promise<Session> {
+): Promise<typeof schema.sessions.$inferSelect> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
@@ -115,31 +81,25 @@ export async function createSession(
   return session;
 }
 
-app.get("/slack/callback", async (c) => {
-  const { code, state } = c.req.query();
-  const storedState = getCookie(c, "slack_oauth_state");
+export const loginWithSlack = async (
+  params: LoginWithSlack,
+  ctx: Env["Variables"],
+): Promise<LoginWithSlackResult> => {
+  const { code } = params;
+  const { db } = ctx;
 
-  if (
-    !storedState ||
-    !state ||
-    storedState !== state ||
-    typeof code !== "string"
-  ) {
-    return c.text("Bad request", 400);
-  }
-
+  // Slack OAuth トークン検証
   let tokens: OAuth2Tokens;
   try {
     tokens = await slack.validateAuthorizationCode(code);
   } catch {
-    // Invalid code or client credentials
-    return new Response("Please restart the process.", {
-      status: 400,
-    });
+    return { success: false, error: "invalid_code" };
   }
+
+  // Slack ユーザー情報取得
   const slackUser = await getSlackUser(tokens);
 
-  const db = c.get("db");
+  // ユーザーの検索または作成
   let [existingUser] = await db
     .select()
     .from(schema.users)
@@ -161,26 +121,16 @@ app.get("/slack/callback", async (c) => {
   }
 
   if (!existingUser) {
-    return c.text("Failed to create user", 500);
+    return { success: false, error: "user_creation_failed" };
   }
 
+  // セッション作成
   const sessionToken = generateSessionToken();
   const session = await createSession(db, sessionToken, existingUser.id);
 
-  setCookie(c, "session", sessionToken, {
-    httpOnly: true,
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    expires: session.expiresAt,
-  });
-
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/",
-    },
-  });
-});
-
-export default app;
+  return {
+    success: true,
+    sessionToken,
+    session,
+  };
+};
