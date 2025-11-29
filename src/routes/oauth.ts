@@ -193,23 +193,41 @@ app.post("/api/oauth/token", zValidator("form", tokenGrantSchema), async (c) => 
       }
 
       const accessToken = randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       console.log("Creating access token for user:", authCode.userId);
-      await db.insert(schema.accessTokens).values({
+      const [createdAccessToken] = await db.insert(schema.accessTokens).values({
         id: uuidv7(),
         token: accessToken,
-        expiresAt,
+        expiresAt: accessTokenExpiresAt,
         clientId: client.id,
         userId: authCode.userId,
         workspaceId: authCode.workspaceId,
-      });
+      }).returning();
       console.log("Access token created.");
+
+      // Generate refresh token
+      const refreshToken = randomBytes(32).toString('hex');
+      const refreshTokenHash = createHash('sha256').update(refreshToken).digest('hex');
+      const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+      console.log("Creating refresh token for user:", authCode.userId);
+      await db.insert(schema.refreshTokens).values({
+        id: uuidv7(),
+        tokenHash: refreshTokenHash,
+        accessTokenId: createdAccessToken.id,
+        clientId: client.id,
+        userId: authCode.userId,
+        workspaceId: authCode.workspaceId,
+        expiresAt: refreshTokenExpiresAt,
+      });
+      console.log("Refresh token created.");
 
       return c.json({
         access_token: accessToken,
         token_type: 'Bearer',
         expires_in: 3600,
+        refresh_token: refreshToken,
       });
     } catch (e) {
       console.error("Error in token endpoint:", e);
@@ -219,8 +237,107 @@ app.post("/api/oauth/token", zValidator("form", tokenGrantSchema), async (c) => 
     // Refresh token flow
     const { refresh_token, client_id, client_secret } = formData;
 
-    // TODO: Implement refresh token logic
-    return c.json({ error: 'unsupported_grant_type' }, 400);
+    try {
+      const db = c.get('db');
+
+      // Hash the provided refresh token to compare with stored hash
+      const refreshTokenHash = createHash('sha256').update(refresh_token).digest('hex');
+
+      // Find the refresh token
+      const [storedRefreshToken] = await db
+        .select()
+        .from(schema.refreshTokens)
+        .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash));
+
+      if (!storedRefreshToken) {
+        console.log("Invalid refresh token");
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+
+      // Check if token has been used (rotation detection)
+      if (storedRefreshToken.usedAt) {
+        console.log("Refresh token already used - potential replay attack", { tokenId: storedRefreshToken.id });
+        // Invalidate all tokens for this user/client (security measure)
+        await db.delete(schema.refreshTokens).where(
+          and(
+            eq(schema.refreshTokens.userId, storedRefreshToken.userId),
+            eq(schema.refreshTokens.clientId, storedRefreshToken.clientId)
+          )
+        );
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+
+      // Check if token has expired
+      if (storedRefreshToken.expiresAt < new Date()) {
+        console.log("Refresh token expired");
+        return c.json({ error: 'invalid_grant' }, 400);
+      }
+
+      // Verify client if client_id is provided
+      if (client_id) {
+        const [client] = await db
+          .select()
+          .from(schema.clients)
+          .where(eq(schema.clients.clientId, client_id));
+
+        if (!client || client.id !== storedRefreshToken.clientId) {
+          console.log("Client mismatch");
+          return c.json({ error: 'invalid_client' }, 401);
+        }
+
+        // Verify client_secret if provided and client has one
+        if (client.clientSecret && (!client_secret || client.clientSecret !== client_secret)) {
+          console.log("Invalid client_secret");
+          return c.json({ error: 'invalid_client' }, 401);
+        }
+      }
+
+      // Mark the old refresh token as used
+      await db
+        .update(schema.refreshTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(schema.refreshTokens.id, storedRefreshToken.id));
+
+      // Generate new access token
+      const newAccessToken = randomBytes(32).toString('hex');
+      const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      const [createdAccessToken] = await db.insert(schema.accessTokens).values({
+        id: uuidv7(),
+        token: newAccessToken,
+        expiresAt: accessTokenExpiresAt,
+        clientId: storedRefreshToken.clientId,
+        userId: storedRefreshToken.userId,
+        workspaceId: storedRefreshToken.workspaceId,
+      }).returning();
+
+      // Generate new refresh token (rotation)
+      const newRefreshToken = randomBytes(32).toString('hex');
+      const newRefreshTokenHash = createHash('sha256').update(newRefreshToken).digest('hex');
+      const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+      await db.insert(schema.refreshTokens).values({
+        id: uuidv7(),
+        tokenHash: newRefreshTokenHash,
+        accessTokenId: createdAccessToken.id,
+        clientId: storedRefreshToken.clientId,
+        userId: storedRefreshToken.userId,
+        workspaceId: storedRefreshToken.workspaceId,
+        expiresAt: refreshTokenExpiresAt,
+      });
+
+      console.log("Refresh token rotated successfully for user:", storedRefreshToken.userId);
+
+      return c.json({
+        access_token: newAccessToken,
+        token_type: 'Bearer',
+        expires_in: 3600,
+        refresh_token: newRefreshToken,
+      });
+    } catch (e) {
+      console.error("Error in refresh token flow:", e);
+      return c.json({ error: 'server_error' }, 500);
+    }
   }
 
   return c.json({ error: 'unsupported_grant_type' }, 400);
