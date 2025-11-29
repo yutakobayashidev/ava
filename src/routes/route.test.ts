@@ -1,5 +1,7 @@
 import app from "@/routes/health";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
 
 describe("api/health", () => {
   describe("GET /", () => {
