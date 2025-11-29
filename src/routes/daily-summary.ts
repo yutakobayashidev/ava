@@ -56,7 +56,7 @@ app.post("/", oauthMiddleware, async (c) => {
       (task) => {
         const updatedAt = new Date(task.updatedAt);
         return updatedAt >= today && updatedAt < tomorrow;
-      }
+      },
     );
 
     if (todayCompletedTasks.length === 0 && todayActiveTasks.length === 0) {
@@ -67,10 +67,11 @@ app.post("/", oauthMiddleware, async (c) => {
     const completedTasksWithDetails = await Promise.all(
       todayCompletedTasks.map(async (task) => {
         const completion = await taskRepository.findCompletionByTaskSessionId(
-          task.id
+          task.id,
         );
-        const unresolvedBlocks =
-          await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
+          task.id,
+        );
         return {
           title: task.issueTitle,
           initialSummary: task.initialSummary,
@@ -85,14 +86,15 @@ app.post("/", oauthMiddleware, async (c) => {
             createdAt: block.createdAt,
           })),
         };
-      })
+      }),
     );
 
     // 進行中・ブロック中タスクの詳細情報を取得
     const activeTasksWithDetails = await Promise.all(
       todayActiveTasks.map(async (task) => {
-        const unresolvedBlocks =
-          await taskRepository.getUnresolvedBlockReports(task.id);
+        const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
+          task.id,
+        );
         const updates = await taskRepository.listUpdates(task.id, { limit: 5 });
         return {
           title: task.issueTitle,
@@ -104,13 +106,13 @@ app.post("/", oauthMiddleware, async (c) => {
             createdAt: block.createdAt,
           })),
         };
-      })
+      }),
     );
 
     // LLMで1日のまとめを生成
     const summary = await generateDailySummary(
       completedTasksWithDetails,
-      activeTasksWithDetails
+      activeTasksWithDetails,
     );
 
     // Slackに投稿
@@ -150,7 +152,7 @@ async function generateDailySummary(
       reason: string;
       createdAt: Date;
     }>;
-  }>
+  }>,
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY!;
 
@@ -174,7 +176,7 @@ ${i + 1}. 【${task.title}】
    - 所要時間: ${formatDuration(task.duration)}
    - PR: ${task.prUrl}
    ${task.unresolvedBlocks.length > 0 ? `- ⚠️ 未解決のブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
-`
+`,
   )
   .join("\n")}`
       : "";
@@ -190,7 +192,7 @@ ${i + 1}. 【${task.title}】 (${task.status === "blocked" ? "ブロック中" :
    - 初期サマリ: ${task.initialSummary}
    ${task.latestUpdate ? `- 最新の更新: ${task.latestUpdate}` : ""}
    ${task.unresolvedBlocks.length > 0 ? `- ⚠️ ブロッキング: ${task.unresolvedBlocks.map((b) => b.reason).join(", ")}` : ""}
-`
+`,
   )
   .join("\n")}`
       : "";

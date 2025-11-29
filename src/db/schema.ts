@@ -43,10 +43,9 @@ export const workspaces = pgTable(
       .notNull(),
   },
   (table) => ({
-    providerExternalUnique: uniqueIndex("workspaces_provider_external_unique").on(
-      table.provider,
-      table.externalId,
-    ),
+    providerExternalUnique: uniqueIndex(
+      "workspaces_provider_external_unique",
+    ).on(table.provider, table.externalId),
   }),
 );
 
@@ -79,7 +78,9 @@ export const users = pgTable(
     email: text("email"),
     slackId: text("slack_id"),
     image: text("image"),
-    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -181,8 +182,12 @@ export const refreshTokens = pgTable(
       .notNull(),
   },
   (table) => ({
-    tokenHashUnique: uniqueIndex("refresh_tokens_token_hash_unique").on(table.tokenHash),
-    accessTokenIdx: index("refresh_tokens_access_token_idx").on(table.accessTokenId),
+    tokenHashUnique: uniqueIndex("refresh_tokens_token_hash_unique").on(
+      table.tokenHash,
+    ),
+    accessTokenIdx: index("refresh_tokens_access_token_idx").on(
+      table.accessTokenId,
+    ),
     userIdx: index("refresh_tokens_user_idx").on(table.userId),
   }),
 );
@@ -202,11 +207,12 @@ export const workspaceMembers = pgTable(
       .notNull(),
   },
   (table) => ({
-    workspaceUserUnique: uniqueIndex("workspace_members_workspace_user_unique").on(
+    workspaceUserUnique: uniqueIndex(
+      "workspace_members_workspace_user_unique",
+    ).on(table.workspaceId, table.userId),
+    workspaceIdx: index("workspace_members_workspace_idx").on(
       table.workspaceId,
-      table.userId,
     ),
-    workspaceIdx: index("workspace_members_workspace_idx").on(table.workspaceId),
     userIdx: index("workspace_members_user_idx").on(table.userId),
   }),
 );
@@ -242,7 +248,9 @@ export const taskSessions = pgTable(
   },
   (table) => ({
     userIdx: index("task_sessions_user_idx").on(table.userId),
-    issueProviderIdx: index("task_sessions_issue_provider_idx").on(table.issueProvider),
+    issueProviderIdx: index("task_sessions_issue_provider_idx").on(
+      table.issueProvider,
+    ),
     statusIdx: index("task_sessions_status_idx").on(table.status),
   }),
 );
@@ -264,7 +272,9 @@ export const taskUpdates = pgTable(
       .notNull(),
   },
   (table) => ({
-    taskSessionIdx: index("task_updates_task_session_idx").on(table.taskSessionId),
+    taskSessionIdx: index("task_updates_task_session_idx").on(
+      table.taskSessionId,
+    ),
   }),
 );
 
@@ -286,7 +296,9 @@ export const taskBlockReports = pgTable(
       .notNull(),
   },
   (table) => ({
-    taskSessionIdx: index("task_block_reports_task_session_idx").on(table.taskSessionId),
+    taskSessionIdx: index("task_block_reports_task_session_idx").on(
+      table.taskSessionId,
+    ),
   }),
 );
 
@@ -308,7 +320,9 @@ export const taskPauseReports = pgTable(
       .notNull(),
   },
   (table) => ({
-    taskSessionIdx: index("task_pause_reports_task_session_idx").on(table.taskSessionId),
+    taskSessionIdx: index("task_pause_reports_task_session_idx").on(
+      table.taskSessionId,
+    ),
   }),
 );
 
@@ -332,20 +346,23 @@ export const taskCompletions = pgTable(
   }),
 );
 
-export const taskSessionRelations = relations(taskSessions, ({ one, many }) => ({
-  user: one(users, {
-    fields: [taskSessions.userId],
-    references: [users.id],
+export const taskSessionRelations = relations(
+  taskSessions,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [taskSessions.userId],
+      references: [users.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [taskSessions.workspaceId],
+      references: [workspaces.id],
+    }),
+    updates: many(taskUpdates),
+    blockReports: many(taskBlockReports),
+    pauseReports: many(taskPauseReports),
+    completions: many(taskCompletions),
   }),
-  workspace: one(workspaces, {
-    fields: [taskSessions.workspaceId],
-    references: [workspaces.id],
-  }),
-  updates: many(taskUpdates),
-  blockReports: many(taskBlockReports),
-  pauseReports: many(taskPauseReports),
-  completions: many(taskCompletions),
-}));
+);
 
 export const taskUpdateRelations = relations(taskUpdates, ({ one }) => ({
   taskSession: one(taskSessions, {
@@ -354,26 +371,35 @@ export const taskUpdateRelations = relations(taskUpdates, ({ one }) => ({
   }),
 }));
 
-export const taskBlockReportRelations = relations(taskBlockReports, ({ one }) => ({
-  taskSession: one(taskSessions, {
-    fields: [taskBlockReports.taskSessionId],
-    references: [taskSessions.id],
+export const taskBlockReportRelations = relations(
+  taskBlockReports,
+  ({ one }) => ({
+    taskSession: one(taskSessions, {
+      fields: [taskBlockReports.taskSessionId],
+      references: [taskSessions.id],
+    }),
   }),
-}));
+);
 
-export const taskPauseReportRelations = relations(taskPauseReports, ({ one }) => ({
-  taskSession: one(taskSessions, {
-    fields: [taskPauseReports.taskSessionId],
-    references: [taskSessions.id],
+export const taskPauseReportRelations = relations(
+  taskPauseReports,
+  ({ one }) => ({
+    taskSession: one(taskSessions, {
+      fields: [taskPauseReports.taskSessionId],
+      references: [taskSessions.id],
+    }),
   }),
-}));
+);
 
-export const taskCompletionRelations = relations(taskCompletions, ({ one }) => ({
-  taskSession: one(taskSessions, {
-    fields: [taskCompletions.taskSessionId],
-    references: [taskSessions.id],
+export const taskCompletionRelations = relations(
+  taskCompletions,
+  ({ one }) => ({
+    taskSession: one(taskSessions, {
+      fields: [taskCompletions.taskSessionId],
+      references: [taskSessions.id],
+    }),
   }),
-}));
+);
 
 export const userRelations = relations(users, ({ many }) => ({
   authCodes: many(authCodes),
@@ -406,21 +432,24 @@ export const authCodeRelations = relations(authCodes, ({ one }) => ({
   }),
 }));
 
-export const accessTokenRelations = relations(accessTokens, ({ one, many }) => ({
-  user: one(users, {
-    fields: [accessTokens.userId],
-    references: [users.id],
+export const accessTokenRelations = relations(
+  accessTokens,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [accessTokens.userId],
+      references: [users.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [accessTokens.workspaceId],
+      references: [workspaces.id],
+    }),
+    client: one(clients, {
+      fields: [accessTokens.clientId],
+      references: [clients.id],
+    }),
+    refreshTokens: many(refreshTokens),
   }),
-  workspace: one(workspaces, {
-    fields: [accessTokens.workspaceId],
-    references: [workspaces.id],
-  }),
-  client: one(clients, {
-    fields: [accessTokens.clientId],
-    references: [clients.id],
-  }),
-  refreshTokens: many(refreshTokens),
-}));
+);
 
 export const refreshTokenRelations = relations(refreshTokens, ({ one }) => ({
   accessToken: one(accessTokens, {
@@ -447,16 +476,19 @@ export const clientRelations = relations(clients, ({ many }) => ({
   refreshTokens: many(refreshTokens),
 }));
 
-export const workspaceMemberRelations = relations(workspaceMembers, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [workspaceMembers.workspaceId],
-    references: [workspaces.id],
+export const workspaceMemberRelations = relations(
+  workspaceMembers,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [workspaceMembers.workspaceId],
+      references: [workspaces.id],
+    }),
+    user: one(users, {
+      fields: [workspaceMembers.userId],
+      references: [users.id],
+    }),
   }),
-  user: one(users, {
-    fields: [workspaceMembers.userId],
-    references: [users.id],
-  }),
-}));
+);
 
 export type TaskSession = typeof taskSessions.$inferSelect;
 export type NewTaskSession = typeof taskSessions.$inferInsert;

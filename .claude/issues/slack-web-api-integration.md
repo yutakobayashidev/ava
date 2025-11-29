@@ -1,9 +1,9 @@
 ---
 name: 新機能追加・改善
 about: 新機能や改善案、リファクタリングなどのタスクの場合
-title: ''
-labels: ''
-assignees: ''
+title: ""
+labels: ""
+assignees: ""
 ---
 
 ## 概要

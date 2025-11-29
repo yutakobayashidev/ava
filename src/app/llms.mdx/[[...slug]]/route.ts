@@ -1,12 +1,12 @@
-import { getLLMText } from '@/lib/get-llm-text';
-import { source } from '@/lib/source';
-import { notFound } from 'next/navigation';
+import { getLLMText } from "@/lib/get-llm-text";
+import { source } from "@/lib/source";
+import { notFound } from "next/navigation";
 
 export const revalidate = false;
 
 export async function GET(
   _req: Request,
-  { params }: RouteContext<'/llms.mdx/[[...slug]]'>,
+  { params }: RouteContext<"/llms.mdx/[[...slug]]">,
 ) {
   const { slug } = await params;
   const page = source.getPage(slug);
@@ -14,7 +14,7 @@ export async function GET(
 
   return new Response(await getLLMText(page), {
     headers: {
-      'Content-Type': 'text/markdown; charset=utf-8',
+      "Content-Type": "text/markdown; charset=utf-8",
     },
   });
 }

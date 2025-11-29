@@ -1,0 +1,15 @@
+name: Setup Node
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+    - run: cp ./.env.example ./.env
+      shell: bash
+    - run: npm run setup
+      shell: bash
+    - run: pnpm i && pnpm rebuild
+      shell: bash

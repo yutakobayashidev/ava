@@ -49,6 +49,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   const config =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     variants[status as keyof typeof variants] || variants.in_progress;
 
   return <Badge variant={config.variant}>{config.label}</Badge>;

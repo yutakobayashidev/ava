@@ -25,6 +25,7 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     - AIエージェントはAvaが提供するツール（`start_task`、`update_task`など）を使って進捗を報告します
 
     詳しくは [MCP公式ドキュメント](https://modelcontextprotocol.io/docs/getting-started/intro) をご覧ください。
+
   </Accordion>
 </Accordions>
 
@@ -99,6 +100,7 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     - プライバシーに配慮した報告が自動的に行われます
 
     もちろん、自分で[Claude Skills](https://support.claude.com/ja/articles/12512176-%E3%82%B9%E3%82%AD%E3%83%AB%E3%81%A8%E3%81%AF%E4%BD%95%E3%81%A7%E3%81%99%E3%81%8B)を作成したり、CLAUDE.mdに独自のルールを追記することで、報告の仕方をカスタマイズすることもできます。
+
   </Tab>
 
   <Tab value="Cursor">
@@ -146,6 +148,7 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     ```
 
     Avaのツール一覧が表示されれば成功です。
+
   </Tab>
 </Tabs>
 
@@ -158,6 +161,7 @@ Avaは**進捗の共有とチームへの透明性確保に特化したツール
 以下のMCPツールと組み合わせることで、より効率的な開発フローを実現できます：
 
 #### GitHub MCP
+
 GitHubのIssue管理とAvaの進捗報告を組み合わせることで、タスク管理とチームへの透明性を両立できます。
 
 ```json
@@ -176,15 +180,18 @@ GitHubのIssue管理とAvaの進捗報告を組み合わせることで、タス
 ```
 
 **使用例:**
+
 1. GitHub MCPでIssueを取得・作成
 2. Avaで作業開始を報告（Issueタイトルを指定）
 3. 進捗はAvaが自動でSlackに投稿
 4. 完了時、Pull RequestのURLをAvaが報告
 
 #### GitHub CLI（gh）
+
 GitHub CLIを使ってIssueやPull Requestを直接操作することもできます。GitHub CLIはMCPサーバーではありませんが、コーディングエージェントから直接呼び出すことで、タスク管理を効率化できます。
 
 #### Linear MCP
+
 Linearでタスク管理している場合は、Linear MCPとの併用が便利です。
 
 ```json

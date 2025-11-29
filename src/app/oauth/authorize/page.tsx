@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import { db } from "../../../clients/drizzle";
 import * as schema from "../../../db/schema";
 import { eq } from "drizzle-orm";
@@ -53,7 +54,8 @@ export default async function AuthorizePage({
           <h1 className="text-2xl font-bold mb-4">エラー</h1>
           <p>不正な認可リクエストです。</p>
           <p className="text-xs text-gray-500 mt-4">
-            client_id、redirect_uri が不足しているか、response_type が &apos;code&apos; ではありません。
+            client_id、redirect_uri が不足しているか、response_type が
+            &apos;code&apos; ではありません。
           </p>
         </div>
       </main>
