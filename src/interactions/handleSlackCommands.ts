@@ -3,6 +3,7 @@ import type {
   TaskRepository,
   UserRepository,
 } from "@/repos";
+import type { Env } from "@/app/create-app";
 
 type Repositories = {
   workspaceRepository: WorkspaceRepository;
@@ -16,7 +17,7 @@ type SlackCommandHandler = {
     teamId: string;
     userId: string;
     repositories: Repositories;
-    generateDailySummary?: (prompt: string) => Promise<{ text: string }>;
+    ctx: Env["Variables"];
   }) => Promise<{
     response_type: "ephemeral" | "in_channel";
     text: string;
@@ -29,14 +30,14 @@ export const handleApplicationCommands = async ({
   userId,
   repositories,
   commands,
-  generateDailySummary,
+  ctx,
 }: {
   command: string;
   teamId: string;
   userId: string;
   repositories: Repositories;
   commands: SlackCommandHandler[];
-  generateDailySummary?: (prompt: string) => Promise<{ text: string }>;
+  ctx: Env["Variables"];
 }) => {
   for (const cmd of commands) {
     if (cmd.commandName === command) {
@@ -44,7 +45,7 @@ export const handleApplicationCommands = async ({
         teamId,
         userId,
         repositories,
-        generateDailySummary,
+        ctx,
       });
     }
   }

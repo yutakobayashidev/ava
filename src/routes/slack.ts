@@ -14,7 +14,6 @@ import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { env } from "hono/adapter";
-import { generateText } from "@/lib/ai";
 
 const app = createHonoApp();
 
@@ -142,9 +141,6 @@ app.post(
     const { team_id: teamId, user_id: userId, command } = ctx.req.valid("form");
 
     const db = ctx.get("db");
-    const generateDailySummary = generateText(
-      ctx.get("ai").openai("gpt-4o-mini"),
-    );
 
     const result = await handleApplicationCommands({
       command,
@@ -156,7 +152,13 @@ app.post(
         userRepository: createUserRepository({ db }),
       },
       commands: [dailyReportInteraction],
-      generateDailySummary,
+      ctx: {
+        db: ctx.get("db"),
+        ai: ctx.get("ai"),
+        // Slack commands don't have user/workspace in context
+        user: undefined!,
+        workspace: undefined!,
+      },
     });
 
     return ctx.json(result);

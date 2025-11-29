@@ -5,6 +5,7 @@ import type {
   TaskRepository,
   UserRepository,
 } from "@/repos";
+import type { Env } from "@/app/create-app";
 
 describe("handleApplicationCommands", () => {
   const mockRepositories = {
@@ -12,6 +13,8 @@ describe("handleApplicationCommands", () => {
     taskRepository: {} as TaskRepository,
     userRepository: {} as UserRepository,
   };
+
+  const mockCtx = {} as Env["Variables"];
 
   it("should call matching command handler", async () => {
     const mockHandler = vi.fn().mockResolvedValue({
@@ -32,12 +35,14 @@ describe("handleApplicationCommands", () => {
       userId: "U123",
       repositories: mockRepositories,
       commands,
+      ctx: mockCtx,
     });
 
     expect(mockHandler).toHaveBeenCalledWith({
       teamId: "T123",
       userId: "U123",
       repositories: mockRepositories,
+      ctx: mockCtx,
     });
     expect(result).toEqual({
       response_type: "ephemeral",
@@ -61,6 +66,7 @@ describe("handleApplicationCommands", () => {
       userId: "U123",
       repositories: mockRepositories,
       commands,
+      ctx: mockCtx,
     });
 
     expect(mockHandler).not.toHaveBeenCalled();
@@ -97,6 +103,7 @@ describe("handleApplicationCommands", () => {
       userId: "U123",
       repositories: mockRepositories,
       commands,
+      ctx: mockCtx,
     });
 
     expect(mockHandler1).not.toHaveBeenCalled();
@@ -104,6 +111,7 @@ describe("handleApplicationCommands", () => {
       teamId: "T123",
       userId: "U123",
       repositories: mockRepositories,
+      ctx: mockCtx,
     });
     expect(result).toEqual({
       response_type: "ephemeral",
@@ -118,6 +126,7 @@ describe("handleApplicationCommands", () => {
       userId: "U123",
       repositories: mockRepositories,
       commands: [],
+      ctx: mockCtx,
     });
 
     expect(result).toEqual({
