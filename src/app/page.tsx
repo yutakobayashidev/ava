@@ -12,6 +12,7 @@ import { getCurrentSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { siteConfig } from "@/config/site";
 
 export default async function LandingPage() {
   const { user } = await getCurrentSession();
@@ -395,7 +396,7 @@ export default async function LandingPage() {
               <Step
                 number="2"
                 title="MCPサーバーを接続"
-                description="お使いのコーディングエージェントにAI Task ManagerのMCPサーバーを追加。設定は1行、すぐに始められます。"
+                description={`お使いのコーディングエージェントに${siteConfig.name}のMCPサーバーを追加。設定は1行、すぐに始められます。`}
               />
               <Step
                 number="3"
@@ -446,7 +447,7 @@ export default async function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm">
-              &copy; 2025 AI Task Manager. Built for deep work.
+              &copy; 2025 {siteConfig.name}. Built for deep work.
             </div>
             <div className="flex gap-6 text-sm">
               <Link href="/docs" className="hover:text-white transition-colors">

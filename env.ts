@@ -12,6 +12,7 @@ const staticEnv = z.object({
 
   // for client and server
   NEXT_PUBLIC_BASE_URL: z.url(),
+  NEXT_PUBLIC_SITE_NAME: z.string().min(1),
 
   // for server
   DATABASE_URL: z.url(),

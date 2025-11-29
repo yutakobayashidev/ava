@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "task": {
+    "ava": {
       "type": "http",
       "url": "https://ava-dusky-gamma.vercel.app/mcp"
     }
