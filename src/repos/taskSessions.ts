@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
@@ -70,6 +70,8 @@ type ListTaskSessionsInput = {
   workspaceId: string;
   status?: TaskStatus;
   limit?: number;
+  updatedAfter?: Date;
+  updatedBefore?: Date;
 };
 
 const STATUS: Record<
@@ -300,6 +302,54 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     return blockedEvents.filter((block) => !resolvedBlockIds.has(block.id));
   };
 
+  const getBulkUnresolvedBlockReports = async (taskSessionIds: string[]) => {
+    if (taskSessionIds.length === 0) {
+      return new Map<string, schema.TaskEvent[]>();
+    }
+
+    // 全ブロックイベントを取得
+    const blockedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+          eq(schema.taskEvents.eventType, "blocked"),
+        ),
+      )
+      .orderBy(desc(schema.taskEvents.createdAt));
+
+    // 全解決イベントを取得
+    const resolvedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+          eq(schema.taskEvents.eventType, "block_resolved"),
+        ),
+      );
+
+    // 解決されたブロックのIDを収集
+    const resolvedBlockIds = new Set(
+      resolvedEvents
+        .map((e) => e.relatedEventId)
+        .filter((id): id is string => id !== null),
+    );
+
+    // タスクIDごとにグループ化
+    const result = new Map<string, schema.TaskEvent[]>();
+    for (const event of blockedEvents) {
+      if (!resolvedBlockIds.has(event.id)) {
+        const existing = result.get(event.taskSessionId) || [];
+        existing.push(event);
+        result.set(event.taskSessionId, existing);
+      }
+    }
+
+    return result;
+  };
+
   const resolveBlockReport = async (params: ResolveBlockInput) => {
     const now = new Date();
 
@@ -365,6 +415,18 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 
     if (params.status) {
       conditions.push(eq(schema.taskSessions.status, params.status));
+    }
+
+    if (params.updatedAfter) {
+      conditions.push(
+        sql`${schema.taskSessions.updatedAt} >= ${params.updatedAfter}`,
+      );
+    }
+
+    if (params.updatedBefore) {
+      conditions.push(
+        sql`${schema.taskSessions.updatedAt} < ${params.updatedBefore}`,
+      );
     }
 
     return db
@@ -503,6 +565,41 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       .limit(limit);
   };
 
+  const getBulkLatestEvents = async (params: {
+    taskSessionIds: string[];
+    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+    limit?: number;
+  }) => {
+    if (params.taskSessionIds.length === 0) {
+      return new Map<string, schema.TaskEvent[]>();
+    }
+
+    const limit = params.limit ?? 5;
+
+    const events = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          inArray(schema.taskEvents.taskSessionId, params.taskSessionIds),
+          eq(schema.taskEvents.eventType, params.eventType),
+        ),
+      )
+      .orderBy(desc(schema.taskEvents.createdAt));
+
+    // タスクIDごとにグループ化し、各グループでlimitを適用
+    const result = new Map<string, schema.TaskEvent[]>();
+    for (const event of events) {
+      const existing = result.get(event.taskSessionId) || [];
+      if (existing.length < limit) {
+        existing.push(event);
+        result.set(event.taskSessionId, existing);
+      }
+    }
+
+    return result;
+  };
+
   const getLatestEvent = async (params: {
     taskSessionId: string;
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
@@ -592,10 +689,12 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     completeTask,
     listBlockReports,
     getUnresolvedBlockReports,
+    getBulkUnresolvedBlockReports,
     resolveBlockReport,
     listTaskSessions,
     updateSlackThread,
     listEvents,
+    getBulkLatestEvents,
     getLatestEvent,
     getLatestEventByTypes,
     getTodayCompletedTasks,

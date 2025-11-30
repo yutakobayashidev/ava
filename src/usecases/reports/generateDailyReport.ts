@@ -148,74 +148,75 @@ export const generateDailyReport = async (
     dateRange: { from: today, to: tomorrow },
   });
 
-  // 今日更新された進行中・ブロック中タスクを取得
+  // 今日更新された進行中・ブロック中タスクを取得（日付フィルタをDBで実行）
   const inProgressTasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
     status: "in_progress",
+    updatedAfter: today,
+    updatedBefore: tomorrow,
     limit: 100,
   });
   const blockedTasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
     status: "blocked",
+    updatedAfter: today,
+    updatedBefore: tomorrow,
     limit: 100,
   });
 
-  // 今日更新された進行中・ブロック中タスクをフィルタリング
-  const todayActiveTasks = [...inProgressTasks, ...blockedTasks].filter(
-    (task) => {
-      const updatedAt = new Date(task.updatedAt);
-      return updatedAt >= today && updatedAt < tomorrow;
-    },
-  );
+  const todayActiveTasks = [...inProgressTasks, ...blockedTasks];
 
   if (todayCompletedTasks.length === 0 && todayActiveTasks.length === 0) {
     return { success: false, error: "no_activity" };
   }
 
-  // 各完了タスクの詳細情報を取得
-  const completedTasksWithDetails = await Promise.all(
-    todayCompletedTasks.map(async (task) => {
-      const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
-        task.id,
-      );
-      return {
-        title: task.issueTitle,
-        initialSummary: task.initialSummary,
-        completionSummary: task.completionSummary || "",
-        duration: task.completedAt.getTime() - task.createdAt.getTime(),
-        unresolvedBlocks: unresolvedBlocks.map((block) => ({
-          reason: block.reason,
-          createdAt: block.createdAt,
-        })),
-      };
-    }),
-  );
+  // 全タスクのIDを収集
+  const allTaskIds = [
+    ...todayCompletedTasks.map((t) => t.id),
+    ...todayActiveTasks.map((t) => t.id),
+  ];
 
-  // 進行中・ブロック中タスクの詳細情報を取得
-  const activeTasksWithDetails = await Promise.all(
-    todayActiveTasks.map(async (task) => {
-      const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
-        task.id,
-      );
-      const updateEvents = await taskRepository.listEvents({
-        taskSessionId: task.id,
-        eventType: "updated",
-        limit: 5,
-      });
-      return {
-        title: task.issueTitle,
-        status: task.status,
-        initialSummary: task.initialSummary,
-        latestUpdate: updateEvents[0]?.summary || "",
-        unresolvedBlocks: unresolvedBlocks.map((block) => ({
-          reason: block.reason,
-          createdAt: block.createdAt,
-        })),
-      };
-    }),
-  );
+  // バルクでunresolvedBlocksとupdateEventsを取得
+  const unresolvedBlocksMap =
+    await taskRepository.getBulkUnresolvedBlockReports(allTaskIds);
+  const updateEventsMap = await taskRepository.getBulkLatestEvents({
+    taskSessionIds: todayActiveTasks.map((t) => t.id),
+    eventType: "updated",
+    limit: 5,
+  });
+
+  // 各完了タスクの詳細情報を構築
+  const completedTasksWithDetails = todayCompletedTasks.map((task) => {
+    const unresolvedBlocks = unresolvedBlocksMap.get(task.id) || [];
+    return {
+      title: task.issueTitle,
+      initialSummary: task.initialSummary,
+      completionSummary: task.completionSummary || "",
+      duration: task.completedAt.getTime() - task.createdAt.getTime(),
+      unresolvedBlocks: unresolvedBlocks.map((block) => ({
+        reason: block.reason,
+        createdAt: block.createdAt,
+      })),
+    };
+  });
+
+  // 進行中・ブロック中タスクの詳細情報を構築
+  const activeTasksWithDetails = todayActiveTasks.map((task) => {
+    const unresolvedBlocks = unresolvedBlocksMap.get(task.id) || [];
+    const updateEvents = updateEventsMap.get(task.id) || [];
+    return {
+      title: task.issueTitle,
+      status: task.status,
+      initialSummary: task.initialSummary,
+      latestUpdate: updateEvents[0]?.summary || "",
+      unresolvedBlocks: unresolvedBlocks.map((block) => ({
+        reason: block.reason,
+        createdAt: block.createdAt,
+      })),
+    };
+  });
 
   // LLMで1日のまとめを生成
   const prompt = buildDailySummaryPrompt(
