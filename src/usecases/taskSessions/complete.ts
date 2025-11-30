@@ -1,7 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
-import { validateTransition } from "@/domain/task-status";
+import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 export type CompleteTask = {
   task_session_id: string;
@@ -11,7 +11,9 @@ export type CompleteTask = {
 export const completeTask = async (
   params: CompleteTask,
   ctx: Env["Variables"],
-) => {
+): Promise<
+  { success: true; data: string } | { success: false; error: string }
+> => {
   const { task_session_id, summary } = params;
 
   const [workspace, db] = [ctx.workspace, ctx.db];
@@ -28,11 +30,19 @@ export const completeTask = async (
   );
 
   if (!currentSession) {
-    throw new Error("タスクセッションが見つかりません");
+    return {
+      success: false,
+      error: "タスクセッションが見つかりません",
+    };
   }
 
   // → completed への遷移を検証
-  validateTransition(currentSession.status, "completed");
+  if (!isValidTransition(currentSession.status, "completed")) {
+    return {
+      success: false,
+      error: `Invalid status transition: ${currentSession.status} → completed. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+    };
+  }
 
   const { session, completion, unresolvedBlocks } =
     await taskRepository.completeTask({
@@ -40,6 +50,13 @@ export const completeTask = async (
       workspaceId: workspace.id,
       summary,
     });
+
+  if (!session) {
+    return {
+      success: false,
+      error: "タスクの完了処理に失敗しました",
+    };
+  }
 
   const slackNotification = await notificationService.notifyTaskCompleted({
     session: {
@@ -68,5 +85,8 @@ export const completeTask = async (
       "完了報告を保存しました。未解決のブロッキングがあります。resolve_blockedツールで解決を報告してください。";
   }
 
-  return response;
+  return {
+    success: true,
+    data: JSON.stringify(response, null, 2),
+  };
 };

@@ -1,7 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
-import { validateTransition } from "@/domain/task-status";
+import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 export type ReportBlocked = {
   task_session_id: string;
@@ -12,7 +12,9 @@ export type ReportBlocked = {
 export const reportBlocked = async (
   params: ReportBlocked,
   ctx: Env["Variables"],
-) => {
+): Promise<
+  { success: true; data: string } | { success: false; error: string }
+> => {
   const { task_session_id, reason, raw_context } = params;
 
   const [workspace, db] = [ctx.workspace, ctx.db];
@@ -29,11 +31,19 @@ export const reportBlocked = async (
   );
 
   if (!currentSession) {
-    throw new Error("タスクセッションが見つかりません");
+    return {
+      success: false,
+      error: "タスクセッションが見つかりません",
+    };
   }
 
   // → blocked への遷移を検証
-  validateTransition(currentSession.status, "blocked");
+  if (!isValidTransition(currentSession.status, "blocked")) {
+    return {
+      success: false,
+      error: `Invalid status transition: ${currentSession.status} → blocked. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+    };
+  }
 
   const { session, blockReport } = await taskRepository.reportBlock({
     taskSessionId: task_session_id,
@@ -41,6 +51,13 @@ export const reportBlocked = async (
     reason,
     rawContext: raw_context ?? {},
   });
+
+  if (!session || !blockReport) {
+    return {
+      success: false,
+      error: "ブロッキング情報の登録に失敗しました",
+    };
+  }
 
   const slackNotification = await notificationService.notifyTaskBlocked({
     session: {
@@ -51,12 +68,17 @@ export const reportBlocked = async (
     reason,
   });
 
-  return {
+  const result = {
     task_session_id: session.id,
     block_report_id: blockReport.id,
     status: session.status,
     reason: blockReport.reason,
     slack_notification: slackNotification,
     message: "詰まり情報を登録しました。",
+  };
+
+  return {
+    success: true,
+    data: JSON.stringify(result, null, 2),
   };
 };

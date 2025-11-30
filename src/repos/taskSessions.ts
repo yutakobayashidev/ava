@@ -83,13 +83,6 @@ const STATUS: Record<
   cancelled: "cancelled",
 };
 
-const ensureRecord = <T>(record: T | undefined): T => {
-  if (!record) {
-    throw new Error("レコードが見つかりませんでした");
-  }
-  return record;
-};
-
 export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const createTaskSession = async (params: CreateTaskSessionInput) => {
     return db.transaction(async (tx) => {
@@ -116,7 +109,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         rawContext: {},
       });
 
-      return ensureRecord(session);
+      return session ?? null;
     });
   };
 
@@ -165,7 +158,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       });
 
       return {
-        session: ensureRecord(session),
+        session: session ?? null,
         update: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
       };
     });
@@ -189,8 +182,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         )
         .returning();
 
-      const validSession = ensureRecord(session);
-
       const [blockEvent] = await tx
         .insert(schema.taskEvents)
         .values({
@@ -203,8 +194,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .returning();
 
       return {
-        session: validSession,
-        blockReport: ensureRecord(blockEvent),
+        session: session ?? null,
+        blockReport: blockEvent ?? null,
       };
     });
   };
@@ -239,8 +230,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         )
         .returning();
 
-      const validSession = ensureRecord(session);
-
       // completed イベントを作成
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
@@ -251,7 +240,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       });
 
       return {
-        session: validSession,
+        session: session ?? null,
         completion: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
         unresolvedBlocks,
       };
@@ -327,14 +316,19 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           ),
         );
 
-      const validBlockReport = ensureRecord(blockEvent);
+      if (!blockEvent) {
+        return {
+          session: null,
+          blockReport: null,
+        };
+      }
 
       // block_resolved イベントを作成
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
         eventType: "block_resolved",
-        reason: validBlockReport.reason,
+        reason: blockEvent.reason,
         relatedEventId: params.blockReportId,
         rawContext: {},
       });
@@ -355,8 +349,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .returning();
 
       return {
-        session: ensureRecord(session),
-        blockReport: validBlockReport,
+        session: session ?? null,
+        blockReport: blockEvent,
       };
     });
   };
@@ -401,7 +395,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       )
       .returning();
 
-    return ensureRecord(session);
+    return session ?? null;
   };
 
   const pauseTask = async (params: PauseTaskInput) => {
@@ -422,8 +416,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         )
         .returning();
 
-      const validSession = ensureRecord(session);
-
       const [pauseEvent] = await tx
         .insert(schema.taskEvents)
         .values({
@@ -436,8 +428,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .returning();
 
       return {
-        session: validSession,
-        pauseReport: ensureRecord(pauseEvent),
+        session: session ?? null,
+        pauseReport: pauseEvent ?? null,
       };
     });
   };
@@ -473,8 +465,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         )
         .returning();
 
-      const validSession = ensureRecord(session);
-
       // resumed イベントを作成
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
@@ -486,7 +476,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       });
 
       return {
-        session: validSession,
+        session: session ?? null,
       };
     });
   };
