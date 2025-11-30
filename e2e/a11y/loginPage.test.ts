@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { test } from "../fixtures";
 
 test.describe("Login Page", () => {
-  test("自動的に検出されるアクセシビリティ上の問題がないこと", async ({
+  test("should not have any automatically detectable accessibility issues", async ({
     loginPage,
     a11y,
   }) => {

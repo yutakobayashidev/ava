@@ -1,5 +1,3 @@
-import "server-only";
-
 import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import type { Database } from "@/clients/drizzle";
@@ -7,7 +5,7 @@ import { users } from "@/db/schema";
 
 type UserProvider = "slack";
 
-type CreateUserInput = {
+export type CreateUserInput = {
   provider: UserProvider;
   externalId: string;
   name: string;
