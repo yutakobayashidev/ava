@@ -2,6 +2,12 @@ import { afterAll, afterEach, vi } from "vitest";
 import { createWorkspaceRepository, createUserRepository } from "@/repos";
 
 export async function setup() {
+  const { container, db, truncate, down } = await vi.hoisted(async () => {
+    const { setupDB } = await import("./db.setup");
+
+    return await setupDB({ port: "random" });
+  });
+
   const mock = vi.hoisted(() => ({
     revalidatePath: vi.fn(),
     revalidateTag: vi.fn(),
@@ -11,6 +17,10 @@ export async function setup() {
   vi.mock("server-only", () => {
     return {};
   });
+
+  vi.mock("@/clients/drizzle", () => ({
+    db,
+  }));
 
   vi.mock("next/cache", async (actual) => ({
     ...(await actual<typeof import("next/cache")>()),
@@ -26,16 +36,6 @@ export async function setup() {
   vi.mock("next/navigation", async (actual) => ({
     ...(await actual<typeof import("next/navigation")>()),
     redirect: mock.redirect,
-  }));
-
-  const { container, db, truncate, down } = await vi.hoisted(async () => {
-    const { setupDB } = await import("./db.setup");
-
-    return await setupDB({ port: "random" });
-  });
-
-  vi.mock("@/clients/drizzle", () => ({
-    db,
   }));
 
   afterAll(async () => {
