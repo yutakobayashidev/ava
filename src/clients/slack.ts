@@ -1,9 +1,9 @@
 import "server-only";
 
-import { WebClient } from "@slack/web-api";
-import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { Workspace } from "@/db/schema";
+import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { WorkspaceRepository } from "@/repos/workspaces";
+import { WebClient } from "@slack/web-api";
 
 type PostMessageParams = {
   token: string;
@@ -37,15 +37,12 @@ export const getWorkspaceBotToken = async ({
   workspace,
   workspaceRepository,
 }: GetWorkspaceTokenParams): Promise<string> => {
-  const clientId = process.env.SLACK_APP_CLIENT_ID!;
-  const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-
   return getValidBotToken({
     botAccessToken: workspace.botAccessToken,
     botRefreshToken: workspace.botRefreshToken,
     botTokenExpiresAt: workspace.botTokenExpiresAt,
-    clientId,
-    clientSecret,
+    clientId: process.env.SLACK_APP_CLIENT_ID,
+    clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
     onTokenRotated: async (rotatedTokens) => {
       await workspaceRepository.updateWorkspaceCredentials({
         workspaceId: workspace.id,
