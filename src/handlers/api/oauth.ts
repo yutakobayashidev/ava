@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { createHonoApp } from "@/app/create-app";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp();
 
@@ -42,7 +43,7 @@ app.post(
       });
     } catch (e) {
       console.error(e);
-      return c.json({ error: "Error creating client" }, 500);
+      throw new HTTPException(500, { message: "Error creating client" });
     }
   },
 );
@@ -98,7 +99,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         .where(eq(schema.clients.clientId, client_id));
       if (!client) {
         console.log("Invalid client.", { client_id });
-        return c.json({ error: "invalid_client" }, 401);
+        throw new HTTPException(401, { message: "invalid_client" });
       }
 
       console.log("Finding auth code:", code);
@@ -117,20 +118,20 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
           client_id: client.id,
           redirect_uri,
         });
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
       console.log("Found auth code for user:", authCode.userId);
 
       if (authCode.expiresAt < new Date()) {
         console.log("Auth code expired at:", authCode.expiresAt);
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
       console.log("Auth code is valid.");
 
       // PKCE or client_secret validation
       if (authCode.codeChallenge) {
         if (!code_verifier) {
-          return c.json({ error: "invalid_request" }, 400);
+          throw new HTTPException(400, { message: "invalid_request" });
         }
 
         let pkceValid = false;
@@ -147,7 +148,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         }
 
         if (!pkceValid) {
-          return c.json({ error: "invalid_grant" }, 400);
+          throw new HTTPException(400, { message: "invalid_grant" });
         }
       } else {
         // No PKCE - client_secret is required
@@ -157,7 +158,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
           client.clientSecret !== client_secret
         ) {
           console.log("Invalid client_secret.", { client_id });
-          return c.json({ error: "invalid_client" }, 401);
+          throw new HTTPException(401, { message: "invalid_client" });
         }
       }
 
@@ -172,7 +173,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         console.log("Auth code missing workspace_id", {
           authCodeId: authCode.id,
         });
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
 
       const [[workspace], [membership]] = await Promise.all([
@@ -196,7 +197,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         console.log("Workspace not found for auth code", {
           workspaceId: authCode.workspaceId,
         });
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
 
       if (!membership) {
@@ -204,7 +205,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
           workspaceId: authCode.workspaceId,
           userId: authCode.userId,
         });
-        return c.json({ error: "forbidden_workspace" }, 403);
+        throw new HTTPException(403, { message: "forbidden_workspace" });
       }
 
       const accessToken = randomBytes(32).toString("hex");
@@ -253,7 +254,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       });
     } catch (e) {
       console.error("Error in token endpoint:", e);
-      return c.json({ error: "server_error" }, 500);
+      throw new HTTPException(500, { message: "server_error" });
     }
   } else if (grant_type === "refresh_token") {
     // Refresh token flow
@@ -275,7 +276,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
       if (!storedRefreshToken) {
         console.log("Invalid refresh token");
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
 
       // Check if token has been used (rotation detection)
@@ -292,13 +293,13 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
               eq(schema.refreshTokens.clientId, storedRefreshToken.clientId),
             ),
           );
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
 
       // Check if token has expired
       if (storedRefreshToken.expiresAt < new Date()) {
         console.log("Refresh token expired");
-        return c.json({ error: "invalid_grant" }, 400);
+        throw new HTTPException(400, { message: "invalid_grant" });
       }
 
       // Verify client if client_id is provided
@@ -310,7 +311,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
         if (!client || client.id !== storedRefreshToken.clientId) {
           console.log("Client mismatch");
-          return c.json({ error: "invalid_client" }, 401);
+          throw new HTTPException(401, { message: "invalid_client" });
         }
 
         // Verify client_secret if provided and client has one
@@ -319,7 +320,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
           (!client_secret || client.clientSecret !== client_secret)
         ) {
           console.log("Invalid client_secret");
-          return c.json({ error: "invalid_client" }, 401);
+          throw new HTTPException(401, { message: "invalid_client" });
         }
       }
 
@@ -386,11 +387,11 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       });
     } catch (e) {
       console.error("Error in refresh token flow:", e);
-      return c.json({ error: "server_error" }, 500);
+      throw new HTTPException(500, { message: "server_error" });
     }
   }
 
-  return c.json({ error: "unsupported_grant_type" }, 400);
+  throw new HTTPException(400, { message: "unsupported_grant_type" });
 });
 
 export default app;

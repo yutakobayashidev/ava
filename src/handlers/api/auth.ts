@@ -6,6 +6,7 @@ import { env } from "hono/adapter";
 import { slack } from "@/lib/oauth";
 import { loginWithSlack } from "@/usecases/auth/loginWithSlack";
 import { invalidateSession, validateSessionToken } from "@/lib/session";
+import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp()
   .use(
@@ -79,12 +80,12 @@ const app = createHonoApp()
     const token = getCookie(c, "session");
 
     if (!token) {
-      return c.json({ error: "Unauthorized" }, 401);
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
 
     const { session } = await validateSessionToken(token);
     if (!session) {
-      return c.json({ error: "Unauthorized" }, 401);
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
 
     await invalidateSession(session.id);

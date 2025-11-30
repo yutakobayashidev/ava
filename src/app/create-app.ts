@@ -7,6 +7,7 @@ import { AiSdkModels, createAiSdkModels } from "@/lib/ai";
 import { env } from "hono/adapter";
 import { secureHeaders } from "hono/secure-headers";
 import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
 
 export type Env = {
   Bindings: Schema;
@@ -57,4 +58,12 @@ export const createHonoApp = () =>
     },
   })
     .createApp()
-    .use(secureHeaders(), logger());
+    .use(secureHeaders(), logger())
+    .onError((error, c) => {
+      if (error instanceof HTTPException) {
+        console.error(error.cause);
+        return c.json({ error: error.message }, error.status);
+      }
+
+      return c.json({ error: "Internal Server Error" }, 500);
+    });

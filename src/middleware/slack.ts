@@ -1,6 +1,7 @@
 import type { Env } from "@/app/create-app";
 import { createMiddleware } from "hono/factory";
 import { env } from "hono/adapter";
+import { HTTPException } from "hono/http-exception";
 
 // Slack の Slash Command リクエストのペイロード
 export interface SlackSlashCommandPayload {
@@ -35,13 +36,15 @@ export const verifySlackSignature = createMiddleware<Env>(async (c, next) => {
   const { SLACK_SIGNING_SECRET: signingSecret } = env(c);
 
   if (!signature || !timestamp) {
-    return c.json({ error: "Missing Slack signature headers" }, 401);
+    throw new HTTPException(401, {
+      message: "Missing Slack signature headers",
+    });
   }
 
   // リプレイ攻撃防止（リクエストは 5 分以内であること）
   const currentTime = Math.floor(Date.now() / 1000);
   if (Math.abs(currentTime - parseInt(timestamp)) > 60 * 5) {
-    return c.json({ error: "Request timestamp too old" }, 401);
+    throw new HTTPException(401, { message: "Request timestamp too old" });
   }
 
   // リクエストボディをテキストとして取得（クローンして元のリクエストは保持）
@@ -74,7 +77,7 @@ export const verifySlackSignature = createMiddleware<Env>(async (c, next) => {
   // タイミング攻撃対策ありの比較
   if (computedSignature !== signature) {
     console.error("Invalid Slack signature");
-    return c.json({ error: "Invalid signature" }, 401);
+    throw new HTTPException(401, { message: "Invalid signature" });
   }
 
   await next();
