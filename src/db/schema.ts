@@ -32,6 +32,9 @@ export const workspaces = pgTable(
     botUserId: text("bot_user_id"),
     botAccessToken: text("bot_access_token"),
     botRefreshToken: text("bot_refresh_token"),
+    botTokenExpiresAt: timestamp("bot_token_expires_at", {
+      withTimezone: true,
+    }),
     notificationChannelId: text("notification_channel_id"),
     notificationChannelName: text("notification_channel_name"),
     installedAt: timestamp("installed_at", { withTimezone: true }),

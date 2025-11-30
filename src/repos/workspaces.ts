@@ -20,6 +20,7 @@ type CreateWorkspaceInput = {
   botUserId?: string | null;
   botAccessToken?: string | null;
   botRefreshToken?: string | null;
+  botTokenExpiresAt?: Date | null;
   notificationChannelId?: string | null;
   notificationChannelName?: string | null;
   installedAt?: Date | null;
@@ -30,6 +31,7 @@ type UpdateCredentialsInput = {
   botUserId?: string | null;
   botAccessToken?: string | null;
   botRefreshToken?: string | null;
+  botTokenExpiresAt?: Date | null;
   name?: string;
   domain?: string | null;
   iconUrl?: string | null;
@@ -75,6 +77,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         botUserId: input.botUserId ?? null,
         botAccessToken: input.botAccessToken ?? null,
         botRefreshToken: input.botRefreshToken ?? null,
+        botTokenExpiresAt: input.botTokenExpiresAt ?? null,
         notificationChannelId: input.notificationChannelId ?? null,
         notificationChannelName: input.notificationChannelName ?? null,
         installedAt: input.installedAt ?? new Date(),
@@ -192,6 +195,10 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
 
     if (input.botRefreshToken !== undefined) {
       updates.botRefreshToken = input.botRefreshToken;
+    }
+
+    if (input.botTokenExpiresAt !== undefined) {
+      updates.botTokenExpiresAt = input.botTokenExpiresAt;
     }
 
     if (input.name !== undefined) {

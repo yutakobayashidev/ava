@@ -1,6 +1,9 @@
 import "server-only";
 
 import { WebClient } from "@slack/web-api";
+import { getValidBotToken } from "@/lib/slackTokenRotation";
+import type { Workspace } from "@/db/schema";
+import type { WorkspaceRepository } from "@/repos/workspaces";
 
 type PostMessageParams = {
   token: string;
@@ -20,6 +23,38 @@ export type SlackChannel = {
   id: string;
   name: string;
   isPrivate: boolean;
+};
+
+type GetWorkspaceTokenParams = {
+  workspace: Workspace;
+  workspaceRepository: WorkspaceRepository;
+};
+
+/**
+ * Get a valid bot token for the workspace, rotating if necessary
+ */
+export const getWorkspaceBotToken = async ({
+  workspace,
+  workspaceRepository,
+}: GetWorkspaceTokenParams): Promise<string> => {
+  const clientId = process.env.SLACK_APP_CLIENT_ID!;
+  const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
+
+  return getValidBotToken({
+    botAccessToken: workspace.botAccessToken,
+    botRefreshToken: workspace.botRefreshToken,
+    botTokenExpiresAt: workspace.botTokenExpiresAt,
+    clientId,
+    clientSecret,
+    onTokenRotated: async (rotatedTokens) => {
+      await workspaceRepository.updateWorkspaceCredentials({
+        workspaceId: workspace.id,
+        botAccessToken: rotatedTokens.accessToken,
+        botRefreshToken: rotatedTokens.refreshToken,
+        botTokenExpiresAt: rotatedTokens.expiresAt,
+      });
+    },
+  });
 };
 
 export const postMessage = async ({

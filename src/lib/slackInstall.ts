@@ -1,9 +1,9 @@
 import "server-only";
 
+import { WebClient } from "@slack/web-api";
 import { absoluteUrl } from "./utils";
 
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
-const SLACK_TOKEN_ENDPOINT = "https://slack.com/api/oauth.v2.access";
 
 const DEFAULT_SCOPES = [
   "channels:read",
@@ -21,23 +21,6 @@ type SlackInstallConfig = {
   redirectUri: string;
   scopes: string[];
 };
-
-type SlackOAuthSuccess = {
-  access_token: string;
-  refresh_token?: string;
-  bot_user_id?: string;
-  scope?: string;
-  team?: {
-    id: string;
-    name: string;
-    domain?: string;
-  };
-  app_id?: string;
-};
-
-type SlackOAuthResponse =
-  | ({ ok: true } & SlackOAuthSuccess)
-  | { ok: false; error?: string };
 
 export const getSlackInstallConfig = (): SlackInstallConfig => {
   const clientId = process.env.SLACK_APP_CLIENT_ID!;
@@ -66,39 +49,40 @@ export const buildSlackInstallUrl = (state: string): string => {
 
 export const exchangeSlackInstallCode = async (code: string) => {
   const config = getSlackInstallConfig();
+  const client = new WebClient();
 
-  const body = new URLSearchParams({
+  const response = await client.oauth.v2.access({
     client_id: config.clientId,
     client_secret: config.clientSecret,
     code,
     redirect_uri: config.redirectUri,
   });
 
-  const response = await fetch(SLACK_TOKEN_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  const payload = (await response.json()) as SlackOAuthResponse;
-
-  if (!response.ok || !payload.ok) {
-    const message = payload.ok
-      ? response.statusText
-      : (payload.error ?? "unknown_error");
-    throw new Error(`Slack OAuth error: ${message}`);
+  if (!response.ok) {
+    throw new Error(`Slack OAuth error: ${response.error ?? "unknown_error"}`);
   }
 
+  if (!response.access_token) {
+    throw new Error("No access token returned from Slack");
+  }
+
+  const expiresAt = response.expires_in
+    ? new Date(Date.now() + Number(response.expires_in) * 1000)
+    : null;
+
+  const team = response.team as
+    | { id?: string; name?: string; domain?: string }
+    | undefined;
+
   return {
-    accessToken: payload.access_token,
-    refreshToken: payload.refresh_token,
-    botUserId: payload.bot_user_id,
-    teamId: payload.team?.id ?? "unknown",
-    teamName: payload.team?.name ?? "unknown",
-    teamDomain: payload.team?.domain,
-    scope: payload.scope,
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token,
+    expiresIn: response.expires_in ? Number(response.expires_in) : undefined,
+    expiresAt,
+    botUserId: response.bot_user_id,
+    teamId: team?.id ?? "unknown",
+    teamName: team?.name ?? "unknown",
+    teamDomain: team?.domain,
+    scope: response.scope,
   };
 };

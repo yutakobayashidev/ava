@@ -38,6 +38,7 @@ export const installWorkspace = async (
         botUserId: oauthResult.botUserId ?? null,
         botAccessToken: oauthResult.accessToken,
         botRefreshToken: oauthResult.refreshToken ?? null,
+        botTokenExpiresAt: oauthResult.expiresAt,
         name: oauthResult.teamName,
         domain: oauthResult.teamDomain ?? existing.domain,
         iconUrl,
@@ -57,6 +58,7 @@ export const installWorkspace = async (
         botUserId: oauthResult.botUserId ?? null,
         botAccessToken: oauthResult.accessToken,
         botRefreshToken: oauthResult.refreshToken ?? null,
+        botTokenExpiresAt: oauthResult.expiresAt,
         installedAt: new Date(),
       });
       await workspaceRepository.addMember({
