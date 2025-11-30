@@ -171,19 +171,15 @@ export function createMcpServer(ctx: Env["Variables"]) {
           .string()
           .min(1, "task_session_idは必須です")
           .describe("start_taskで払い出されたタスクID"),
-        pr_url: z
-          .string()
-          .url("有効なPR URLを入力してください")
-          .describe("完了内容に紐づくPull Request"),
         summary: z
           .string()
           .min(1, "summaryは必須です")
           .describe("完了内容の抽象的サマリ"),
       }),
     },
-    async ({ task_session_id, pr_url, summary }) => {
+    async ({ task_session_id, summary }) => {
       const result = await taskSessionUsecases.completeTask(
-        { task_session_id, pr_url, summary },
+        { task_session_id, summary },
         ctx,
       );
       return toJsonResponse(result);

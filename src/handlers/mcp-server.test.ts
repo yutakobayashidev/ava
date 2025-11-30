@@ -299,7 +299,6 @@ describe("createMcpServer", async () => {
         name: "complete_task",
         arguments: {
           task_session_id,
-          pr_url: "https://github.com/example/repo/pull/123",
           summary: "タスクを完了しました",
         },
       })) as CallToolResult;

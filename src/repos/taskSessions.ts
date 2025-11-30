@@ -40,7 +40,6 @@ type ReportBlockInput = {
 type CompleteTaskInput = {
   taskSessionId: string;
   workspaceId: string;
-  prUrl: string;
   summary: string;
 };
 
@@ -241,7 +240,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
       const completionValues = {
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
-        prUrl: params.prUrl,
         summary: params.summary,
       };
 

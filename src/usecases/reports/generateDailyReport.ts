@@ -17,7 +17,6 @@ type CompletedTaskDetail = {
   title: string;
   initialSummary: string;
   completionSummary: string;
-  prUrl: string;
   duration: number;
   unresolvedBlocks: BlockReport[];
 };
@@ -61,7 +60,6 @@ function formatCompletedTasks(tasks: CompletedTaskDetail[]): string {
    - 初期サマリ: ${task.initialSummary}
    - 完了サマリ: ${task.completionSummary}
    - 所要時間: ${formatDuration(task.duration)}
-   - PR: ${task.prUrl}
    ${blocks}`;
     })
     .join("\n");
@@ -192,7 +190,6 @@ export const generateDailyReport = async (
         title: task.issueTitle,
         initialSummary: task.initialSummary,
         completionSummary: completion?.summary || "",
-        prUrl: completion?.prUrl || "",
         duration:
           task.completedAt && task.createdAt
             ? task.completedAt.getTime() - task.createdAt.getTime()

@@ -126,7 +126,6 @@ export type NotificationService = {
   notifyTaskCompleted: (params: {
     session: TaskSessionInfo;
     summary: string;
-    prUrl: string;
   }) => Promise<NotificationResult>;
 };
 
@@ -298,7 +297,7 @@ export const createNotificationService = (
 
     notifyTaskCompleted: (params) =>
       withSlackConfig(async (config) => {
-        const { session, summary, prUrl } = params;
+        const { session, summary } = params;
 
         const validationError = validateThreadInfo(session);
         if (validationError) return validationError;
@@ -306,7 +305,6 @@ export const createNotificationService = (
         const text = [
           ":white_check_mark: Task completed",
           `Summary: ${summary}`,
-          `PR: ${prUrl}`,
         ].join("\n");
 
         const result = await sendMessage(
