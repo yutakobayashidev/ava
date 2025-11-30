@@ -1,11 +1,10 @@
 import type { Env } from "@/app/create-app";
 import type { OAuth2Tokens } from "arctic";
 import { slack } from "@/lib/oauth";
-import { uuidv7 } from "uuidv7";
 import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
+import { createUserRepository } from "@/repos/users";
 
 export type LoginWithSlack = {
   code: string;
@@ -100,24 +99,18 @@ export const loginWithSlack = async (
   const slackUser = await getSlackUser(tokens);
 
   // ユーザーの検索または作成
-  let [existingUser] = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.slackId, slackUser.sub));
+  const userRepository = createUserRepository({ db });
+  let existingUser = await userRepository.findUserBySlackId(slackUser.sub);
 
   if (!existingUser) {
-    const [newUser] = await db
-      .insert(schema.users)
-      .values({
-        id: uuidv7(),
-        slackId: slackUser.sub,
-        email: slackUser.email,
-        name: slackUser.name,
-        image: slackUser.picture,
-      })
-      .returning();
-
-    existingUser = newUser;
+    existingUser = await userRepository.createUser({
+      provider: "slack",
+      externalId: slackUser.sub,
+      name: slackUser.name,
+      email: slackUser.email,
+      slackId: slackUser.sub,
+      image: slackUser.picture,
+    });
   }
 
   if (!existingUser) {
