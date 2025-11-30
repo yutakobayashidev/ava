@@ -4,7 +4,6 @@ import { createTaskRepository } from "@/repos";
 
 export type CompleteTask = {
   task_session_id: string;
-  pr_url: string;
   summary: string;
 };
 
@@ -12,7 +11,7 @@ export const completeTask = async (
   params: CompleteTask,
   ctx: Env["Variables"],
 ) => {
-  const { task_session_id, pr_url, summary } = params;
+  const { task_session_id, summary } = params;
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
@@ -25,7 +24,6 @@ export const completeTask = async (
     await taskRepository.completeTask({
       taskSessionId: task_session_id,
       workspaceId: workspace.id,
-      prUrl: pr_url,
       summary,
     });
 
@@ -36,14 +34,12 @@ export const completeTask = async (
       slackChannel: session.slackChannel,
     },
     summary,
-    prUrl: pr_url,
   });
 
   const response: Record<string, unknown> = {
     task_session_id: session.id,
     completion_id: completion.id,
     status: session.status,
-    pr_url: completion.prUrl,
     slack_notification: slackNotification,
     message: "完了報告を保存しました。",
   };

@@ -333,7 +333,6 @@ export const taskCompletions = pgTable(
     taskSessionId: text("task_session_id")
       .references(() => taskSessions.id, { onDelete: "cascade" })
       .notNull(),
-    prUrl: text("pr_url").notNull(),
     summary: text("summary").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

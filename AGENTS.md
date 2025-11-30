@@ -66,8 +66,8 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
   - 入力: `task_session_id`, `summary`, `raw_context?`
   - 動作: ステータスを `in_progress` に戻し、休止レポートの `resumed_at` を更新。Slack スレッドへ再開を通知（▶️）。
 - `complete_task`
-  - 入力: `task_session_id`, `pr_url`, `summary`
-  - 動作: ステータスを `completed` にして完了情報を upsert（`task_completions`）。Slack スレッドへ完了 + PR を投稿。
+  - 入力: `task_session_id`, `summary`
+  - 動作: ステータスを `completed` にして完了情報を upsert（`task_completions`）。Slack スレッドへ完了を投稿。
 - `list_tasks`
   - 入力: `status?` (`in_progress` | `blocked` | `paused` | `completed`), `limit?`
   - 動作: 認証ユーザーのタスク一覧を返す（更新日時降順）。
