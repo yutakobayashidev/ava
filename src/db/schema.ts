@@ -93,6 +93,9 @@ export const users = pgTable(
     email: text("email"),
     slackId: text("slack_id"),
     slackTeamId: text("slack_team_id").notNull(),
+    workspaceId: text("workspace_id").references(() => workspaces.id, {
+      onDelete: "set null",
+    }),
     image: text("image"),
     onboardingCompletedAt: timestamp("onboarding_completed_at", {
       withTimezone: true,
@@ -102,7 +105,10 @@ export const users = pgTable(
       .notNull(),
   },
   (table) => ({
-    slackIdUnique: uniqueIndex("users_slack_id_unique").on(table.slackId),
+    slackIdTeamIdUnique: uniqueIndex("users_slack_id_team_id_unique").on(
+      table.slackId,
+      table.slackTeamId,
+    ),
   }),
 );
 
@@ -210,30 +216,7 @@ export const refreshTokens = pgTable(
   }),
 );
 
-export const workspaceMembers = pgTable(
-  "workspace_members",
-  {
-    id: text("id").primaryKey().notNull(),
-    workspaceId: text("workspace_id")
-      .references(() => workspaces.id, { onDelete: "cascade" })
-      .notNull(),
-    userId: text("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
-      .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    workspaceUserUnique: uniqueIndex(
-      "workspace_members_workspace_user_unique",
-    ).on(table.workspaceId, table.userId),
-    workspaceIdx: index("workspace_members_workspace_idx").on(
-      table.workspaceId,
-    ),
-    userIdx: index("workspace_members_user_idx").on(table.userId),
-  }),
-);
+// workspace_members テーブルは削除 - users.workspaceId で直接参照
 
 export const taskSessions = pgTable(
   "task_sessions",
@@ -381,13 +364,16 @@ export const taskEventRelations = relations(taskEvents, ({ one }) => ({
   }),
 }));
 
-export const userRelations = relations(users, ({ many }) => ({
+export const userRelations = relations(users, ({ many, one }) => ({
   authCodes: many(authCodes),
   accessTokens: many(accessTokens),
   refreshTokens: many(refreshTokens),
   sessions: many(sessions),
   taskSessions: many(taskSessions),
-  workspaceMemberships: many(workspaceMembers),
+  workspace: one(workspaces, {
+    fields: [users.workspaceId],
+    references: [workspaces.id],
+  }),
 }));
 
 export const sessionRelations = relations(sessions, ({ one }) => ({
@@ -456,19 +442,7 @@ export const clientRelations = relations(clients, ({ many }) => ({
   refreshTokens: many(refreshTokens),
 }));
 
-export const workspaceMemberRelations = relations(
-  workspaceMembers,
-  ({ one }) => ({
-    workspace: one(workspaces, {
-      fields: [workspaceMembers.workspaceId],
-      references: [workspaces.id],
-    }),
-    user: one(users, {
-      fields: [workspaceMembers.userId],
-      references: [users.id],
-    }),
-  }),
-);
+// workspaceMemberRelations は削除 - workspace_members テーブルが不要になったため
 
 export type TaskSession = typeof taskSessions.$inferSelect;
 export type NewTaskSession = typeof taskSessions.$inferInsert;
@@ -492,5 +466,4 @@ export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
-export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
-export type NewWorkspaceMember = typeof workspaceMembers.$inferInsert;
+// WorkspaceMember 型は削除 - workspace_members テーブルが不要になったため

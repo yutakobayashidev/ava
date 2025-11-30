@@ -21,11 +21,7 @@ export default async function SlackInstallPage({
   const params = await searchParams;
   const config = getSlackInstallConfig();
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
+  const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   const statusMessage = (() => {
     if (params.installed === "1") {

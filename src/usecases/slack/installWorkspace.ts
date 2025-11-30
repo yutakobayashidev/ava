@@ -2,6 +2,8 @@ import type { Env } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { getTeamIcon } from "@/clients/slack";
+import * as schema from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export type InstallWorkspace = {
   code: string;
@@ -23,6 +25,27 @@ export const installWorkspace = async (
     const oauthResult = await exchangeSlackInstallCode(code);
     const workspaceRepository = createWorkspaceRepository({ db });
 
+    // ログイン中のユーザーを取得
+    const [currentUser] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+
+    if (!currentUser) {
+      return {
+        success: false,
+        error: "user_not_found",
+      };
+    }
+
+    // ユーザーの slackTeamId とボットインストール先の teamId が一致するか検証
+    if (currentUser.slackTeamId !== oauthResult.teamId) {
+      return {
+        success: false,
+        error: "team_mismatch",
+      };
+    }
+
     // アイコンURLを取得
     const iconUrl = await getTeamIcon(oauthResult.accessToken);
 
@@ -30,6 +53,8 @@ export const installWorkspace = async (
       provider: "slack",
       externalId: oauthResult.teamId,
     });
+
+    let workspaceId: string;
 
     if (existing) {
       // 既存ワークスペースの更新
@@ -43,10 +68,7 @@ export const installWorkspace = async (
         domain: oauthResult.teamDomain ?? existing.domain,
         iconUrl,
       });
-      await workspaceRepository.addMember({
-        workspaceId: existing.id,
-        userId,
-      });
+      workspaceId = existing.id;
     } else {
       // 新規ワークスペースの作成
       const workspace = await workspaceRepository.createWorkspace({
@@ -61,11 +83,14 @@ export const installWorkspace = async (
         botTokenExpiresAt: oauthResult.expiresAt,
         installedAt: new Date(),
       });
-      await workspaceRepository.addMember({
-        workspaceId: workspace.id,
-        userId,
-      });
+      workspaceId = workspace.id;
     }
+
+    // 同じ slackTeamId を持つ全ユーザーをワークスペースに紐付け
+    await workspaceRepository.setWorkspaceForAllTeamUsers(
+      oauthResult.teamId,
+      workspaceId,
+    );
 
     return {
       success: true,

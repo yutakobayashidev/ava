@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import * as schema from "../db/schema";
 import type { Context } from "hono";
 import type { Env } from "@/app/create-app";
@@ -28,7 +28,7 @@ async function findUserAndWorkspaceByToken(
   if (accessToken.expiresAt.getTime() < Date.now()) return null;
   if (!accessToken.workspaceId) return null;
 
-  const [[user], [workspace], [membership]] = await Promise.all([
+  const [[user], [workspace]] = await Promise.all([
     db
       .select()
       .from(schema.users)
@@ -37,19 +37,10 @@ async function findUserAndWorkspaceByToken(
       .select()
       .from(schema.workspaces)
       .where(eq(schema.workspaces.id, accessToken.workspaceId)),
-    db
-      .select()
-      .from(schema.workspaceMembers)
-      .where(
-        and(
-          eq(schema.workspaceMembers.workspaceId, accessToken.workspaceId),
-          eq(schema.workspaceMembers.userId, accessToken.userId),
-        ),
-      )
-      .limit(1),
   ]);
 
-  if (!user || !workspace || !membership) return null;
+  if (!user || !workspace || user.workspaceId !== accessToken.workspaceId)
+    return null;
 
   return { user, workspace };
 }
