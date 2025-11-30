@@ -4,8 +4,7 @@ import { db } from "../clients/drizzle";
 import * as schema from "../db/schema";
 import type { Context } from "hono";
 import type { Env } from "@/app/create-app";
-
-const unauthorized = () => new Response("Unauthorized", { status: 401 });
+import { HTTPException } from "hono/http-exception";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
@@ -58,10 +57,10 @@ function getToken(c: Context<Env>) {
 
 export const oauthMiddleware = createMiddleware<Env>(async (c, next) => {
   const token = getToken(c);
-  if (!token) return unauthorized();
+  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
 
   const auth = await findUserAndWorkspaceByToken(token);
-  if (!auth) return unauthorized();
+  if (!auth) throw new HTTPException(401, { message: "Unauthorized" });
 
   c.set("user", auth.user);
   c.set("workspace", auth.workspace);
