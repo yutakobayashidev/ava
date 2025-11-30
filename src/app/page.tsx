@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
+import { Header } from "@/components/header";
 
 export default async function LandingPage() {
   const { user } = await getCurrentSession();
@@ -24,6 +25,7 @@ export default async function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Header user={user} />
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-24 md:py-32">
         <div className="max-w-5xl mx-auto text-center">

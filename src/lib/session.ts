@@ -47,3 +47,7 @@ export const getCurrentSession = async () => {
   const result = await validateSessionToken(token);
   return result;
 };
+
+export async function invalidateSession(sessionId: string) {
+  await db.delete(schema.sessions).where(eq(schema.sessions.id, sessionId));
+}

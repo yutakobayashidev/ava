@@ -57,4 +57,4 @@ export const createHonoApp = () =>
     },
   })
     .createApp()
-    .use("*", secureHeaders(), logger());
+    .use(secureHeaders(), logger());
