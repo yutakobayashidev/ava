@@ -3,7 +3,7 @@ import postgres from "postgres";
 import * as schema from "@/db/schema";
 
 export async function generateDrizzleClient(url: string) {
-  const pool = postgres(url, { max: 1 });
+  const pool = postgres(url);
 
   const db = drizzle(pool, { schema });
 

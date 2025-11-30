@@ -13,7 +13,7 @@ const db = (() => {
     neonConfig.webSocketConstructor = ws;
     return neonDrizzle(process.env.DATABASE_URL!, { schema });
   } else {
-    const pool = postgres(createDBUrl({}), { max: 1 });
+    const pool = postgres(createDBUrl({}));
     return pgDrizzle(pool, { schema });
   }
 })();
