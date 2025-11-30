@@ -1,5 +1,5 @@
 import { Env } from "@/app/create-app";
-import { notifyBlockResolved } from "@/lib/taskNotifications";
+import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
 
 export type ResolveBlocked = {
@@ -15,6 +15,10 @@ export const resolveBlocked = async (
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const notificationService = createNotificationService(
+    workspace,
+    taskRepository,
+  );
 
   const { session, blockReport } = await taskRepository.resolveBlockReport({
     taskSessionId: task_session_id,
@@ -22,9 +26,12 @@ export const resolveBlocked = async (
     blockReportId: block_report_id,
   });
 
-  const slackNotification = await notifyBlockResolved({
-    sessionId: session.id,
-    workspaceId: workspace.id,
+  const slackNotification = await notificationService.notifyBlockResolved({
+    session: {
+      id: session.id,
+      slackThreadTs: session.slackThreadTs,
+      slackChannel: session.slackChannel,
+    },
     blockReason: blockReport.reason,
   });
 

@@ -1,5 +1,5 @@
 import { Env } from "@/app/create-app";
-import { notifyTaskPaused } from "@/lib/taskNotifications";
+import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
 
 export type PauseTask = {
@@ -13,6 +13,10 @@ export const pauseTask = async (params: PauseTask, ctx: Env["Variables"]) => {
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const notificationService = createNotificationService(
+    workspace,
+    taskRepository,
+  );
 
   const { session, pauseReport } = await taskRepository.pauseTask({
     taskSessionId: task_session_id,
@@ -21,9 +25,12 @@ export const pauseTask = async (params: PauseTask, ctx: Env["Variables"]) => {
     rawContext: raw_context ?? {},
   });
 
-  const slackNotification = await notifyTaskPaused({
-    sessionId: session.id,
-    workspaceId: workspace.id,
+  const slackNotification = await notificationService.notifyTaskPaused({
+    session: {
+      id: session.id,
+      slackThreadTs: session.slackThreadTs,
+      slackChannel: session.slackChannel,
+    },
     reason,
   });
 

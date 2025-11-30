@@ -1,5 +1,5 @@
 import { Env } from "@/app/create-app";
-import { notifyTaskCompleted } from "@/lib/taskNotifications";
+import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
 
 export type CompleteTask = {
@@ -16,6 +16,10 @@ export const completeTask = async (
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const notificationService = createNotificationService(
+    workspace,
+    taskRepository,
+  );
 
   const { session, completion, unresolvedBlocks } =
     await taskRepository.completeTask({
@@ -25,9 +29,12 @@ export const completeTask = async (
       summary,
     });
 
-  const slackNotification = await notifyTaskCompleted({
-    sessionId: session.id,
-    workspaceId: workspace.id,
+  const slackNotification = await notificationService.notifyTaskCompleted({
+    session: {
+      id: session.id,
+      slackThreadTs: session.slackThreadTs,
+      slackChannel: session.slackChannel,
+    },
     summary,
     prUrl: pr_url,
   });
