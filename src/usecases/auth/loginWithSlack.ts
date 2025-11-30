@@ -49,14 +49,14 @@ async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
   };
 }
 
-function generateSessionToken(): string {
+export function generateSessionToken(): string {
   const tokenBytes = new Uint8Array(20);
   crypto.getRandomValues(tokenBytes);
   const token = encodeBase32(tokenBytes).toLowerCase();
   return token;
 }
 
-async function createSession(
+export async function createSession(
   db: Env["Variables"]["db"],
   token: string,
   userId: string,
