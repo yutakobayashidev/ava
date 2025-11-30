@@ -12,6 +12,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OnboardingProgress } from "../OnboardingProgress";
 import { requireAuth } from "@/lib/auth";
+import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 
 export const metadata: Metadata = {
   title: "Slackワークスペースを連携",
@@ -107,29 +108,8 @@ export default async function ConnectSlackPage({
     redirect("/onboarding/setup-mcp");
   }
 
-  const statusMessage = (() => {
-    if (params.installed === "1") {
-      return `Slackワークスペースを連携しました (${
-        params.team ?? "workspace"
-      })`;
-    }
-    if (params.error === "invalid_channel") {
-      return "エラー: 選択したチャンネルが見つかりませんでした";
-    }
-    if (params.error === "missing_channel") {
-      return "エラー: チャンネルを選択してください";
-    }
-    if (params.error === "channel_fetch_failed") {
-      return "エラー: チャンネル一覧の取得に失敗しました";
-    }
-    if (params.error === "team_mismatch") {
-      return "エラー: ログイン中のワークスペースとは異なるワークスペースにボットをインストールしようとしています。ログイン中のワークスペースにボットをインストールしてください。";
-    }
-    if (params.error) {
-      return `エラー: ${params.error}`;
-    }
-    return null;
-  })();
+  const statusMessage = getSlackStatusMessage(params);
+  const isSuccess = isSuccessMessage(params);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -147,7 +127,7 @@ export default async function ConnectSlackPage({
           </div>
 
           {statusMessage && (
-            <Alert variant={params.error ? "destructive" : "default"}>
+            <Alert variant={isSuccess ? "default" : "destructive"}>
               <AlertDescription>{statusMessage}</AlertDescription>
             </Alert>
           )}
@@ -201,7 +181,7 @@ export default async function ConnectSlackPage({
                 </h2>
                 {!workspace?.botAccessToken ? (
                   <Button asChild className="w-full" size="lg">
-                    <Link href="/slack/install/start">
+                    <Link href="/api/slack/install/start">
                       アプリをインストール
                       <ArrowRight />
                     </Link>

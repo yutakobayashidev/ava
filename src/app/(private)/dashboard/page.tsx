@@ -9,10 +9,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/header";
 import Link from "next/link";
 import { formatDate, formatDuration } from "@/utils/date";
 import { requireWorkspace } from "@/lib/auth";
+import { getInitials } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -67,10 +69,24 @@ export default async function DashboardPage() {
       <Header user={user} className="bg-slate-50" />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-slate-600">
-            タスクの進捗状況と所要時間を確認できます
-          </p>
+          <div className="flex items-center gap-6">
+            {workspace.iconUrl && (
+              <Avatar className="size-20 rounded-lg">
+                <AvatarImage src={workspace.iconUrl} alt={workspace.name} />
+                <AvatarFallback className="rounded-lg">
+                  {getInitials(workspace.name)}
+                </AvatarFallback>
+              </Avatar>
+            )}
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 mb-1">
+                Dashboard
+              </h1>
+              <p className="text-slate-600">
+                {workspace.name} • タスクの進捗状況と所要時間を確認できます
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
