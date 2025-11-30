@@ -5,6 +5,8 @@ import type { Context } from "hono";
 import type { Env } from "@/app/create-app";
 import { HTTPException } from "hono/http-exception";
 import type { Database } from "@/clients/drizzle";
+import { sha256 } from "@oslojs/crypto/sha2";
+import { encodeHexLowerCase } from "@oslojs/encoding";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
@@ -15,10 +17,12 @@ async function findUserAndWorkspaceByToken(
   token: string,
   db: Database,
 ): Promise<AuthContext | null> {
+  const tokenHash = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+
   const [accessToken] = await db
     .select()
     .from(schema.accessTokens)
-    .where(eq(schema.accessTokens.token, token));
+    .where(eq(schema.accessTokens.tokenHash, tokenHash));
 
   if (!accessToken) return null;
   if (accessToken.expiresAt.getTime() < Date.now()) return null;
