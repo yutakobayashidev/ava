@@ -1,11 +1,11 @@
 import type { Database } from "@/clients/drizzle";
 import type { CreateWorkspaceInput } from "@/repos";
 import { createWorkspaceRepository } from "@/repos";
-import type { NonNullableUser } from "../dummyUsers";
+import type { User } from "@/db/schema";
 
 export async function setupWorkspaceForUser(
   db: Database,
-  user: NonNullableUser,
+  user: User,
   workspaceInput: CreateWorkspaceInput,
 ) {
   const workspaceRepository = createWorkspaceRepository({ db });
