@@ -111,3 +111,35 @@ export const addReaction = async ({
     throw error;
   }
 };
+
+export const getTeamIcon = async (token: string): Promise<string | null> => {
+  const client = new WebClient(token);
+
+  try {
+    const result = await client.team.info();
+
+    if (!result.ok || !result.team) {
+      console.warn("Failed to fetch team info from Slack");
+      return null;
+    }
+
+    const icon = result.team.icon;
+    if (!icon) {
+      return null;
+    }
+
+    // 利用可能な最大サイズのアイコンを返す
+    return (
+      icon.image_original ??
+      icon.image_230 ??
+      icon.image_132 ??
+      icon.image_102 ??
+      icon.image_88 ??
+      icon.image_68 ??
+      null
+    );
+  } catch (error) {
+    console.warn("Failed to fetch team icon:", error);
+    return null;
+  }
+};

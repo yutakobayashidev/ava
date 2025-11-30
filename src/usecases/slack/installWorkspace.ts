@@ -1,6 +1,7 @@
 import type { Env } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
+import { getTeamIcon } from "@/clients/slack";
 
 export type InstallWorkspace = {
   code: string;
@@ -22,6 +23,9 @@ export const installWorkspace = async (
     const oauthResult = await exchangeSlackInstallCode(code);
     const workspaceRepository = createWorkspaceRepository({ db });
 
+    // アイコンURLを取得
+    const iconUrl = await getTeamIcon(oauthResult.accessToken);
+
     const existing = await workspaceRepository.findWorkspaceByExternalId({
       provider: "slack",
       externalId: oauthResult.teamId,
@@ -36,6 +40,7 @@ export const installWorkspace = async (
         botRefreshToken: oauthResult.refreshToken ?? null,
         name: oauthResult.teamName,
         domain: oauthResult.teamDomain ?? existing.domain,
+        iconUrl,
       });
       await workspaceRepository.addMember({
         workspaceId: existing.id,
@@ -48,6 +53,7 @@ export const installWorkspace = async (
         externalId: oauthResult.teamId,
         name: oauthResult.teamName,
         domain: oauthResult.teamDomain ?? null,
+        iconUrl,
         botUserId: oauthResult.botUserId ?? null,
         botAccessToken: oauthResult.accessToken,
         botRefreshToken: oauthResult.refreshToken ?? null,

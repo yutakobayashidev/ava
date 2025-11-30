@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
+
+export const metadata: Metadata = {
+  title: "オンボーディング",
+  description: "Avaの初期設定を行います。",
+};
 
 export default async function OnboardingPage() {
   const { user } = await getCurrentSession();

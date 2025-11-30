@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles, ArrowRight } from "lucide-react";
@@ -9,6 +10,12 @@ import { eq } from "drizzle-orm";
 import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "準備完了",
+  description:
+    "セットアップが完了しました。コーディングを始めると、自動でSlackに進捗が投稿されます。",
+};
 
 export default async function CompletePage() {
   const { user } = await getCurrentSession();

@@ -12,6 +12,7 @@ const DEFAULT_SCOPES = [
   "commands",
   "groups:read",
   "reactions:write",
+  "team:read",
 ];
 
 type SlackInstallConfig = {
