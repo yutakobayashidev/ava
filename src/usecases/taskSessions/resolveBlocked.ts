@@ -32,14 +32,14 @@ export const resolveBlocked = async (
       slackThreadTs: session.slackThreadTs,
       slackChannel: session.slackChannel,
     },
-    blockReason: blockReport.reason,
+    blockReason: blockReport.reason ?? "Unknown block",
   });
 
   return {
     task_session_id: session.id,
     block_report_id: blockReport.id,
     status: session.status,
-    resolved_at: blockReport.resolvedAt,
+    resolved_at: blockReport.createdAt,
     slack_notification: slackNotification,
     message: "ブロッキングの解決を報告しました。",
   };

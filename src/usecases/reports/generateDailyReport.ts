@@ -9,7 +9,7 @@ import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import { generateText } from "@/lib/ai";
 
 type BlockReport = {
-  reason: string;
+  reason: string | null;
   createdAt: Date;
 };
 
