@@ -108,9 +108,12 @@ export const loginWithSlack = async (
   // Slack ユーザー情報取得
   const slackUser = await getSlackUser(tokens);
 
-  // ユーザーの検索または作成
+  // ユーザーの検索または作成（slackId + slackTeamId で一意）
   const userRepository = createUserRepository({ db });
-  let existingUser = await userRepository.findUserBySlackId(slackUser.sub);
+  let existingUser = await userRepository.findUserBySlackIdAndTeamId(
+    slackUser.sub,
+    slackUser.team_id,
+  );
 
   if (!existingUser) {
     existingUser = await userRepository.createUser({

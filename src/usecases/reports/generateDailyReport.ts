@@ -125,8 +125,11 @@ export const generateDailyReport = async (
     return { success: false, error: "workspace_not_found" };
   }
 
-  // SlackユーザーIDからDBユーザーを取得
-  const user = await userRepository.findUserBySlackId(slackUserId);
+  // SlackユーザーIDとチームIDからDBユーザーを取得
+  const user = await userRepository.findUserBySlackIdAndTeamId(
+    slackUserId,
+    slackTeamId,
+  );
 
   if (!user) {
     return { success: false, error: "user_not_found" };

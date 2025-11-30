@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import type { Database } from "@/clients/drizzle";
 import { users } from "@/db/schema";
@@ -33,11 +33,13 @@ export const createUserRepository = ({ db }: { db: Database }) => ({
 
     return user;
   },
-  async findUserBySlackId(slackId: string) {
+  async findUserBySlackIdAndTeamId(slackId: string, slackTeamId: string) {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.slackId, slackId))
+      .where(
+        and(eq(users.slackId, slackId), eq(users.slackTeamId, slackTeamId)),
+      )
       .limit(1);
     return user || null;
   },

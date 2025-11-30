@@ -105,7 +105,10 @@ export const users = pgTable(
       .notNull(),
   },
   (table) => ({
-    slackIdUnique: uniqueIndex("users_slack_id_unique").on(table.slackId),
+    slackIdTeamIdUnique: uniqueIndex("users_slack_id_team_id_unique").on(
+      table.slackId,
+      table.slackTeamId,
+    ),
   }),
 );
 
