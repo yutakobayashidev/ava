@@ -41,7 +41,7 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
 - `/mcp` - MCP サーバー（Hono、単独ルート）
 - `/api/*` - その他の API エンドポイント（Hono、catch-all ルート）
   - `/api/oauth/*` - OAuth 関連
-  - `/api/login/*` - 認証フロー
+  - `/api/auth/*` - 認証フロー
   - `/api/slack/*` - Slack 連携
   - `/api/health` - ヘルスチェック
 - その他 - Next.js App Router（page.tsx、not-found.tsx など）
@@ -80,7 +80,7 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
 
 **認証とインストール:**
 
-- ユーザーログイン: `/api/login/slack` で Slack OpenID Connect 認証。ユーザーを作成しセッション Cookie を発行。
+- ユーザーログイン: `/api/auth/slack` で Slack OpenID Connect 認証。ユーザーを作成しセッション Cookie を発行。
 - ボットインストール: ダッシュボードまたは `/slack/install/start` から開始 → Slack OAuth（スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`, `commands`）
 - リダイレクト URI: `NEXT_PUBLIC_BASE_URL + /api/slack/install/callback`（env の個別設定は不要）
 
