@@ -1,82 +1,45 @@
-/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import { db } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { uuidv7 } from "uuidv7";
-import { headers } from "next/headers";
 import { getCurrentSession } from "@/lib/session";
 import { createWorkspaceRepository } from "@/repos";
+import {
+  validateAuthorizeRequest,
+  createLoginRedirectUrl,
+} from "@/lib/server/oauth";
 
 export default async function AuthorizePage({
   searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+}: PageProps<"/oauth/authorize">) {
   const { user } = await getCurrentSession();
 
   const params = await searchParams;
 
-  const clientId = params.client_id as string;
-  const redirectUri = params.redirect_uri as string;
-  const responseType = params.response_type as string;
-  const state = params.state as string;
-  const code_challenge = params.code_challenge as string | undefined;
-  const code_challenge_method = params.code_challenge_method as
-    | string
-    | undefined;
-
   if (!user || !user.id) {
-    const headersList = await headers();
-    const host = headersList.get("host");
-    const prot = process.env.NODE_ENV === "production" ? "https" : "http";
-    const baseUrl = `${prot}://${host}`;
-
-    const loginUrl = new URL("/login", baseUrl);
-    const callbackUrl = new URL("/oauth/authorize", baseUrl);
-
-    // 現在のすべてのクエリパラメータをコールバックURLに追加する
-    Object.entries(params).forEach(([key, value]) => {
-      if (typeof value === "string") {
-        callbackUrl.searchParams.set(key, value);
-      }
-    });
-
-    loginUrl.searchParams.set("callbackUrl", callbackUrl.toString());
-    return redirect(loginUrl.toString());
+    return redirect(createLoginRedirectUrl(params));
   }
 
-  if (!clientId || !redirectUri || responseType !== "code") {
+  const validation = await validateAuthorizeRequest(params);
+
+  if (!validation.success) {
     return (
       <main className="flex items-center justify-center h-screen">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-sm w-full text-center">
           <h1 className="text-2xl font-bold mb-4">エラー</h1>
-          <p>不正な認可リクエストです。</p>
-          <p className="text-xs text-gray-500 mt-4">
-            client_id、redirect_uri が不足しているか、response_type が
-            &apos;code&apos; ではありません。
-          </p>
+          <p>{validation.errorDescription}</p>
+          {validation.error && (
+            <p className="text-xs text-gray-500 mt-4">
+              エラーコード: {validation.error}
+            </p>
+          )}
         </div>
       </main>
     );
   }
 
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.clientId, clientId));
-
-  if (!client || !client.redirectUris.includes(redirectUri)) {
-    return (
-      <main className="flex items-center justify-center h-screen">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-sm w-full text-center">
-          <h1 className="text-2xl font-bold mb-4">エラー</h1>
-          <p>不正なクライアントまたはリダイレクトURIです。</p>
-        </div>
-      </main>
-    );
-  }
+  const { requestParams, client } = validation;
 
   const workspaceRepository = createWorkspaceRepository({ db });
   const workspacesForUser = await workspaceRepository.listWorkspacesForUser({
@@ -114,9 +77,9 @@ export default async function AuthorizePage({
 
     const consent = formData.get("consent");
 
-    const redirectUrl = new URL(redirectUri);
-    if (state) {
-      redirectUrl.searchParams.set("state", state);
+    const redirectUrl = new URL(requestParams.redirect_uri);
+    if (requestParams.state) {
+      redirectUrl.searchParams.set("state", requestParams.state);
     }
 
     if (consent === "deny") {
@@ -134,9 +97,9 @@ export default async function AuthorizePage({
       clientId: client.id,
       userId: user.id,
       workspaceId,
-      redirectUri,
-      codeChallenge: code_challenge ?? null,
-      codeChallengeMethod: code_challenge_method ?? null,
+      redirectUri: requestParams.redirect_uri,
+      codeChallenge: requestParams.code_challenge ?? null,
+      codeChallengeMethod: requestParams.code_challenge_method ?? null,
     });
 
     redirectUrl.searchParams.set("code", authorizationCode);
