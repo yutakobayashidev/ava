@@ -4,7 +4,6 @@ import {
   createWorkspaceRepository,
   createUserRepository,
 } from "@/repos";
-import { createTaskEventRepository } from "@/repos/taskEvents";
 import { fillPrompt } from "@/utils/prompts";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import { generateText } from "@/lib/ai";
@@ -115,7 +114,6 @@ export const generateDailyReport = async (
   const workspaceRepository = createWorkspaceRepository({ db });
   const userRepository = createUserRepository({ db });
   const taskRepository = createTaskRepository({ db });
-  const taskEventRepository = createTaskEventRepository({ db });
 
   // ワークスペースを取得
   const workspace = await workspaceRepository.findWorkspaceByExternalId({
@@ -166,7 +164,7 @@ export const generateDailyReport = async (
   // 今日完了したタスクをフィルタリング (completedAtがないため、task_eventsから取得する必要がある)
   const todayCompletedTasks = await Promise.all(
     allCompletedTasks.map(async (task) => {
-      const completedEvent = await taskEventRepository.getLatestEvent({
+      const completedEvent = await taskRepository.getLatestEvent({
         taskSessionId: task.id,
         eventType: "completed",
       });
@@ -194,7 +192,7 @@ export const generateDailyReport = async (
   // 各完了タスクの詳細情報を取得
   const completedTasksWithDetails = await Promise.all(
     todayCompletedTasks.map(async (task) => {
-      const completedEvent = await taskEventRepository.getLatestEvent({
+      const completedEvent = await taskRepository.getLatestEvent({
         taskSessionId: task.id,
         eventType: "completed",
       });
@@ -223,7 +221,7 @@ export const generateDailyReport = async (
       const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
         task.id,
       );
-      const updateEvents = await taskEventRepository.listEvents({
+      const updateEvents = await taskRepository.listEvents({
         taskSessionId: task.id,
         eventType: "updated",
         limit: 5,

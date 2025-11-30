@@ -481,6 +481,67 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     });
   };
 
+  const listEvents = async (params: {
+    taskSessionId: string;
+    eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
+    limit?: number;
+  }) => {
+    const limit = params.limit ?? 50;
+    const conditions = [
+      eq(schema.taskEvents.taskSessionId, params.taskSessionId),
+    ];
+
+    if (params.eventType) {
+      conditions.push(eq(schema.taskEvents.eventType, params.eventType));
+    }
+
+    return db
+      .select()
+      .from(schema.taskEvents)
+      .where(and(...conditions))
+      .orderBy(desc(schema.taskEvents.createdAt))
+      .limit(limit);
+  };
+
+  const getLatestEvent = async (params: {
+    taskSessionId: string;
+    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+  }) => {
+    const [event] = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          eq(schema.taskEvents.taskSessionId, params.taskSessionId),
+          eq(schema.taskEvents.eventType, params.eventType),
+        ),
+      )
+      .orderBy(desc(schema.taskEvents.createdAt))
+      .limit(1);
+
+    return event ?? null;
+  };
+
+  const getLatestEventByTypes = async (
+    taskSessionId: string,
+    eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
+  ) => {
+    if (eventTypes.length === 0) return null;
+
+    const events = await Promise.all(
+      eventTypes.map((eventType) =>
+        getLatestEvent({ taskSessionId, eventType }),
+      ),
+    );
+
+    const validEvents = events.filter((e): e is schema.TaskEvent => e !== null);
+    if (validEvents.length === 0) return null;
+
+    return validEvents.reduce((latest, current) =>
+      current.createdAt > latest.createdAt ? current : latest,
+    );
+  };
+
   return {
     createTaskSession,
     findTaskSessionById,
@@ -494,6 +555,9 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     resolveBlockReport,
     listTaskSessions,
     updateSlackThread,
+    listEvents,
+    getLatestEvent,
+    getLatestEventByTypes,
   };
 };
 
