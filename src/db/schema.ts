@@ -92,6 +92,7 @@ export const users = pgTable(
     name: text("name"),
     email: text("email"),
     slackId: text("slack_id"),
+    slackTeamId: text("slack_team_id").notNull(),
     image: text("image"),
     onboardingCompletedAt: timestamp("onboarding_completed_at", {
       withTimezone: true,

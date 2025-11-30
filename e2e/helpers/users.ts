@@ -24,8 +24,10 @@ export async function registerUserToDB(user: NonNullableUser, dbUrl: string) {
       name: user.name,
       email: user.email,
       slackId: user.slackId,
+      slackTeamId: user.slackTeamId,
       image: user.image,
       onboardingCompletedAt: user.onboardingCompletedAt,
+      createdAt: user.createdAt,
     });
   });
 }

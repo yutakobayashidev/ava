@@ -68,6 +68,7 @@ export async function setup() {
       name: "Test User",
       email: "test@example.com",
       slackId: "U123456",
+      slackTeamId: "T123456",
     });
 
     const workspace = await workspaceRepository.createWorkspace({

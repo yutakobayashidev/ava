@@ -11,6 +11,7 @@ export type CreateUserInput = {
   name: string;
   email: string;
   slackId: string;
+  slackTeamId: string;
   image?: string;
 };
 
@@ -25,6 +26,7 @@ export const createUserRepository = ({ db }: { db: Database }) => ({
         name: input.name,
         email: input.email,
         slackId: input.slackId,
+        slackTeamId: input.slackTeamId,
         image: input.image,
       })
       .returning();
