@@ -1,14 +1,14 @@
+import { db } from "@/clients/drizzle";
+import { listChannels, type SlackChannel } from "@/clients/slack";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { getCurrentSession } from "@/lib/session";
+import { createWorkspaceRepository } from "@/repos";
+import { ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CheckCircle } from "lucide-react";
-import { getCurrentSession } from "@/lib/session";
-import { db } from "@/clients/drizzle";
-import { createWorkspaceRepository } from "@/repos";
-import { listChannels, type SlackChannel } from "@/clients/slack";
 import { OnboardingProgress } from "../OnboardingProgress";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function ConnectSlackPage({
   searchParams,
@@ -124,47 +124,70 @@ export default async function ConnectSlackPage({
     <div className="min-h-screen bg-slate-50">
       <OnboardingProgress currentStep={1} />
 
-      <div className="container mx-auto max-w-6xl px-4 py-12">
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
-          <div className="flex-1 space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">
-                Slackワークスペースを連携
-              </h1>
-              <p className="mt-3 text-slate-600">
-                タスクの進捗をSlackに自動通知するため、ワークスペースと接続します。
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-slate-900">
-                できること
-              </h2>
-              <ul className="space-y-3 text-slate-600">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
-                  <span>タスク開始時に自動でSlackへ投稿</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
-                  <span>進捗がスレッドに同期され、チームが状況を把握</span>
-                </li>
-              </ul>
-            </div>
+      <div className="container mx-auto max-w-2xl px-4 py-12">
+        <div className="space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-slate-900">
+              Slackワークスペースを連携
+            </h1>
+            <p className="mt-3 text-slate-600">
+              タスクの進捗をSlackに自動通知するため、ワークスペースと接続します。
+            </p>
           </div>
 
-          <div className="flex-1 space-y-6">
-            {statusMessage && (
-              <Alert variant={params.error ? "destructive" : "default"}>
-                <AlertDescription>{statusMessage}</AlertDescription>
-              </Alert>
-            )}
+          {statusMessage && (
+            <Alert variant={params.error ? "destructive" : "default"}>
+              <AlertDescription>{statusMessage}</AlertDescription>
+            </Alert>
+          )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Slack接続</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Slack連携でできること
+                </h2>
+                <ul className="space-y-4 text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        自動でタスクを投稿
+                      </p>
+                      <p className="text-sm mt-1">
+                        タスクを開始すると、自動的にSlackの指定チャンネルにスレッドが作成されます。
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        進捗をスレッドに同期
+                      </p>
+                      <p className="text-sm mt-1">
+                        コーディング中の進捗、詰まり、完了などがすべてスレッドに記録され、チームがリアルタイムで状況を把握できます。
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        必要なときだけサポート
+                      </p>
+                      <p className="text-sm mt-1">
+                        進捗が見えるため、過度なチェックインは不要。必要なときだけスレッドで質問やサポートができます。
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Slack接続
+                </h2>
                 {!workspace?.botAccessToken ? (
                   <Button asChild className="w-full" size="lg">
                     <Link href="/slack/install/start">
@@ -188,15 +211,13 @@ export default async function ConnectSlackPage({
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            {workspace?.botAccessToken && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>通知チャンネルを選択</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              {workspace?.botAccessToken && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    通知チャンネルを選択
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     進捗通知を投稿するSlackチャンネルを選んでください。
                   </p>
@@ -253,10 +274,10 @@ export default async function ConnectSlackPage({
                       </Button>
                     </form>
                   )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

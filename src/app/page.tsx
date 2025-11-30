@@ -31,14 +31,14 @@ export default async function LandingPage() {
         <div className="max-w-5xl mx-auto text-center">
           <Badge
             variant="secondary"
-            className="mb-8 px-4 py-2 text-sm bg-blue-50 text-blue-700 border-transparent"
+            className="mb-8 px-4 py-2 text-sm border-transparent"
           >
             <Zap className="h-4 w-4" />
             静かに寄り添う進捗共有
           </Badge>
           <h1 className="text-6xl md:text-8xl font-bold text-slate-900 mb-6 tracking-tight">
             Quiet Progress.
-            <span className="block text-blue-600 mt-2">Gentle Updates.</span>
+            <span className="block text-primary mt-2">Gentle Updates.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
             コンテキストスイッチを減らし、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
@@ -47,7 +47,7 @@ export default async function LandingPage() {
             <Button
               asChild
               size="lg"
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl h-auto"
+              className="px-8 py-4 shadow-lg hover:shadow-xl rounded-xl h-auto"
             >
               <Link href="/login">
                 Slackでログイン
@@ -80,8 +80,8 @@ export default async function LandingPage() {
             </div>
             <div className="grid md:grid-cols-2 gap-8">
               <Card className="flex-row items-start gap-4 p-6">
-                <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div className="shrink-0 w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
@@ -93,8 +93,8 @@ export default async function LandingPage() {
                 </div>
               </Card>
               <Card className="flex-row items-start gap-4 p-6">
-                <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div className="shrink-0 w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
@@ -106,8 +106,8 @@ export default async function LandingPage() {
                 </div>
               </Card>
               <Card className="flex-row items-start gap-4 p-6">
-                <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div className="shrink-0 w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
@@ -119,8 +119,8 @@ export default async function LandingPage() {
                 </div>
               </Card>
               <Card className="flex-row items-start gap-4 p-6">
-                <div className="shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div className="shrink-0 w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
@@ -157,13 +157,13 @@ export default async function LandingPage() {
             </div>
             <div className="relative">
               <div
-                className="absolute inset-0 blur-3xl bg-gradient-to-br from-blue-100 via-white to-teal-100 rounded-3xl"
+                className="absolute inset-0 blur-3xl bg-gradient-to-br from-accent/30 via-background to-accent/30 rounded-3xl"
                 aria-hidden
               />
               <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-semibold">
+                    <div className="w-10 h-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-semibold">
                       AI
                     </div>
                     <div>
@@ -180,19 +180,19 @@ export default async function LandingPage() {
                       title: "APIエンドポイント統合作業",
                       desc: "進捗まとめと懸念をスレッドに記録しました。",
                       time: "10:12",
-                      tone: "bg-blue-50 text-blue-800",
+                      tone: "bg-accent text-accent-foreground",
                     },
                     {
                       title: "ブロッカー: テスト用認証ヘッダー",
                       desc: "ベンチトークンがエラー。サンプルを共有いただけると助かります。",
                       time: "11:04",
-                      tone: "bg-orange-50 text-orange-800",
+                      tone: "bg-destructive/10 text-destructive",
                     },
                     {
                       title: "PR ready for review",
                       desc: "Slack通知→GitHub自動連携。レビュー依頼のみ人が介入。",
                       time: "12:48",
-                      tone: "bg-emerald-50 text-emerald-800",
+                      tone: "bg-accent text-accent-foreground",
                     },
                   ].map((item) => (
                     <Card
@@ -250,27 +250,27 @@ export default async function LandingPage() {
             </div>
             <div className="space-y-0">
               <FlowCard
-                icon={<MessageSquare className="h-5 w-5 text-blue-700" />}
+                icon={<MessageSquare className="h-5 w-5 text-primary" />}
                 title="タスク開始"
-                dotClass="bg-blue-600"
+                dotClass="bg-primary"
                 description="エージェントがタスク開始とコンテキストをSlackスレッドへ。チームは静かに状況を把握。"
               />
               <FlowCard
-                icon={<ArrowRight className="h-5 w-5 text-blue-700" />}
+                icon={<ArrowRight className="h-5 w-5 text-primary" />}
                 title="進捗更新"
-                dotClass="bg-blue-600"
+                dotClass="bg-primary"
                 description="細かな進捗も自動で積み上がり、報告文を考える負担を軽減。必要なときだけ人が返信。"
               />
               <FlowCard
-                icon={<AlertCircle className="h-5 w-5 text-blue-700" />}
+                icon={<AlertCircle className="h-5 w-5 text-primary" />}
                 title="ブロック報告"
-                dotClass="bg-blue-600"
+                dotClass="bg-primary"
                 description="詰まりは同じスレッドに即通知。気まずいお願いなしで、メンバーがそのままフォロー。"
               />
               <FlowCard
-                icon={<GitPullRequest className="h-5 w-5 text-blue-700" />}
+                icon={<GitPullRequest className="h-5 w-5 text-primary" />}
                 title="タスク完了"
-                dotClass="bg-blue-600"
+                dotClass="bg-primary"
                 description="完了とPRをまとめて投稿。静かな進行を保ったまま、レビュー待ちもスムーズに。"
                 isLast
               />
@@ -297,7 +297,7 @@ export default async function LandingPage() {
                 <div className="space-y-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
                     <svg
-                      className="h-6 w-6 text-blue-600"
+                      className="h-6 w-6 text-primary"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -318,15 +318,15 @@ export default async function LandingPage() {
                   </p>
                   <div className="space-y-2 pt-2">
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       タスク一覧と詳細サマリ
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       ステータスバッジで状態を可視化
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       所要時間の自動計算
                     </div>
                   </div>
@@ -335,9 +335,9 @@ export default async function LandingPage() {
 
               <Card className="p-8 gap-6">
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
                     <svg
-                      className="h-6 w-6 text-blue-600"
+                      className="h-6 w-6 text-primary"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -358,15 +358,15 @@ export default async function LandingPage() {
                   </p>
                   <div className="space-y-2 pt-2">
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       AIによる自然な文章生成
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       完了タスクとPRの自動列挙
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       ブロッキング課題の明記
                     </div>
                   </div>
@@ -378,7 +378,7 @@ export default async function LandingPage() {
       </section>
 
       {/* Privacy & Control Section */}
-      <section className="relative py-24 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-50 overflow-hidden">
+      <section className="relative py-24 bg-gradient-to-br from-accent/20 via-slate-50 to-accent/20 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="mb-12">
@@ -392,7 +392,7 @@ export default async function LandingPage() {
             <div className="space-y-12">
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="shrink-0 w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                     <svg
                       className="h-6 w-6 text-white"
                       fill="none"
@@ -418,17 +418,17 @@ export default async function LandingPage() {
                 </div>
                 <div className="pl-16 space-y-3">
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">作業内容の要約のみを送信</span>
                   </div>
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">
                       コード全文や機密情報は送信しない
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">
                       詰まり・休止の理由も概要のみ
                     </span>
@@ -437,7 +437,7 @@ export default async function LandingPage() {
               </div>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <div className="shrink-0 w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
                     <svg
                       className="h-6 w-6 text-white"
                       fill="none"
@@ -463,19 +463,19 @@ export default async function LandingPage() {
                 </div>
                 <div className="pl-16 space-y-3">
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">
                       報告のタイミングを自由に指定
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">
                       共有する情報の粒度を調整可能
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-slate-700">
-                    <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">完全自動化ではない安心感</span>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export default async function LandingPage() {
               <Button
                 asChild
                 size="lg"
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl rounded-xl h-auto"
+                className="px-8 py-4 shadow-lg hover:shadow-xl rounded-xl h-auto"
               >
                 <Link href="/login">
                   無料で始める
@@ -541,9 +541,9 @@ export default async function LandingPage() {
               </Button>
               <Button
                 asChild
-                variant="outline"
+                variant="secondary"
                 size="lg"
-                className="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl h-auto text-white hover:text-white"
+                className="px-8 py-4 rounded-xl h-auto"
               >
                 <Link href="/docs">ドキュメントを見る</Link>
               </Button>
@@ -589,7 +589,7 @@ function Step({
   return (
     <div className="flex gap-6">
       <div className="shrink-0">
-        <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">
+        <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-xl">
           {number}
         </div>
       </div>
@@ -618,12 +618,12 @@ function FlowCard({
     <div className="relative pl-12 pb-10 last:pb-0">
       {!isLast && (
         <div
-          className="absolute left-[6px] top-4 bottom-0 w-px bg-gradient-to-b from-slate-200 via-slate-200 to-transparent"
+          className="absolute left-[6px] top-4 bottom-0 w-px bg-gradient-to-b from-border via-border to-transparent"
           aria-hidden
         />
       )}
       <div
-        className={`absolute left-0 top-2 h-4 w-4 rounded-full border-2 border-white shadow-sm ${dotClass}`}
+        className={`absolute left-0 top-2 h-4 w-4 rounded-full border-2 border-background shadow-sm ${dotClass}`}
       />
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
@@ -641,7 +641,7 @@ function FlowCard({
 function ProblemRow({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3 group">
-      <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-600 mt-2.5" />
+      <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-2.5" />
       <p className="text-lg text-slate-700 leading-relaxed">{text}</p>
     </div>
   );
