@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
+import { createTaskRepository } from "@/repos";
 import {
   Table,
   TableBody,
@@ -12,34 +10,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/header";
-
-function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) {
-    return `${days}日 ${hours % 24}時間`;
-  }
-  if (hours > 0) {
-    return `${hours}時間 ${minutes % 60}分`;
-  }
-  if (minutes > 0) {
-    return `${minutes}分`;
-  }
-  return `${seconds}秒`;
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
+import Link from "next/link";
+import { formatDate, formatDuration } from "@/utils/date";
+import { requireWorkspace } from "@/lib/auth";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -56,22 +29,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function DashboardPage() {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
-
-  if (!workspace) {
-    redirect("/onboarding/connect-slack");
-  }
+  const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository({ db });
   const tasks = await taskRepository.listTaskSessions({
@@ -140,12 +98,19 @@ export default async function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {tasksWithDuration.map((task) => (
-                  <TableRow key={task.id}>
+                  <TableRow
+                    key={task.id}
+                    className="cursor-pointer hover:bg-slate-50"
+                  >
                     <TableCell className="font-medium max-w-md">
-                      <div className="truncate">{task.issueTitle}</div>
-                      <div className="text-xs text-slate-500 truncate mt-1">
-                        {task.initialSummary}
-                      </div>
+                      <Link href={`/tasks/${task.id}`} className="block">
+                        <div className="truncate hover:text-blue-600">
+                          {task.issueTitle}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate mt-1">
+                          {task.initialSummary}
+                        </div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={task.status} />

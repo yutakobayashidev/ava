@@ -9,6 +9,7 @@ import {
   validateAuthorizeRequest,
   createLoginRedirectUrl,
 } from "@/lib/server/oauth";
+import { requireAuth } from "@/lib/auth";
 
 export default async function AuthorizePage({
   searchParams,
@@ -67,11 +68,7 @@ export default async function AuthorizePage({
   async function handleConsent(formData: FormData) {
     "use server";
 
-    const { user } = await getCurrentSession();
-    if (!user?.id) {
-      // This should not be reachable if the user sees the consent screen
-      throw new Error("No session found during consent handling.");
-    }
+    const { user } = await requireAuth();
 
     if (!client) throw new Error("Client not found during consent handling.");
 

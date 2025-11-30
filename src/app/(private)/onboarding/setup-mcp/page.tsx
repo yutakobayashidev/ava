@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { getCurrentSession } from "@/lib/session";
 import { absoluteUrl } from "@/lib/utils";
 import { db } from "@/clients/drizzle";
-import { createWorkspaceRepository } from "@/repos";
 import { CopyButton } from "./CopyButton";
 import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { McpSetupTabs } from "./McpSetupTabs";
+import { requireAuth } from "@/lib/auth";
+import { createWorkspaceRepository } from "@/repos";
 
 export const metadata: Metadata = {
   title: "MCPサーバーを接続",
@@ -19,11 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SetupMcpPage() {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login?callbackUrl=/onboarding/setup-mcp");
-  }
+  const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
   const [membership] = await workspaceRepository.listWorkspacesForUser({

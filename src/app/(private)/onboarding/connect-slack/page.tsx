@@ -5,13 +5,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getCurrentSession } from "@/lib/session";
 import { getInitials } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OnboardingProgress } from "../OnboardingProgress";
+import { requireAuth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Slackワークスペースを連携",
@@ -22,11 +22,7 @@ export const metadata: Metadata = {
 export default async function ConnectSlackPage({
   searchParams,
 }: PageProps<"/onboarding/connect-slack">) {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login?callbackUrl=/onboarding/connect-slack");
-  }
+  const { user } = await requireAuth();
 
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository({ db });
@@ -59,11 +55,7 @@ export default async function ConnectSlackPage({
   async function saveNotificationChannel(formData: FormData) {
     "use server";
 
-    const { user } = await getCurrentSession();
-
-    if (!user) {
-      redirect("/login?callbackUrl=/onboarding/connect-slack");
-    }
+    const { user } = await requireAuth();
 
     const channelId = formData.get("channel_id");
 

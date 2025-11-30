@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles, ArrowRight } from "lucide-react";
-import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
 import { users } from "@/db/schema";
@@ -10,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "準備完了",
@@ -18,11 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CompletePage() {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login?callbackUrl=/onboarding/complete");
-  }
+  const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
   const [membership] = await workspaceRepository.listWorkspacesForUser({
