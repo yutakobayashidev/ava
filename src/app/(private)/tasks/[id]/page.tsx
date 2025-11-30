@@ -8,35 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Clock, Calendar, GitBranch } from "lucide-react";
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
-}
-
-function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) {
-    return `${days}日 ${hours % 24}時間`;
-  }
-  if (hours > 0) {
-    return `${hours}時間 ${minutes % 60}分`;
-  }
-  if (minutes > 0) {
-    return `${minutes}分`;
-  }
-  return `${seconds}秒`;
-}
+import { formatDate, formatDuration } from "@/utils/date";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -175,7 +147,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-lg font-semibold text-slate-900">
-                {formatDate(task.createdAt)}
+                {formatDate(task.createdAt, true)}
               </p>
             </CardContent>
           </Card>
@@ -190,7 +162,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
               </CardHeader>
               <CardContent>
                 <p className="text-lg font-semibold text-slate-900">
-                  {formatDate(completedAt)}
+                  {formatDate(completedAt, true)}
                 </p>
               </CardContent>
             </Card>
@@ -283,7 +255,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
                         <div className="flex items-baseline gap-2 mb-1">
                           <EventTypeLabel eventType={event.eventType} />
                           <span className="text-sm text-slate-500">
-                            {formatDate(event.createdAt)}
+                            {formatDate(event.createdAt, true)}
                           </span>
                         </div>
 
