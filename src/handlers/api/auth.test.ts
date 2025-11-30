@@ -51,27 +51,22 @@ describe("api/auth", () => {
       expect(sessions).toHaveLength(0);
     });
 
-    it("should logout successfully without session cookie", async () => {
+    it("should return 401 without session cookie", async () => {
       // セッションクッキーなしでログアウトリクエスト
       const res = await app.request("/logout", {
         method: "POST",
       });
 
       // レスポンスを確認
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(401);
       expect(await res.json()).toMatchInlineSnapshot(`
         {
-          "success": true,
+          "error": "Unauthorized",
         }
       `);
-
-      // クッキーが削除されたことを確認
-      const setCookieHeader = res.headers.get("set-cookie");
-      expect(setCookieHeader).toContain("session=");
-      expect(setCookieHeader).toContain("Max-Age=0");
     });
 
-    it("should logout successfully with invalid session token", async () => {
+    it("should return 401 with invalid session token", async () => {
       // 存在しないセッショントークンでログアウトリクエスト
       const res = await app.request("/logout", {
         method: "POST",
@@ -81,17 +76,12 @@ describe("api/auth", () => {
       });
 
       // レスポンスを確認
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(401);
       expect(await res.json()).toMatchInlineSnapshot(`
         {
-          "success": true,
+          "error": "Unauthorized",
         }
       `);
-
-      // クッキーが削除されたことを確認
-      const setCookieHeader = res.headers.get("set-cookie");
-      expect(setCookieHeader).toContain("session=");
-      expect(setCookieHeader).toContain("Max-Age=0");
     });
   });
 });

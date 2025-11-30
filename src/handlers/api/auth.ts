@@ -78,12 +78,16 @@ const app = createHonoApp()
   .post("/logout", async (c) => {
     const token = getCookie(c, "session");
 
-    if (token) {
-      const { session } = await validateSessionToken(token);
-      if (session) {
-        await invalidateSession(session.id);
-      }
+    if (!token) {
+      return c.json({ error: "Unauthorized" }, 401);
     }
+
+    const { session } = await validateSessionToken(token);
+    if (!session) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    await invalidateSession(session.id);
 
     deleteCookie(c, "session", {
       path: "/",
