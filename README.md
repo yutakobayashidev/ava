@@ -159,7 +159,63 @@ Web UI でタスクの可視化：
 
 #### Slack アプリの設定
 
-1. [Slack API](https://api.slack.com/apps) で新しいアプリを作成
+**方法 1: App Manifest を使用（推奨）**
+
+1. [Slack API](https://api.slack.com/apps) で「Create New App」→「From an app manifest」を選択
+
+2. ワークスペースを選択
+
+3. 以下の App Manifest を貼り付け（`<YOUR_BASE_URL>` を実際のベース URL に置き換えてください）:
+
+```json
+{
+  "display_information": {
+    "name": "Ava"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Ava",
+      "always_online": false
+    },
+    "slash_commands": [
+      {
+        "command": "/daily-report",
+        "url": "https://<YOUR_BASE_URL>/api/slack/commands",
+        "description": "本日のタスクサマリを生成",
+        "usage_hint": "",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "redirect_urls": [
+      "https://<YOUR_BASE_URL>/api/auth/slack/callback",
+      "https://<YOUR_BASE_URL>/api/slack/install/callback"
+    ],
+    "scopes": {
+      "user": ["openid", "profile", "email"],
+      "bot": [
+        "chat:write",
+        "chat:write.public",
+        "channels:read",
+        "groups:read",
+        "commands"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": true
+  }
+}
+```
+
+4. **App Credentials** から `Client ID`、`Client Secret`、`Signing Secret` を取得
+
+**方法 2: 手動設定**
+
+1. [Slack API](https://api.slack.com/apps) で「Create New App」→「From scratch」を選択
 
 2. **OAuth & Permissions** で Bot Token Scopes を追加:
    - `chat:write` - メッセージ投稿
@@ -168,18 +224,23 @@ Web UI でタスクの可視化：
    - `groups:read` - プライベートチャンネル一覧取得
    - `commands` - Slash Command 実行
 
-3. **OAuth & Permissions** で Redirect URLs を追加:
+3. **OAuth & Permissions** で User Token Scopes を追加:
+   - `openid` - OpenID Connect 認証
+   - `profile` - プロフィール情報取得
+   - `email` - メールアドレス取得
+
+4. **OAuth & Permissions** で Redirect URLs を追加:
 
    ```
    https://<YOUR_BASE_URL>/api/auth/slack/callback
    https://<YOUR_BASE_URL>/api/slack/install/callback
    ```
 
-4. **Slash Commands** で `/daily-report` を作成:
+5. **Slash Commands** で `/daily-report` を作成:
    - Request URL: `https://<YOUR_BASE_URL>/api/slack/commands`
    - Description: `本日のタスクサマリを生成`
 
-5. **App Credentials** から `Client ID`、`Client Secret`、`Signing Secret` を取得
+6. **App Credentials** から `Client ID`、`Client Secret`、`Signing Secret` を取得
 
 - **OpenAI API キー** - [OpenAI Platform](https://platform.openai.com/api-keys) で取得
 
