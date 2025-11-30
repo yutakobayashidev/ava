@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
@@ -136,6 +136,16 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       .where(eq(schema.users.id, userId));
   };
 
+  const setWorkspaceForAllTeamUsers = async (
+    slackTeamId: string,
+    workspaceId: string,
+  ) => {
+    await db
+      .update(schema.users)
+      .set({ workspaceId })
+      .where(eq(schema.users.slackTeamId, slackTeamId));
+  };
+
   const updateWorkspaceCredentials = async (input: UpdateCredentialsInput) => {
     const updates: Partial<schema.NewWorkspace> = {};
 
@@ -186,6 +196,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
     findWorkspaceByExternalId,
     findWorkspaceByUser,
     setUserWorkspace,
+    setWorkspaceForAllTeamUsers,
     updateWorkspaceCredentials,
     updateNotificationChannel,
   };

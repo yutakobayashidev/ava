@@ -16,7 +16,7 @@ export const installWorkspace = async (
   params: InstallWorkspace,
   ctx: Env["Variables"],
 ): Promise<InstallWorkspaceResult> => {
-  const { code, userId } = params;
+  const { code } = params;
   const { db } = ctx;
 
   try {
@@ -63,8 +63,11 @@ export const installWorkspace = async (
       workspaceId = workspace.id;
     }
 
-    // ユーザーにワークスペースを設定
-    await workspaceRepository.setUserWorkspace(userId, workspaceId);
+    // 同じ slackTeamId を持つ全ユーザーをワークスペースに紐付け
+    await workspaceRepository.setWorkspaceForAllTeamUsers(
+      oauthResult.teamId,
+      workspaceId,
+    );
 
     return {
       success: true,
