@@ -1,6 +1,5 @@
 import { AuthRoute } from "@/handlers/api/auth";
 import { hc } from "hono/client";
+import { absoluteUrl } from "@/lib/utils";
 
-export const authClient = hc<AuthRoute>(
-  `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth`,
-);
+export const authClient = hc<AuthRoute>(absoluteUrl("/api/auth"));
