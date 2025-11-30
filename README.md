@@ -1,49 +1,12 @@
 # Ava
 
-<div align="center">
-
-<!-- バッジは公開時に追加 -->
-<!-- [![GitHub Stars](https://img.shields.io/github/stars/yourusername/ava?style=social)](https://github.com/yourusername/ava) -->
-<!-- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) -->
-<!-- [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/) -->
-<!-- [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/) -->
-
-コーディング中の進捗を AI Agents 経由で自動的に Slack に共有するタスク管理システム
-
-[デモを見る](#) | [ドキュメント](#) | [セットアップガイド](#ローカル開発)
-
-</div>
-
-<!-- TODO: スクリーンショットを追加
-<div align="center">
-  <img src="docs/images/dashboard.png" alt="Ava Dashboard" width="600">
-  <p><i>Ava ダッシュボード - タスクの可視化</i></p>
-</div>
-
-## スクリーンショット
-
-<details>
-<summary>Slack 通知の例</summary>
-<img src="docs/images/slack-notification.png" alt="Slack Notification">
-</details>
-
-<details>
-<summary>MCP 接続フロー</summary>
-<img src="docs/images/mcp-flow.png" alt="MCP Flow">
-</details>
--->
-
----
-
-## Ava とは？
-
 Ava は、進捗の共有やチームとのコミュニケーションが苦手な人でも、AI が自動で外部化と情報共有を手伝ってくれる世界をつくるプロジェクトです。
 
 作業に集中しすぎて進捗報告を忘れてしまう、詰まっているのになかなか相談できない、定期的な進捗確認ミーティングでコーディングが中断される。こんな悩みはありませんか？
 
-### Ava ができること
+## Ava ができること
 
-#### 自動で進捗をSlackに報告
+### 自動で進捗をSlackに報告
 
 Claude Code や Cursor などの AI コーディングエージェントで作業を進めると、自動的に Slack の指定チャンネルに進捗が投稿されます。
 
@@ -53,7 +16,7 @@ Claude Code や Cursor などの AI コーディングエージェントで作�
 - **休止・再開**: 別タスク優先時や中断時の状況を共有
 - **完了報告**: 完了内容と Pull Request の URL を共有
 
-#### ハイパーフォーカスでも安心
+### ハイパーフォーカスでも安心
 
 集中して作業しているときでも、AI が代わりにチームとコミュニケーションを取ってくれます。マイクロマネジメントが不要になり、信頼関係を保ちながら開発に集中できます。
 
