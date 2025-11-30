@@ -92,10 +92,13 @@ export default async function TaskDetailPage({ params }: PageProps) {
   let duration: number | null = null;
 
   if (task.status === "completed") {
-    const completion = await taskRepository.findCompletionByTaskSessionId(id);
-    if (completion) {
-      completedAt = completion.createdAt;
-      completionSummary = completion.summary;
+    const completedEvent = await taskEventRepository.getLatestEvent({
+      taskSessionId: id,
+      eventType: "completed",
+    });
+    if (completedEvent) {
+      completedAt = completedEvent.createdAt;
+      completionSummary = completedEvent.summary;
       duration = completedAt.getTime() - task.createdAt.getTime();
     }
   }

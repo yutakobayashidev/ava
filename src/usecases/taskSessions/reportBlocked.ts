@@ -1,6 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
+import { createTaskEventRepository } from "@/repos/taskEvents";
 import { validateTransition } from "@/domain/task-status";
 
 export type ReportBlocked = {
@@ -17,6 +18,7 @@ export const reportBlocked = async (
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const taskEventRepository = createTaskEventRepository({ db });
   const notificationService = createNotificationService(
     workspace,
     taskRepository,
@@ -40,6 +42,14 @@ export const reportBlocked = async (
     workspaceId: workspace.id,
     reason,
     rawContext: raw_context ?? {},
+  });
+
+  // イベントログに保存
+  await taskEventRepository.createEvent({
+    taskSessionId: task_session_id,
+    eventType: "blocked",
+    reason,
+    rawContext: raw_context,
   });
 
   const slackNotification = await notificationService.notifyTaskBlocked({

@@ -1,6 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
+import { createTaskEventRepository } from "@/repos/taskEvents";
 import { validateTransition } from "@/domain/task-status";
 
 export type CompleteTask = {
@@ -16,6 +17,7 @@ export const completeTask = async (
 
   const [workspace, db] = [ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const taskEventRepository = createTaskEventRepository({ db });
   const notificationService = createNotificationService(
     workspace,
     taskRepository,
@@ -40,6 +42,13 @@ export const completeTask = async (
       workspaceId: workspace.id,
       summary,
     });
+
+  // イベントログに保存
+  await taskEventRepository.createEvent({
+    taskSessionId: task_session_id,
+    eventType: "completed",
+    summary,
+  });
 
   const slackNotification = await notificationService.notifyTaskCompleted({
     session: {

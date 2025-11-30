@@ -1,5 +1,6 @@
 import { db } from "@/clients/drizzle";
 import { createTaskRepository } from "@/repos";
+import { createTaskEventRepository } from "@/repos/taskEvents";
 import {
   Table,
   TableBody,
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository({ db });
+  const taskEventRepository = createTaskEventRepository({ db });
   const tasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
@@ -47,11 +49,12 @@ export default async function DashboardPage() {
 
       // 完了済みタスクのみ所要時間を計算
       if (task.status === "completed") {
-        const completion = await taskRepository.findCompletionByTaskSessionId(
-          task.id,
-        );
-        if (completion) {
-          completedAt = completion.createdAt;
+        const completedEvent = await taskEventRepository.getLatestEvent({
+          taskSessionId: task.id,
+          eventType: "completed",
+        });
+        if (completedEvent) {
+          completedAt = completedEvent.createdAt;
           durationMs = completedAt.getTime() - task.createdAt.getTime();
         }
       }

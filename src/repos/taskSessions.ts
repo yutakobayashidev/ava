@@ -128,38 +128,24 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const addTaskUpdate = async (params: AddTaskUpdateInput) => {
     const now = new Date();
 
-    return db.transaction(async (tx) => {
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.inProgress,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-          ),
-        )
-        .returning();
+    const [session] = await db
+      .update(schema.taskSessions)
+      .set({
+        status: STATUS.inProgress,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(schema.taskSessions.id, params.taskSessionId),
+          eq(schema.taskSessions.workspaceId, params.workspaceId),
+        ),
+      )
+      .returning();
 
-      const validSession = ensureRecord(session);
-
-      const [update] = await tx
-        .insert(schema.taskUpdates)
-        .values({
-          id: uuidv7(),
-          taskSessionId: params.taskSessionId,
-          summary: params.summary,
-          rawContext: params.rawContext ?? {},
-        })
-        .returning();
-
-      return {
-        session: validSession,
-        update: ensureRecord(update),
-      };
-    });
+    return {
+      session: ensureRecord(session),
+      update: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
+    };
   };
 
   const reportBlock = async (params: ReportBlockInput) => {
@@ -232,40 +218,12 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 
       const validSession = ensureRecord(session);
 
-      const completionValues = {
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        summary: params.summary,
-      };
-
-      const [completion] = await tx
-        .insert(schema.taskCompletions)
-        .values(completionValues)
-        .onConflictDoUpdate({
-          target: schema.taskCompletions.taskSessionId,
-          set: completionValues,
-        })
-        .returning();
-
       return {
         session: validSession,
-        completion: ensureRecord(completion),
+        completion: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
         unresolvedBlocks,
       };
     });
-  };
-
-  const listUpdates = async (
-    taskSessionId: string,
-    options: ListOptions = {},
-  ) => {
-    const limit = options.limit ?? 50;
-    return db
-      .select()
-      .from(schema.taskUpdates)
-      .where(eq(schema.taskUpdates.taskSessionId, taskSessionId))
-      .orderBy(desc(schema.taskUpdates.createdAt))
-      .limit(limit);
   };
 
   const listBlockReports = async (
@@ -371,15 +329,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         blockReport: validBlockReport,
       };
     });
-  };
-
-  const findCompletionByTaskSessionId = async (taskSessionId: string) => {
-    const [completion] = await db
-      .select()
-      .from(schema.taskCompletions)
-      .where(eq(schema.taskCompletions.taskSessionId, taskSessionId));
-
-    return completion ?? null;
   };
 
   const listTaskSessions = async (params: ListTaskSessionsInput) => {
@@ -506,11 +455,9 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     pauseTask,
     resumeTask,
     completeTask,
-    listUpdates,
     listBlockReports,
     getUnresolvedBlockReports,
     resolveBlockReport,
-    findCompletionByTaskSessionId,
     listTaskSessions,
     updateSlackThread,
   };

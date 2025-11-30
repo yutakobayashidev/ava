@@ -4,6 +4,7 @@ import {
   createWorkspaceRepository,
   createUserRepository,
 } from "@/repos";
+import { createTaskEventRepository } from "@/repos/taskEvents";
 import { fillPrompt } from "@/utils/prompts";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import { generateText } from "@/lib/ai";
@@ -114,6 +115,7 @@ export const generateDailyReport = async (
   const workspaceRepository = createWorkspaceRepository({ db });
   const userRepository = createUserRepository({ db });
   const taskRepository = createTaskRepository({ db });
+  const taskEventRepository = createTaskEventRepository({ db });
 
   // ワークスペースを取得
   const workspace = await workspaceRepository.findWorkspaceByExternalId({
@@ -161,16 +163,17 @@ export const generateDailyReport = async (
     limit: 100,
   });
 
-  // 今日完了したタスクをフィルタリング (completedAtがないため、completionから取得する必要がある)
+  // 今日完了したタスクをフィルタリング (completedAtがないため、task_eventsから取得する必要がある)
   const todayCompletedTasks = await Promise.all(
     allCompletedTasks.map(async (task) => {
-      const completion = await taskRepository.findCompletionByTaskSessionId(
-        task.id,
-      );
-      if (!completion) return null;
-      const completedAt = new Date(completion.createdAt);
+      const completedEvent = await taskEventRepository.getLatestEvent({
+        taskSessionId: task.id,
+        eventType: "completed",
+      });
+      if (!completedEvent) return null;
+      const completedAt = new Date(completedEvent.createdAt);
       if (completedAt >= today && completedAt < tomorrow) {
-        return { ...task, completedAt: completion.createdAt };
+        return { ...task, completedAt: completedEvent.createdAt };
       }
       return null;
     }),
@@ -191,16 +194,17 @@ export const generateDailyReport = async (
   // 各完了タスクの詳細情報を取得
   const completedTasksWithDetails = await Promise.all(
     todayCompletedTasks.map(async (task) => {
-      const completion = await taskRepository.findCompletionByTaskSessionId(
-        task.id,
-      );
+      const completedEvent = await taskEventRepository.getLatestEvent({
+        taskSessionId: task.id,
+        eventType: "completed",
+      });
       const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
         task.id,
       );
       return {
         title: task.issueTitle,
         initialSummary: task.initialSummary,
-        completionSummary: completion?.summary || "",
+        completionSummary: completedEvent?.summary || "",
         duration:
           task.completedAt && task.createdAt
             ? task.completedAt.getTime() - task.createdAt.getTime()
@@ -219,12 +223,16 @@ export const generateDailyReport = async (
       const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
         task.id,
       );
-      const updates = await taskRepository.listUpdates(task.id, { limit: 5 });
+      const updateEvents = await taskEventRepository.listEvents({
+        taskSessionId: task.id,
+        eventType: "updated",
+        limit: 5,
+      });
       return {
         title: task.issueTitle,
         status: task.status,
         initialSummary: task.initialSummary,
-        latestUpdate: updates[0]?.summary || "",
+        latestUpdate: updateEvents[0]?.summary || "",
         unresolvedBlocks: unresolvedBlocks.map((block) => ({
           reason: block.reason,
           createdAt: block.createdAt,
