@@ -180,6 +180,54 @@ describe("createMcpServer", async () => {
       });
       expect(notifyTaskUpdate).toHaveBeenCalledOnce();
     });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "update_task",
+        arguments: {
+          task_session_id: "non-existent-id",
+          summary: "進捗を更新しました",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
+    });
+
+    it("完了済みタスクは更新できない", async () => {
+      const startResult = (await client.callTool({
+        name: "start_task",
+        arguments: {
+          issue: { provider: "manual", title: "完了済み更新テスト" },
+          initial_summary: "初期サマリ",
+        },
+      })) as CallToolResult;
+      const { task_session_id } = JSON.parse(
+        (startResult.content[0] as TextContent).text,
+      );
+
+      // タスクを完了
+      await client.callTool({
+        name: "complete_task",
+        arguments: {
+          task_session_id,
+          summary: "完了しました",
+        },
+      });
+
+      // 完了済みタスクを更新しようとする
+      const result = (await client.callTool({
+        name: "update_task",
+        arguments: {
+          task_session_id,
+          summary: "完了後の更新",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toContain("Invalid status transition");
+      expect(textContent.text).toContain("completed → in_progress");
+    });
   });
 
   describe("report_blocked", () => {
@@ -210,6 +258,19 @@ describe("createMcpServer", async () => {
       });
       expect(notifyTaskBlocked).toHaveBeenCalledOnce();
     });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "report_blocked",
+        arguments: {
+          task_session_id: "non-existent-id",
+          reason: "詰まりました",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
+    });
   });
 
   describe("pause_task", () => {
@@ -239,6 +300,19 @@ describe("createMcpServer", async () => {
         message: "タスクを一時休止しました。",
       });
       expect(notifyTaskPaused).toHaveBeenCalledOnce();
+    });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "pause_task",
+        arguments: {
+          task_session_id: "non-existent-id",
+          reason: "一時停止します",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
     });
   });
 
@@ -280,6 +354,54 @@ describe("createMcpServer", async () => {
       });
       expect(notifyTaskResumed).toHaveBeenCalledOnce();
     });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "resume_task",
+        arguments: {
+          task_session_id: "non-existent-id",
+          summary: "再開します",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
+    });
+
+    it("完了したタスクは再開できない", async () => {
+      const startResult = (await client.callTool({
+        name: "start_task",
+        arguments: {
+          issue: { provider: "manual", title: "完了後再開テスト" },
+          initial_summary: "初期サマリ",
+        },
+      })) as CallToolResult;
+      const { task_session_id } = JSON.parse(
+        (startResult.content[0] as TextContent).text,
+      );
+
+      // タスクを完了
+      await client.callTool({
+        name: "complete_task",
+        arguments: {
+          task_session_id,
+          summary: "完了しました",
+        },
+      });
+
+      // 完了したタスクを再開しようとする
+      const result = (await client.callTool({
+        name: "resume_task",
+        arguments: {
+          task_session_id,
+          summary: "再開します",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toContain("Invalid status transition");
+      expect(textContent.text).toContain("completed → in_progress");
+    });
   });
 
   describe("complete_task", () => {
@@ -309,6 +431,165 @@ describe("createMcpServer", async () => {
         message: "完了報告を保存しました。",
       });
       expect(notifyTaskCompleted).toHaveBeenCalledOnce();
+    });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "complete_task",
+        arguments: {
+          task_session_id: "non-existent-id",
+          summary: "完了しました",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
+    });
+  });
+
+  describe("resolve_blocked", () => {
+    it("ブロッキングを解決できる", async () => {
+      const startResult = (await client.callTool({
+        name: "start_task",
+        arguments: {
+          issue: { provider: "manual", title: "解決テスト" },
+          initial_summary: "初期サマリ",
+        },
+      })) as CallToolResult;
+      const { task_session_id } = JSON.parse(
+        (startResult.content[0] as TextContent).text,
+      );
+
+      // タスクをブロック状態にする
+      const blockResult = (await client.callTool({
+        name: "report_blocked",
+        arguments: {
+          task_session_id,
+          reason: "依存関係の問題",
+        },
+      })) as CallToolResult;
+      const { block_report_id } = JSON.parse(
+        (blockResult.content[0] as TextContent).text,
+      );
+
+      // ブロッキングを解決
+      const result = (await client.callTool({
+        name: "resolve_blocked",
+        arguments: {
+          task_session_id,
+          block_report_id,
+        },
+      })) as CallToolResult;
+
+      const responseData = JSON.parse((result.content[0] as TextContent).text);
+      expect(responseData).toMatchObject({
+        status: "in_progress",
+        message: "ブロッキングの解決を報告しました。",
+      });
+      expect(notifyBlockResolved).toHaveBeenCalledOnce();
+    });
+
+    it("存在しないタスクIDでエラーになる", async () => {
+      const result = (await client.callTool({
+        name: "resolve_blocked",
+        arguments: {
+          task_session_id: "non-existent-id",
+          block_report_id: "some-block-id",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクセッションが見つかりません");
+    });
+
+    it("存在しないブロックレポートIDでエラーになる", async () => {
+      const startResult = (await client.callTool({
+        name: "start_task",
+        arguments: {
+          issue: { provider: "manual", title: "不正ブロックID" },
+          initial_summary: "初期サマリ",
+        },
+      })) as CallToolResult;
+      const { task_session_id } = JSON.parse(
+        (startResult.content[0] as TextContent).text,
+      );
+
+      // ブロック状態にする
+      await client.callTool({
+        name: "report_blocked",
+        arguments: {
+          task_session_id,
+          reason: "テスト",
+        },
+      });
+
+      // 存在しないblock_report_idで解決しようとする
+      const result = (await client.callTool({
+        name: "resolve_blocked",
+        arguments: {
+          task_session_id,
+          block_report_id: "non-existent-block-id",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("ブロッキングの解決処理に失敗しました");
+    });
+
+    it("完了したタスクのブロックは解決できない", async () => {
+      const startResult = (await client.callTool({
+        name: "start_task",
+        arguments: {
+          issue: { provider: "manual", title: "完了後ブロック解決" },
+          initial_summary: "初期サマリ",
+        },
+      })) as CallToolResult;
+      const { task_session_id } = JSON.parse(
+        (startResult.content[0] as TextContent).text,
+      );
+
+      // タスクをブロック状態にする
+      const blockResult = (await client.callTool({
+        name: "report_blocked",
+        arguments: {
+          task_session_id,
+          reason: "テスト",
+        },
+      })) as CallToolResult;
+      const { block_report_id } = JSON.parse(
+        (blockResult.content[0] as TextContent).text,
+      );
+
+      // タスクを完了（blockedからcompletedへの遷移はできないので、まずin_progressに戻す）
+      // ただし、この状態遷移は不正なので、ブロック解決してから完了する
+      await client.callTool({
+        name: "resolve_blocked",
+        arguments: {
+          task_session_id,
+          block_report_id,
+        },
+      });
+
+      await client.callTool({
+        name: "complete_task",
+        arguments: {
+          task_session_id,
+          summary: "完了しました",
+        },
+      });
+
+      // 完了したタスクのブロックを解決しようとする（不正なblock_report_idを使う）
+      const result = (await client.callTool({
+        name: "resolve_blocked",
+        arguments: {
+          task_session_id,
+          block_report_id: "dummy-id",
+        },
+      })) as CallToolResult;
+
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toContain("Invalid status transition");
+      expect(textContent.text).toContain("completed → in_progress");
     });
   });
 
