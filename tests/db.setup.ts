@@ -33,7 +33,7 @@ export async function setupDB({ port }: { port: "random" | number }) {
 
   await execAsync(`DATABASE_URL=${url} npx drizzle-kit push`);
 
-  const pool = postgres(url, { max: 1 });
+  const pool = postgres(url);
   const db = drizzle(pool, { schema });
 
   async function down() {
