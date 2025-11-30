@@ -7,16 +7,13 @@
 
 ## Mission
 
-報告・連絡・相談が苦手な人でも、
-AI が自動で「外部化」を手伝ってくれる世界をつくる。
+進捗の共有やチームとのコミュニケーションが苦手な人でも、
+AI が自動で外部化と情報共有を手伝ってくれる世界をつくる。
 
 - ハイパーフォーカスでも黙り込んでも信頼が落ちない
 - プロセスごと公平に評価される
 - チームは透明性に支えられる
 - マイクロマネジメントが不要になる
-
-エンジニアは、コードに集中していい。
-報連相は AI に任せよう。
 
 ---
 
@@ -81,11 +78,21 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 
 ## Slack 連携
 
-- ログイン: `/api/login/slack` で OpenID Connect。ユーザーを作成しセッション Cookie を発行。
-- ボットインストール: `/slack/install/start` → Slack OAuth（スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`, `commands`）。リダイレクト URI は `NEXT_PUBLIC_BASE_URL + /api/slack/install/callback` を利用（個別の env は不要）。
-- Slack コマンド: `/daily-report` → Request URL: `NEXT_PUBLIC_BASE_URL + /api/slack/commands`
-- 通知先チャンネル: オンボーディング `/onboarding/connect-slack` で選択し、`workspaces.notification_channel_id` に保存。
-- 投稿内容: 開始/進捗/詰まり/休止/再開/完了をチャンネルの同一スレッドに流す。コード断片や機密は投稿しない。
+**認証とインストール:**
+
+- ユーザーログイン: `/api/login/slack` で Slack OpenID Connect 認証。ユーザーを作成しセッション Cookie を発行。
+- ボットインストール: ダッシュボードまたは `/slack/install/start` から開始 → Slack OAuth（スコープ: `chat:write`, `chat:write.public`, `channels:read`, `groups:read`, `commands`）
+- リダイレクト URI: `NEXT_PUBLIC_BASE_URL + /api/slack/install/callback`（env の個別設定は不要）
+
+**コマンド:**
+
+- `/daily-report` → Request URL: `NEXT_PUBLIC_BASE_URL + /api/slack/commands`
+
+**通知:**
+
+- 通知先チャンネル: `/onboarding/connect-slack` で選択し、`workspaces.notification_channel_id` に保存
+- 投稿内容: 開始/進捗/詰まり/休止/再開/完了をチャンネルの同一スレッドに投稿
+- セキュリティ: コード断片や機密情報は投稿せず、抽象的なサマリのみを送信
 
 ---
 
@@ -105,7 +112,7 @@ AI が自動で「外部化」を手伝ってくれる世界をつくる。
 
 ## 開発メモ
 
-- MCP クライアント設定例（ローカル）: `.mcp.json` に `{ "mcpServers": { "task": { "type": "http", "url": "https://localhost:3000/mcp" } } }` を置く。初回接続時に OAuth 同意がブラウザで開く。
+- MCP クライアント設定例（ローカル）: `.mcp.json` に `{ "mcpServers": { "ava": { "type": "http", "url": "https://localhost:3000/mcp" } } }` を置く。初回接続時に OAuth 同意がブラウザで開く。
 - 日次まとめ: Slack で `/daily-report` コマンドを実行すると、本日完了および更新されたタスクを LLM で要約し、実行ユーザーのみに ephemeral message で表示（OPENAI_API_KEY が必要、未設定なら失敗）。
 
 Slack でリアルタイムにスレッド更新が行われます。
