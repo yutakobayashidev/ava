@@ -20,6 +20,10 @@ const staticEnv = z.object({
   SLACK_APP_CLIENT_SECRET: z.string().min(1),
   SLACK_SIGNING_SECRET: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
+  ENCRYPTION_KEY: z
+    .string()
+    .length(64, "ENCRYPTION_KEY must be 64 hex characters (32 bytes)")
+    .regex(/^[0-9a-f]{64}$/, "ENCRYPTION_KEY must be a valid hex string"),
 });
 
 const runtimeEnv = z.object({});

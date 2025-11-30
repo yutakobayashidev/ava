@@ -30,8 +30,8 @@ export const workspaces = pgTable(
     domain: text("domain"),
     iconUrl: text("icon_url"),
     botUserId: text("bot_user_id"),
-    botAccessToken: text("bot_access_token"),
-    botRefreshToken: text("bot_refresh_token"),
+    botAccessTokenEncrypted: text("bot_access_token_encrypted"),
+    botRefreshTokenEncrypted: text("bot_refresh_token_encrypted"),
     botTokenExpiresAt: timestamp("bot_token_expires_at", {
       withTimezone: true,
     }),
@@ -507,6 +507,15 @@ export type TaskCompletion = typeof taskCompletions.$inferSelect;
 export type NewTaskCompletion = typeof taskCompletions.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
+
+/**
+ * Workspace with decrypted bot tokens
+ * This type is returned by repository methods
+ */
+export type WorkspaceWithDecryptedTokens = Workspace & {
+  botAccessToken: string | null;
+  botRefreshToken: string | null;
+};
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;

@@ -13,7 +13,7 @@ export type Env = {
   Variables: {
     db: Database;
     user: schema.User;
-    workspace: schema.Workspace;
+    workspace: schema.WorkspaceWithDecryptedTokens;
     ai: AiSdkModels;
   };
 };

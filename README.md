@@ -267,6 +267,7 @@ cp .env.example .env
 | `SLACK_APP_CLIENT_SECRET` | Slack アプリの Client Secret                                                         | Yes  |
 | `SLACK_SIGNING_SECRET`    | Slack アプリの Signing Secret（Slash Command の署名検証に使用）                      | Yes  |
 | `OPENAI_API_KEY`          | OpenAI API キー（日次レポート機能に使用）                                            | Yes  |
+| `ENCRYPTION_KEY`          | データ暗号化キー（64文字の16進数文字列、`openssl rand -hex 32` で生成）              | Yes  |
 
 ---
 

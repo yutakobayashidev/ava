@@ -2,7 +2,7 @@ import "server-only";
 
 import { postMessage, addReaction } from "@/clients/slack";
 import type { TaskRepository } from "@/repos";
-import type { Workspace } from "@/db/schema";
+import type { WorkspaceWithDecryptedTokens } from "@/db/schema";
 
 /**
  * 通知の配信結果
@@ -133,7 +133,7 @@ export type NotificationService = {
  * NotificationServiceを作成する
  */
 export const createNotificationService = (
-  workspace: Workspace,
+  workspace: WorkspaceWithDecryptedTokens,
   taskRepository: TaskRepository,
 ): NotificationService => {
   /**

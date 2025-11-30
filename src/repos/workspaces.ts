@@ -3,6 +3,7 @@ import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
 import * as schema from "../db/schema";
+import { encryptBotTokens, decryptBotTokens } from "@/lib/encryption";
 
 type WorkspaceProvider =
   (typeof schema.workspaceProviderEnum.enumValues)[number];
@@ -63,8 +64,44 @@ type ListWorkspacesForUserInput = {
   limit?: number;
 };
 
+/**
+ * Decrypt workspace bot tokens
+ * Converts encrypted tokens from DB to plain tokens for application use
+ */
+function decryptWorkspace(
+  workspace: schema.Workspace,
+): schema.WorkspaceWithDecryptedTokens {
+  if (!workspace.botAccessTokenEncrypted) {
+    return {
+      ...workspace,
+      botAccessToken: null,
+      botRefreshToken: null,
+    };
+  }
+
+  const decrypted = decryptBotTokens({
+    encryptedAccessToken: workspace.botAccessTokenEncrypted,
+    encryptedRefreshToken: workspace.botRefreshTokenEncrypted,
+  });
+
+  return {
+    ...workspace,
+    botAccessToken: decrypted.accessToken,
+    botRefreshToken: decrypted.refreshToken,
+  };
+}
+
 export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
   const createWorkspace = async (input: CreateWorkspaceInput) => {
+    // Encrypt bot tokens before storing
+    const encryptedTokens =
+      input.botAccessToken || input.botRefreshToken
+        ? encryptBotTokens({
+            accessToken: input.botAccessToken ?? "",
+            refreshToken: input.botRefreshToken,
+          })
+        : { encryptedAccessToken: null, encryptedRefreshToken: null };
+
     const [workspace] = await db
       .insert(schema.workspaces)
       .values({
@@ -75,8 +112,12 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         domain: input.domain ?? null,
         iconUrl: input.iconUrl ?? null,
         botUserId: input.botUserId ?? null,
-        botAccessToken: input.botAccessToken ?? null,
-        botRefreshToken: input.botRefreshToken ?? null,
+        botAccessTokenEncrypted: input.botAccessToken
+          ? encryptedTokens.encryptedAccessToken
+          : null,
+        botRefreshTokenEncrypted: input.botRefreshToken
+          ? encryptedTokens.encryptedRefreshToken
+          : null,
         botTokenExpiresAt: input.botTokenExpiresAt ?? null,
         notificationChannelId: input.notificationChannelId ?? null,
         notificationChannelName: input.notificationChannelName ?? null,
@@ -84,7 +125,8 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       })
       .returning();
 
-    return workspace;
+    // Decrypt tokens for return value
+    return decryptWorkspace(workspace);
   };
 
   const findWorkspaceById = async (workspaceId: string) => {
@@ -93,7 +135,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       .from(schema.workspaces)
       .where(eq(schema.workspaces.id, workspaceId));
 
-    return workspace ?? null;
+    return workspace ? decryptWorkspace(workspace) : null;
   };
 
   const updateNotificationChannel = async (
@@ -108,7 +150,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       .where(eq(schema.workspaces.id, input.workspaceId))
       .returning();
 
-    return workspace ?? null;
+    return workspace ? decryptWorkspace(workspace) : null;
   };
 
   const findWorkspaceByExternalId = async ({
@@ -125,13 +167,13 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         ),
       );
 
-    return workspace ?? null;
+    return workspace ? decryptWorkspace(workspace) : null;
   };
 
   const listWorkspacesForUser = async (input: ListWorkspacesForUserInput) => {
     const limit = input.limit ?? 50;
 
-    return db
+    const results = await db
       .select({
         workspace: schema.workspaces,
         membership: schema.workspaceMembers,
@@ -146,6 +188,11 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       )
       .orderBy(desc(schema.workspaces.createdAt))
       .limit(limit);
+
+    return results.map((result) => ({
+      workspace: decryptWorkspace(result.workspace),
+      membership: result.membership,
+    }));
   };
 
   const addMember = async (input: AddMemberInput) => {
@@ -183,18 +230,30 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
   };
 
   const updateWorkspaceCredentials = async (input: UpdateCredentialsInput) => {
-    const updates: Partial<schema.NewWorkspace> = {};
+    const updates: Record<string, unknown> = {};
 
     if (input.botUserId !== undefined) {
       updates.botUserId = input.botUserId;
     }
 
-    if (input.botAccessToken !== undefined) {
-      updates.botAccessToken = input.botAccessToken;
-    }
+    // Encrypt bot tokens before updating
+    if (
+      input.botAccessToken !== undefined ||
+      input.botRefreshToken !== undefined
+    ) {
+      const encryptedTokens = encryptBotTokens({
+        accessToken: input.botAccessToken ?? "",
+        refreshToken: input.botRefreshToken,
+      });
 
-    if (input.botRefreshToken !== undefined) {
-      updates.botRefreshToken = input.botRefreshToken;
+      if (input.botAccessToken !== undefined) {
+        updates.botAccessTokenEncrypted = encryptedTokens.encryptedAccessToken;
+      }
+
+      if (input.botRefreshToken !== undefined) {
+        updates.botRefreshTokenEncrypted =
+          encryptedTokens.encryptedRefreshToken;
+      }
     }
 
     if (input.botTokenExpiresAt !== undefined) {
@@ -223,7 +282,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
       .where(eq(schema.workspaces.id, input.workspaceId))
       .returning();
 
-    return workspace ?? null;
+    return workspace ? decryptWorkspace(workspace) : null;
   };
 
   return {

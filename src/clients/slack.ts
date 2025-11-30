@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Workspace } from "@/db/schema";
+import type { WorkspaceWithDecryptedTokens } from "@/db/schema";
 import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { WorkspaceRepository } from "@/repos/workspaces";
 import { WebClient } from "@slack/web-api";
@@ -26,7 +26,7 @@ export type SlackChannel = {
 };
 
 type GetWorkspaceTokenParams = {
-  workspace: Workspace;
+  workspace: WorkspaceWithDecryptedTokens;
   workspaceRepository: WorkspaceRepository;
 };
 

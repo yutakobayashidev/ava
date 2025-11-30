@@ -7,10 +7,11 @@ import { HTTPException } from "hono/http-exception";
 import type { Database } from "@/clients/drizzle";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
+import { createWorkspaceRepository } from "@/repos/workspaces";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
-  workspace: typeof schema.workspaces.$inferSelect;
+  workspace: schema.WorkspaceWithDecryptedTokens;
 };
 
 async function findUserAndWorkspaceByToken(
@@ -28,15 +29,13 @@ async function findUserAndWorkspaceByToken(
   if (accessToken.expiresAt.getTime() < Date.now()) return null;
   if (!accessToken.workspaceId) return null;
 
-  const [[user], [workspace], [membership]] = await Promise.all([
+  const workspaceRepository = createWorkspaceRepository({ db });
+
+  const [[user], [membership]] = await Promise.all([
     db
       .select()
       .from(schema.users)
       .where(eq(schema.users.id, accessToken.userId)),
-    db
-      .select()
-      .from(schema.workspaces)
-      .where(eq(schema.workspaces.id, accessToken.workspaceId)),
     db
       .select()
       .from(schema.workspaceMembers)
@@ -49,7 +48,14 @@ async function findUserAndWorkspaceByToken(
       .limit(1),
   ]);
 
-  if (!user || !workspace || !membership) return null;
+  if (!user || !membership) return null;
+
+  // Get workspace with decrypted tokens
+  const workspace = await workspaceRepository.findWorkspaceById(
+    accessToken.workspaceId,
+  );
+
+  if (!workspace) return null;
 
   return { user, workspace };
 }
