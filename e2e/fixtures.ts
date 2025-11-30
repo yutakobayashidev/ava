@@ -5,17 +5,27 @@ import { setupApp } from "./helpers/app";
 import { TopPage } from "./models/TopPage";
 import { LoginPage } from "./models/LoginPage";
 import { DashboardPage } from "./models/DashboardPage";
+import {
+  OnboardingPage,
+  ConnectSlackPage,
+  SetupMcpPage,
+  OnboardingCompletePage,
+} from "./models/OnboardingPage";
 import { registerUserToDB } from "./helpers/users";
-import { NonNullableUser } from "./dummyUsers";
+import type { User } from "@/db/schema";
 
 export type TestFixtures = {
   topPage: TopPage;
   loginPage: LoginPage;
   dashboardPage: DashboardPage;
+  onboardingPage: OnboardingPage;
+  connectSlackPage: ConnectSlackPage;
+  setupMcpPage: SetupMcpPage;
+  onboardingCompletePage: OnboardingCompletePage;
   storageState: string;
   reset: () => Promise<void>;
   a11y: () => AxeBuilder;
-  registerToDB: (user: NonNullableUser) => Promise<void>;
+  registerToDB: (user: User) => Promise<void>;
 };
 
 export type WorkerFixtures = {
@@ -37,6 +47,18 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
   dashboardPage: ({ page }, use) => {
     use(new DashboardPage(page));
+  },
+  onboardingPage: ({ page }, use) => {
+    use(new OnboardingPage(page));
+  },
+  connectSlackPage: ({ page }, use) => {
+    use(new ConnectSlackPage(page));
+  },
+  setupMcpPage: ({ page }, use) => {
+    use(new SetupMcpPage(page));
+  },
+  onboardingCompletePage: ({ page }, use) => {
+    use(new OnboardingCompletePage(page));
   },
   setup: [
     async ({ browser }, use) => {
@@ -70,7 +92,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     });
   },
   registerToDB: async ({ reset, setup }, use) => {
-    await use(async (user: NonNullableUser) => {
+    await use(async (user: User) => {
       await registerUserToDB(user, setup.dbURL);
     });
     await reset();

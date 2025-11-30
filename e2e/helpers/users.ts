@@ -1,11 +1,11 @@
+import type { User } from "@/db/schema";
+import { users } from "@/db/schema";
+import { createSession } from "@/usecases/auth/loginWithSlack";
+import { encodeBase32 } from "@oslojs/encoding";
 import type { BrowserContext, TestType } from "@playwright/test";
+import crypto from "node:crypto";
 import type { TestFixtures, WorkerFixtures } from "../fixtures";
 import { generateDrizzleClient } from "./drizzle";
-import { createSession } from "@/usecases/auth/loginWithSlack";
-import { NonNullableUser } from "../dummyUsers";
-import { users } from "@/db/schema";
-import { encodeBase32 } from "@oslojs/encoding";
-import crypto from "node:crypto";
 
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -15,7 +15,7 @@ function generateDeterministicSessionToken(userId: string): string {
   return encodeBase32(hash.subarray(0, 20)).toLowerCase();
 }
 
-export async function registerUserToDB(user: NonNullableUser, dbUrl: string) {
+export async function registerUserToDB(user: User, dbUrl: string) {
   await using drizzle = await generateDrizzleClient(dbUrl);
 
   await drizzle.db.transaction(async (tx) => {
@@ -32,7 +32,7 @@ export async function registerUserToDB(user: NonNullableUser, dbUrl: string) {
 
 export async function createUserAuthState(
   context: BrowserContext,
-  user: NonNullableUser,
+  user: User,
   dbUrl: string,
 ) {
   await using drizzle = await generateDrizzleClient(dbUrl);
@@ -61,7 +61,7 @@ export async function createUserAuthState(
   });
 }
 
-export async function recreateSession(user: NonNullableUser, dbUrl: string) {
+export async function recreateSession(user: User, dbUrl: string) {
   await using drizzle = await generateDrizzleClient(dbUrl);
 
   const sessionToken = generateDeterministicSessionToken(user.id);
@@ -70,7 +70,7 @@ export async function recreateSession(user: NonNullableUser, dbUrl: string) {
 
 export async function useUser<T extends TestType<TestFixtures, WorkerFixtures>>(
   test: T,
-  user: NonNullableUser,
+  user: User,
 ) {
   test.use({ storageState: getStorageStatePath(user.id) });
   test.beforeEach(async ({ setup }) => {

@@ -68,7 +68,7 @@ export default async function CompletePage() {
               <div className="rounded-lg bg-muted p-4">
                 <p className="font-medium">{workspace.name}</p>
                 {workspace.domain && (
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-sm text-foreground/70">
                     {workspace.domain}
                   </p>
                 )}
