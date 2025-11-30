@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
+import { requireAuth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "オンボーディング",
@@ -10,11 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OnboardingPage() {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login?callbackUrl=/onboarding");
-  }
+  const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
   const [membership] = await workspaceRepository.listWorkspacesForUser({

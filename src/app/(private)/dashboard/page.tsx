@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/session";
 import { db } from "@/clients/drizzle";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
+import { createTaskRepository } from "@/repos";
 import {
   Table,
   TableBody,
@@ -14,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/header";
 import Link from "next/link";
 import { formatDate, formatDuration } from "@/utils/date";
+import { requireWorkspace } from "@/lib/auth";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -30,22 +29,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function DashboardPage() {
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
-
-  if (!workspace) {
-    redirect("/onboarding/connect-slack");
-  }
+  const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository({ db });
   const tasks = await taskRepository.listTaskSessions({

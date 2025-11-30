@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { db } from "@/clients/drizzle";
 import { getSlackInstallConfig } from "@/lib/slackInstall";
-import { getCurrentSession } from "@/lib/session";
 import { createWorkspaceRepository } from "@/repos";
+import { requireAuth } from "@/lib/auth";
 
 type SearchParams = {
   installed?: string;
@@ -17,10 +16,7 @@ export default async function SlackInstallPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { user } = await getCurrentSession();
-  if (!user) {
-    return redirect("/login?callbackUrl=/slack/install");
-  }
+  const { user } = await requireAuth();
 
   const params = await searchParams;
   const config = getSlackInstallConfig();

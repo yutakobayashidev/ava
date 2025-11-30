@@ -1,7 +1,6 @@
-import { redirect, notFound } from "next/navigation";
-import { getCurrentSession } from "@/lib/session";
+import { notFound } from "next/navigation";
 import { db } from "@/clients/drizzle";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
+import { createTaskRepository } from "@/repos";
 import { createTaskEventRepository } from "@/repos/taskEvents";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ArrowLeft, Clock, Calendar, GitBranch } from "lucide-react";
 import { formatDate, formatDuration } from "@/utils/date";
+import { requireWorkspace } from "@/lib/auth";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -70,22 +70,7 @@ type PageProps = {
 
 export default async function TaskDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const { user } = await getCurrentSession();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
-
-  if (!workspace) {
-    redirect("/onboarding/connect-slack");
-  }
+  const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository({ db });
   const task = await taskRepository.findTaskSessionById(id, workspace.id);
