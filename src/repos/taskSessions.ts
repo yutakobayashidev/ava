@@ -1,5 +1,3 @@
-import "server-only";
-
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 

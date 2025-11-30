@@ -1,17 +1,21 @@
 import { AxeBuilder } from "@axe-core/playwright";
-/** biome-ignore lint/style/noRestrictedImports: fixturesの定義自体に必要 */
 import { test as base } from "@playwright/test";
 import { setupDB } from "../tests/db.setup";
 import { setupApp } from "./helpers/app";
 import { TopPage } from "./models/TopPage";
 import { LoginPage } from "./models/LoginPage";
+import { DashboardPage } from "./models/DashboardPage";
+import { registerUserToDB } from "./helpers/users";
+import { NonNullableUser } from "./dummyUsers";
 
 export type TestFixtures = {
   topPage: TopPage;
   loginPage: LoginPage;
+  dashboardPage: DashboardPage;
   storageState: string;
   reset: () => Promise<void>;
   a11y: () => AxeBuilder;
+  registerToDB: (user: NonNullableUser) => Promise<void>;
 };
 
 export type WorkerFixtures = {
@@ -30,6 +34,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
   loginPage: ({ page }, use) => {
     use(new LoginPage(page));
+  },
+  dashboardPage: ({ page }, use) => {
+    use(new DashboardPage(page));
   },
   setup: [
     async ({ browser }, use) => {
@@ -61,6 +68,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     use(async () => {
       await Promise.all([setup.truncate(), context.clearCookies()]);
     });
+  },
+  registerToDB: async ({ reset, setup }, use) => {
+    await use(async (user: NonNullableUser) => {
+      await registerUserToDB(user, setup.dbURL);
+    });
+    await reset();
   },
   a11y: async ({ page }, use) => {
     const makeAxeBuilder = () =>
