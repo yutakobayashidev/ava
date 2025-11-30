@@ -6,6 +6,9 @@ import { db } from "@/clients/drizzle";
 import { createWorkspaceRepository } from "@/repos";
 import { listChannels, type SlackChannel } from "@/clients/slack";
 import { OnboardingProgress } from "../OnboardingProgress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function ConnectSlackPage({
   searchParams,
@@ -118,171 +121,120 @@ export default async function ConnectSlackPage({
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50">
+    <div className="min-h-screen bg-slate-50">
       <OnboardingProgress currentStep={1} />
 
-      <div className="container mx-auto px-4 py-12 lg:py-16">
-        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-blue-100 bg-white/70 p-8 shadow-sm backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
-                Step 1
-              </p>
-              <h1 className="mt-3 text-4xl font-bold text-slate-900">
+      <div className="container mx-auto max-w-6xl px-4 py-12">
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+          <div className="flex-1 space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
                 Slackワークスペースを連携
               </h1>
-              <p className="mt-3 text-lg text-slate-600">
-                タスクの進捗をSlackに自動通知するため、まずはワークスペースと接続します。
-                ここで通知先まで設定すると、以降のステップがスムーズになります。
+              <p className="mt-3 text-slate-600">
+                タスクの進捗をSlackに自動通知するため、ワークスペースと接続します。
               </p>
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-500">
-                <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">
-                  所要時間 約30秒
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 font-medium">
-                  進捗を自動でSlack共有
-                </span>
-              </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h2 className="mb-6 text-2xl font-bold text-slate-900">
-                連携で得られること
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-slate-900">
+                できること
               </h2>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      タスク開始の自動通知
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      エージェントがタスクを開始すると自動的にSlackへ投稿
-                    </p>
-                  </div>
+              <ul className="space-y-3 text-slate-600">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                  <span>タスク開始時に自動でSlackへ投稿</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      リアルタイム進捗更新
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      進捗がスレッドに同期され、チームが状況を把握できる
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="mt-0.5 h-6 w-6 shrink-0 text-green-600" />
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      完了とPRの自動共有
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      タスク完了時にPRリンクがSlackに投稿される
-                    </p>
-                  </div>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                  <span>進捗がスレッドに同期され、チームが状況を把握</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="flex-1 space-y-6">
             {statusMessage && (
-              <div
-                className={`rounded-2xl px-6 py-4 ${
-                  params.error
-                    ? "border border-red-200 bg-red-50 text-red-900"
-                    : "border border-green-200 bg-green-50 text-green-900"
-                }`}
-              >
-                {statusMessage}
-              </div>
+              <Alert variant={params.error ? "destructive" : "default"}>
+                <AlertDescription>{statusMessage}</AlertDescription>
+              </Alert>
             )}
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-slate-900">
-                  Slack接続
-                </h3>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  まずは連携
-                </span>
-              </div>
-
-              {!workspace?.botAccessToken ? (
-                <Link
-                  href="/slack/install/start"
-                  className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
-                >
-                  アプリをインストール
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              ) : (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-semibold text-slate-900">
-                    Slackと接続済み
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    ワークスペース: {workspace.name}
-                    {workspace.domain ? ` (${workspace.domain})` : ""}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    <Link
-                      href="/slack/install/start"
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                    >
-                      別のワークスペースに接続
+            <Card>
+              <CardHeader>
+                <CardTitle>Slack接続</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!workspace?.botAccessToken ? (
+                  <Button asChild className="w-full" size="lg">
+                    <Link href="/slack/install/start">
+                      アプリをインストール
+                      <ArrowRight />
                     </Link>
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-muted p-4">
+                      <p className="font-medium">接続済み</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {workspace.name}
+                        {workspace.domain ? ` (${workspace.domain})` : ""}
+                      </p>
+                    </div>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/slack/install/start">
+                        別のワークスペースに接続
+                      </Link>
+                    </Button>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
 
             {workspace?.botAccessToken && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">
-                    通知チャンネルを選択
-                  </h2>
-                  <span className="text-xs font-semibold text-blue-700">
-                    必須
-                  </span>
-                </div>
-                <p className="mb-4 text-sm text-slate-600">
-                  進捗通知を投稿するSlackチャンネルを選んでください。ボットがチャンネルに参加している必要があります。
-                </p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>通知チャンネルを選択</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    進捗通知を投稿するSlackチャンネルを選んでください。
+                  </p>
 
-                {channelError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-                    Slackのチャンネル一覧の取得に失敗しました。権限やネットワークを確認してください。
-                    <div className="mt-1 break-words text-xs text-red-700">
-                      詳細: {channelError}
-                    </div>
-                  </div>
-                ) : channels.length === 0 ? (
-                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
-                    Botが参加しているチャンネルが見つかりません。SlackでBotを追加してから再読み込みしてください。
-                  </div>
-                ) : (
-                  <form action={saveNotificationChannel} className="space-y-6">
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="channel_id"
-                        className="block text-sm font-semibold text-slate-800"
-                      >
-                        通知先チャンネル
-                      </label>
-                      <div className="relative">
+                  {channelError ? (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        チャンネル一覧の取得に失敗しました。
+                        <div className="mt-1 text-xs">詳細: {channelError}</div>
+                      </AlertDescription>
+                    </Alert>
+                  ) : channels.length === 0 ? (
+                    <Alert>
+                      <AlertDescription>
+                        Botが参加しているチャンネルが見つかりません。
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <form
+                      action={saveNotificationChannel}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label
+                          htmlFor="channel_id"
+                          className="block text-sm font-medium"
+                        >
+                          通知先チャンネル
+                        </label>
                         <select
                           id="channel_id"
                           name="channel_id"
                           defaultValue={workspace?.notificationChannelId ?? ""}
                           required
-                          className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-4 py-3 pr-10 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50"
                         >
                           <option value="" disabled>
-                            通知先を選択してください
+                            選択してください
                           </option>
                           {channels.map((channel) => (
                             <option key={channel.id} value={channel.id}>
@@ -292,20 +244,17 @@ export default async function ConnectSlackPage({
                           ))}
                         </select>
                       </div>
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      プライベートチャンネルの場合は事前にボットを招待してください。
-                    </div>
-                    <button
-                      type="submit"
-                      className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl"
-                    >
-                      チャンネルを保存して次へ
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </button>
-                  </form>
-                )}
-              </div>
+                      <p className="text-sm text-muted-foreground">
+                        プライベートチャンネルの場合は事前にボットを招待してください。
+                      </p>
+                      <Button type="submit" className="w-full" size="lg">
+                        次へ
+                        <ArrowRight />
+                      </Button>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
