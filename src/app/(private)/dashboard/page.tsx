@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/header";
 
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -95,6 +96,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Header user={user} className="bg-slate-50" />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
