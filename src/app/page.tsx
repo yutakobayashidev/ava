@@ -563,11 +563,25 @@ export default async function LandingPage() {
               <Link href="/docs" className="hover:text-white transition-colors">
                 ドキュメント
               </Link>
-              <a href="#" className="hover:text-white transition-colors">
+              <Link
+                href="/docs/terms"
+                className="hover:text-white transition-colors"
+              >
+                利用規約
+              </Link>
+              <Link
+                href="/docs/privacy"
+                className="hover:text-white transition-colors"
+              >
+                プライバシーポリシー
+              </Link>
+              <a
+                href="https://github.com/yutakobayashidev/ai-task"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
                 GitHub
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                サポート
               </a>
             </div>
           </div>
