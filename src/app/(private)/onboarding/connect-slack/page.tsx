@@ -26,6 +26,24 @@ export default async function ConnectSlackPage({
 
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository({ db });
+
+  // ユーザーの Slack Team ID を使って既存ワークスペースを検索し、自動的にメンバーに追加
+  if (user.slackTeamId) {
+    const existingWorkspace =
+      await workspaceRepository.findWorkspaceByExternalId({
+        provider: "slack",
+        externalId: user.slackTeamId,
+      });
+
+    if (existingWorkspace) {
+      // 自動的にメンバーに追加 (冪等性あり)
+      await workspaceRepository.addMember({
+        workspaceId: existingWorkspace.id,
+        userId: user.id,
+      });
+    }
+  }
+
   const [membership] = await workspaceRepository.listWorkspacesForUser({
     userId: user.id,
     limit: 1,

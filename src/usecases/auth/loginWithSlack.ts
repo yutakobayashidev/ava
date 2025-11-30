@@ -16,6 +16,7 @@ type SlackUser = {
   email_verified: boolean;
   name: string;
   picture: string;
+  team_id: string;
 };
 
 type LoginWithSlackResult =
@@ -36,7 +37,15 @@ async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
     throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
   }
 
-  if (!result.sub || !result.email || !result.name || !result.picture) {
+  const teamId = result["https://slack.com/team_id"];
+
+  if (
+    !result.sub ||
+    !result.email ||
+    !result.name ||
+    !result.picture ||
+    !teamId
+  ) {
     throw new Error("Missing required user information from Slack");
   }
 
@@ -46,6 +55,7 @@ async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
     email_verified: result.email_verified ?? false,
     name: result.name,
     picture: result.picture,
+    team_id: teamId,
   };
 }
 
@@ -109,6 +119,7 @@ export const loginWithSlack = async (
       name: slackUser.name,
       email: slackUser.email,
       slackId: slackUser.sub,
+      slackTeamId: slackUser.team_id,
       image: slackUser.picture,
     });
   }
