@@ -8,7 +8,7 @@
     "preinstall": "npx only-allow pnpm",
     "prepare": "lefthook install",
     "dev": "pnpm db:up && next dev --experimental-https",
-    "build": "pnpm db:migrate && fumadocs-mdx && next build",
+    "build": "fumadocs-mdx && next build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
     "test:e2e": "NODE_ENV=test playwright test",
