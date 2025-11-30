@@ -11,6 +11,16 @@ import {
 
 export const issueProviderEnum = pgEnum("issue_provider", ["github", "manual"]);
 
+export const taskEventTypeEnum = pgEnum("task_event_type", [
+  "started",
+  "updated",
+  "blocked",
+  "block_resolved",
+  "paused",
+  "resumed",
+  "completed",
+]);
+
 export const taskStatusEnum = pgEnum("task_status", [
   "in_progress",
   "blocked",
@@ -240,10 +250,6 @@ export const taskSessions = pgTable(
     }),
     slackThreadTs: text("slack_thread_ts"),
     slackChannel: text("slack_channel"),
-    blockedAt: timestamp("blocked_at", { withTimezone: true }),
-    pausedAt: timestamp("paused_at", { withTimezone: true }),
-    resumedAt: timestamp("resumed_at", { withTimezone: true }),
-    completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -351,6 +357,35 @@ export const taskCompletions = pgTable(
   }),
 );
 
+export const taskEvents = pgTable(
+  "task_events",
+  {
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
+      .references(() => taskSessions.id, { onDelete: "cascade" })
+      .notNull(),
+    eventType: taskEventTypeEnum("event_type").notNull(),
+    reason: text("reason"),
+    summary: text("summary"),
+    rawContext: jsonb("raw_context")
+      .$type<Record<string, unknown>>()
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    taskSessionIdx: index("task_events_task_session_idx").on(
+      table.taskSessionId,
+    ),
+    eventTypeIdx: index("task_events_event_type_idx").on(table.eventType),
+    taskSessionEventTypeIdx: index(
+      "task_events_task_session_event_type_idx",
+    ).on(table.taskSessionId, table.eventType),
+  }),
+);
+
 export const taskSessionRelations = relations(
   taskSessions,
   ({ one, many }) => ({
@@ -366,6 +401,7 @@ export const taskSessionRelations = relations(
     blockReports: many(taskBlockReports),
     pauseReports: many(taskPauseReports),
     completions: many(taskCompletions),
+    events: many(taskEvents),
   }),
 );
 
@@ -405,6 +441,13 @@ export const taskCompletionRelations = relations(
     }),
   }),
 );
+
+export const taskEventRelations = relations(taskEvents, ({ one }) => ({
+  taskSession: one(taskSessions, {
+    fields: [taskEvents.taskSessionId],
+    references: [taskSessions.id],
+  }),
+}));
 
 export const userRelations = relations(users, ({ many }) => ({
   authCodes: many(authCodes),
@@ -505,6 +548,8 @@ export type TaskPauseReport = typeof taskPauseReports.$inferSelect;
 export type NewTaskPauseReport = typeof taskPauseReports.$inferInsert;
 export type TaskCompletion = typeof taskCompletions.$inferSelect;
 export type NewTaskCompletion = typeof taskCompletions.$inferInsert;
+export type TaskEvent = typeof taskEvents.$inferSelect;
+export type NewTaskEvent = typeof taskEvents.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
 export type User = typeof users.$inferSelect;

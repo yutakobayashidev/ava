@@ -29,8 +29,6 @@ export const listTasks = async (params: ListTasks, ctx: Env["Variables"]) => {
       status: session.status,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
-      blocked_at: session.blockedAt,
-      completed_at: session.completedAt,
     })),
   };
 };

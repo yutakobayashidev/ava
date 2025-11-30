@@ -37,7 +37,7 @@ export const resumeTask = async (params: ResumeTask, ctx: Env["Variables"]) => {
   return {
     task_session_id: session.id,
     status: session.status,
-    resumed_at: session.resumedAt,
+    resumed_at: session.updatedAt,
     slack_notification: slackNotification,
     message: "タスクを再開しました。",
   };

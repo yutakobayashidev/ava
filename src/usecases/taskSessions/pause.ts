@@ -38,7 +38,7 @@ export const pauseTask = async (params: PauseTask, ctx: Env["Variables"]) => {
     task_session_id: session.id,
     pause_report_id: pauseReport.id,
     status: session.status,
-    paused_at: session.pausedAt,
+    paused_at: pauseReport.createdAt,
     slack_notification: slackNotification,
     message: "タスクを一時休止しました。",
   };
