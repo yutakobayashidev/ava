@@ -2,6 +2,8 @@ import type { Env } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { getTeamIcon } from "@/clients/slack";
+import * as schema from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export type InstallWorkspace = {
   code: string;
@@ -16,12 +18,33 @@ export const installWorkspace = async (
   params: InstallWorkspace,
   ctx: Env["Variables"],
 ): Promise<InstallWorkspaceResult> => {
-  const { code } = params;
+  const { code, userId } = params;
   const { db } = ctx;
 
   try {
     const oauthResult = await exchangeSlackInstallCode(code);
     const workspaceRepository = createWorkspaceRepository({ db });
+
+    // ログイン中のユーザーを取得
+    const [currentUser] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
+
+    if (!currentUser) {
+      return {
+        success: false,
+        error: "user_not_found",
+      };
+    }
+
+    // ユーザーの slackTeamId とボットインストール先の teamId が一致するか検証
+    if (currentUser.slackTeamId !== oauthResult.teamId) {
+      return {
+        success: false,
+        error: "team_mismatch",
+      };
+    }
 
     // アイコンURLを取得
     const iconUrl = await getTeamIcon(oauthResult.accessToken);

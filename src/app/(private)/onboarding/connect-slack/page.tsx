@@ -122,6 +122,9 @@ export default async function ConnectSlackPage({
     if (params.error === "channel_fetch_failed") {
       return "エラー: チャンネル一覧の取得に失敗しました";
     }
+    if (params.error === "team_mismatch") {
+      return "エラー: ログイン中のワークスペースとは異なるワークスペースにボットをインストールしようとしています。ログイン中のワークスペースにボットをインストールしてください。";
+    }
     if (params.error) {
       return `エラー: ${params.error}`;
     }
@@ -227,11 +230,6 @@ export default async function ConnectSlackPage({
                         </div>
                       </div>
                     </div>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/slack/install/start">
-                        別のワークスペースに接続
-                      </Link>
-                    </Button>
                   </div>
                 )}
               </div>
