@@ -165,9 +165,9 @@ export const refreshTokens = pgTable(
   {
     id: text("id").primaryKey().notNull(),
     tokenHash: text("token_hash").notNull(),
-    accessTokenId: text("access_token_id")
-      .references(() => accessTokens.id, { onDelete: "cascade" })
-      .notNull(),
+    accessTokenId: text("access_token_id").references(() => accessTokens.id, {
+      onDelete: "set null",
+    }),
     clientId: text("client_id")
       .references(() => clients.id, { onDelete: "cascade" })
       .notNull(),

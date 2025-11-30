@@ -331,18 +331,22 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ); // 30 days
 
-    // Transaction: Delete old access token, mark old refresh token as used, create new tokens
+    // Transaction: Mark old refresh token as used, delete old access token, create new tokens
     await db.transaction(async (tx) => {
-      // Delete the old access token
-      await tx
-        .delete(schema.accessTokens)
-        .where(eq(schema.accessTokens.id, storedRefreshToken.accessTokenId));
-
-      // Mark the old refresh token as used
+      // Mark the old refresh token as used FIRST (for replay attack detection)
       await tx
         .update(schema.refreshTokens)
         .set({ usedAt: new Date() })
         .where(eq(schema.refreshTokens.id, storedRefreshToken.id));
+
+      // Delete the old access token if it exists
+      // Note: With onDelete: "set null", this will set accessTokenId to null in the refresh token
+      // instead of deleting it, preserving the token for replay attack detection
+      if (storedRefreshToken.accessTokenId) {
+        await tx
+          .delete(schema.accessTokens)
+          .where(eq(schema.accessTokens.id, storedRefreshToken.accessTokenId));
+      }
 
       // Create new access token
       const [newAccessTokenRecord] = await tx

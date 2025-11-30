@@ -6,7 +6,6 @@ import { Schema } from "../../env";
 import { AiSdkModels, createAiSdkModels } from "@/lib/ai";
 import { env } from "hono/adapter";
 import { secureHeaders } from "hono/secure-headers";
-import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
 
 export type Env = {
@@ -58,7 +57,7 @@ export const createHonoApp = () =>
     },
   })
     .createApp()
-    .use(secureHeaders(), logger())
+    .use(secureHeaders())
     .onError((error, c) => {
       if (error instanceof HTTPException) {
         console.error(error.cause);
