@@ -80,19 +80,29 @@ export default async function DashboardPage() {
     limit: 100,
   });
 
-  const tasksWithDuration = tasks.map((task) => {
-    let durationMs: number | null = null;
+  const tasksWithDuration = await Promise.all(
+    tasks.map(async (task) => {
+      let durationMs: number | null = null;
+      let completedAt: Date | null = null;
 
-    // 完了済みタスクのみ所要時間を計算
-    if (task.completedAt && task.createdAt) {
-      durationMs = task.completedAt.getTime() - task.createdAt.getTime();
-    }
+      // 完了済みタスクのみ所要時間を計算
+      if (task.status === "completed") {
+        const completion = await taskRepository.findCompletionByTaskSessionId(
+          task.id,
+        );
+        if (completion) {
+          completedAt = completion.createdAt;
+          durationMs = completedAt.getTime() - task.createdAt.getTime();
+        }
+      }
 
-    return {
-      ...task,
-      durationMs,
-    };
-  });
+      return {
+        ...task,
+        completedAt,
+        durationMs,
+      };
+    }),
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">

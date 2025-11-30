@@ -36,6 +36,13 @@
       "when": 1764525360114,
       "tag": "0004_tricky_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764529027299,
+      "tag": "0005_last_glorian",
+      "breakpoints": true
     }
   ]
 }

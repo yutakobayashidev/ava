@@ -158,12 +158,20 @@ export const generateDailyReport = async (
     limit: 100,
   });
 
-  // 今日完了したタスクをフィルタリング
-  const todayCompletedTasks = allCompletedTasks.filter((task) => {
-    if (!task.completedAt) return false;
-    const completedAt = new Date(task.completedAt);
-    return completedAt >= today && completedAt < tomorrow;
-  });
+  // 今日完了したタスクをフィルタリング (completedAtがないため、completionから取得する必要がある)
+  const todayCompletedTasks = await Promise.all(
+    allCompletedTasks.map(async (task) => {
+      const completion = await taskRepository.findCompletionByTaskSessionId(
+        task.id,
+      );
+      if (!completion) return null;
+      const completedAt = new Date(completion.createdAt);
+      if (completedAt >= today && completedAt < tomorrow) {
+        return { ...task, completedAt: completion.createdAt };
+      }
+      return null;
+    }),
+  ).then((tasks) => tasks.filter((t) => t !== null));
 
   // 今日更新された進行中・ブロック中タスクをフィルタリング
   const todayActiveTasks = [...inProgressTasks, ...blockedTasks].filter(

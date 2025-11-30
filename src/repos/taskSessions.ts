@@ -132,8 +132,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.inProgress,
-          blockedAt: null,
-          pausedAt: null,
           updatedAt: now,
         })
         .where(
@@ -171,7 +169,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.blocked,
-          blockedAt: now,
           updatedAt: now,
         })
         .where(
@@ -221,8 +218,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.completed,
-          blockedAt: null,
-          completedAt: now,
           updatedAt: now,
         })
         .where(
@@ -329,7 +324,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.inProgress,
-          blockedAt: null,
           updatedAt: now,
         })
         .where(
@@ -407,7 +401,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.paused,
-          pausedAt: now,
           updatedAt: now,
         })
         .where(
@@ -445,7 +438,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .update(schema.taskSessions)
         .set({
           status: STATUS.inProgress,
-          resumedAt: now,
           updatedAt: now,
         })
         .where(
