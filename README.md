@@ -125,7 +125,7 @@ Web UI でタスクの可視化：
 - `/mcp` - MCP サーバー（Hono、単独ルート）
 - `/api/*` - API エンドポイント（Hono、catch-all ルート）
   - `/api/oauth/*` - OAuth 2.1 認可サーバー
-  - `/api/login/*` - Slack OIDC 認証
+  - `/api/auth/*` - Slack OIDC 認証
   - `/api/slack/*` - Slack 連携（ボットインストール、コマンド）
   - `/api/health` - ヘルスチェック
 - その他 - Next.js App Router（ダッシュボード、オンボーディング）
@@ -171,7 +171,7 @@ Web UI でタスクの可視化：
 3. **OAuth & Permissions** で Redirect URLs を追加:
 
    ```
-   https://<YOUR_BASE_URL>/api/login/slack/callback
+   https://<YOUR_BASE_URL>/api/auth/slack/callback
    https://<YOUR_BASE_URL>/api/slack/install/callback
    ```
 
