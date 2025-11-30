@@ -16,6 +16,7 @@ type CreateWorkspaceInput = {
   externalId: string;
   name: string;
   domain?: string | null;
+  iconUrl?: string | null;
   botUserId?: string | null;
   botAccessToken?: string | null;
   botRefreshToken?: string | null;
@@ -31,6 +32,7 @@ type UpdateCredentialsInput = {
   botRefreshToken?: string | null;
   name?: string;
   domain?: string | null;
+  iconUrl?: string | null;
 };
 
 type UpdateNotificationChannelInput = {
@@ -69,6 +71,7 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
         externalId: input.externalId,
         name: input.name,
         domain: input.domain ?? null,
+        iconUrl: input.iconUrl ?? null,
         botUserId: input.botUserId ?? null,
         botAccessToken: input.botAccessToken ?? null,
         botRefreshToken: input.botRefreshToken ?? null,
@@ -197,6 +200,10 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
 
     if (input.domain !== undefined) {
       updates.domain = input.domain;
+    }
+
+    if (input.iconUrl !== undefined) {
+      updates.iconUrl = input.iconUrl;
     }
 
     if (Object.keys(updates).length === 0) {

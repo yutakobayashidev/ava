@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { authClient } from "@/clients/authClient";
+import { getInitials } from "@/lib/utils";
 
 type User = {
   name?: string | null;
@@ -28,22 +29,6 @@ type HeaderProps = {
 
 export function Header({ user, className = "bg-white" }: HeaderProps) {
   const router = useRouter();
-
-  // ユーザーの頭文字を取得
-  const getInitials = (name?: string | null, email?: string | null) => {
-    if (name) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    if (email) {
-      return email[0].toUpperCase();
-    }
-    return "U";
-  };
 
   const handleLogout = async () => {
     try {

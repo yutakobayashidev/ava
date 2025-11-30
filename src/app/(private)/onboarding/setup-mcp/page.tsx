@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -10,6 +11,12 @@ import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { McpSetupTabs } from "./McpSetupTabs";
+
+export const metadata: Metadata = {
+  title: "MCPサーバーを接続",
+  description:
+    "コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。",
+};
 
 export default async function SetupMcpPage() {
   const { user } = await getCurrentSession();

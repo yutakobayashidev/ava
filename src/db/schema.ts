@@ -28,6 +28,7 @@ export const workspaces = pgTable(
     externalId: text("external_id").notNull(),
     name: text("name").notNull(),
     domain: text("domain"),
+    iconUrl: text("icon_url"),
     botUserId: text("bot_user_id"),
     botAccessToken: text("bot_access_token"),
     botRefreshToken: text("bot_refresh_token"),

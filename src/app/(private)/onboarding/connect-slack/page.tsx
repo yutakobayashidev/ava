@@ -1,14 +1,23 @@
+import type { Metadata } from "next";
 import { db } from "@/clients/drizzle";
 import { listChannels, type SlackChannel } from "@/clients/slack";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentSession } from "@/lib/session";
+import { getInitials } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OnboardingProgress } from "../OnboardingProgress";
+
+export const metadata: Metadata = {
+  title: "Slackワークスペースを連携",
+  description:
+    "タスクの進捗をSlackに自動通知するため、ワークスペースと接続します。",
+};
 
 export default async function ConnectSlackPage({
   searchParams,
@@ -198,11 +207,26 @@ export default async function ConnectSlackPage({
                 ) : (
                   <div className="space-y-4">
                     <div className="rounded-lg bg-muted p-4">
-                      <p className="font-medium">接続済み</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {workspace.name}
-                        {workspace.domain ? ` (${workspace.domain})` : ""}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-10 rounded-md">
+                          {workspace.iconUrl && (
+                            <AvatarImage
+                              src={workspace.iconUrl}
+                              alt={workspace.name}
+                            />
+                          )}
+                          <AvatarFallback className="rounded-md">
+                            {getInitials(workspace.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">接続済み</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {workspace.name}
+                            {workspace.domain ? ` (${workspace.domain})` : ""}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     <Button asChild variant="ghost" size="sm">
                       <Link href="/slack/install/start">
