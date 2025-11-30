@@ -15,6 +15,13 @@
       "when": 1764512268391,
       "tag": "0001_strange_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764514485472,
+      "tag": "0002_living_sleepwalker",
+      "breakpoints": true
     }
   ]
 }
