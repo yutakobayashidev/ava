@@ -1,6 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
+import { validateTransition } from "@/domain/task-status";
 
 export type CompleteTask = {
   task_session_id: string;
@@ -19,6 +20,19 @@ export const completeTask = async (
     workspace,
     taskRepository,
   );
+
+  // 現在のタスクセッションを取得して状態遷移を検証
+  const currentSession = await taskRepository.findTaskSessionById(
+    task_session_id,
+    workspace.id,
+  );
+
+  if (!currentSession) {
+    throw new Error("タスクセッションが見つかりません");
+  }
+
+  // → completed への遷移を検証
+  validateTransition(currentSession.status, "completed");
 
   const { session, completion, unresolvedBlocks } =
     await taskRepository.completeTask({

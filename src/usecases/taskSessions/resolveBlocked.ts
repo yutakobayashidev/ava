@@ -1,6 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
+import { validateTransition } from "@/domain/task-status";
 
 export type ResolveBlocked = {
   task_session_id: string;
@@ -19,6 +20,19 @@ export const resolveBlocked = async (
     workspace,
     taskRepository,
   );
+
+  // 現在のタスクセッションを取得して状態遷移を検証
+  const currentSession = await taskRepository.findTaskSessionById(
+    task_session_id,
+    workspace.id,
+  );
+
+  if (!currentSession) {
+    throw new Error("タスクセッションが見つかりません");
+  }
+
+  // blocked → in_progress への遷移を検証
+  validateTransition(currentSession.status, "in_progress");
 
   const { session, blockReport } = await taskRepository.resolveBlockReport({
     taskSessionId: task_session_id,
