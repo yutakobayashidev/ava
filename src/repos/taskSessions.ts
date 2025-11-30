@@ -151,17 +151,20 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .returning();
 
       // updated イベントを作成
-      await tx.insert(schema.taskEvents).values({
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        eventType: "updated",
-        summary: params.summary,
-        rawContext: params.rawContext ?? {},
-      });
+      const [updateEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          id: uuidv7(),
+          taskSessionId: params.taskSessionId,
+          eventType: "updated",
+          summary: params.summary,
+          rawContext: params.rawContext ?? {},
+        })
+        .returning();
 
       return {
         session: session ?? null,
-        update: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
+        updateEvent: updateEvent ?? null,
       };
     });
   };
@@ -233,17 +236,20 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         .returning();
 
       // completed イベントを作成
-      await tx.insert(schema.taskEvents).values({
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        eventType: "completed",
-        summary: params.summary,
-        rawContext: {},
-      });
+      const [completedEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          id: uuidv7(),
+          taskSessionId: params.taskSessionId,
+          eventType: "completed",
+          summary: params.summary,
+          rawContext: {},
+        })
+        .returning();
 
       return {
         session: session ?? null,
-        completion: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
+        completedEvent: completedEvent ?? null,
         unresolvedBlocks,
       };
     });

@@ -45,14 +45,14 @@ export const updateTask = async (
     };
   }
 
-  const { session, update } = await taskRepository.addTaskUpdate({
+  const { session, updateEvent } = await taskRepository.addTaskUpdate({
     taskSessionId: task_session_id,
     workspaceId: workspace.id,
     summary,
     rawContext: raw_context ?? {},
   });
 
-  if (!session) {
+  if (!session || !updateEvent) {
     return {
       success: false,
       error: "タスクの更新に失敗しました",
@@ -70,9 +70,9 @@ export const updateTask = async (
 
   const result = {
     task_session_id: session.id,
-    update_id: update.id,
+    update_id: updateEvent.id,
     status: session.status,
-    summary: update.summary,
+    summary: updateEvent.summary,
     slack_notification: slackNotification,
     message: "進捗を保存しました。",
   };

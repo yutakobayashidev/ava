@@ -44,14 +44,14 @@ export const completeTask = async (
     };
   }
 
-  const { session, completion, unresolvedBlocks } =
+  const { session, completedEvent, unresolvedBlocks } =
     await taskRepository.completeTask({
       taskSessionId: task_session_id,
       workspaceId: workspace.id,
       summary,
     });
 
-  if (!session) {
+  if (!session || !completedEvent) {
     return {
       success: false,
       error: "タスクの完了処理に失敗しました",
@@ -69,7 +69,7 @@ export const completeTask = async (
 
   const response: Record<string, unknown> = {
     task_session_id: session.id,
-    completion_id: completion.id,
+    completion_id: completedEvent.id,
     status: session.status,
     slack_notification: slackNotification,
     message: "完了報告を保存しました。",
