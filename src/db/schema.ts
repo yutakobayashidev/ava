@@ -26,6 +26,7 @@ export const taskStatusEnum = pgEnum("task_status", [
   "blocked",
   "paused",
   "completed",
+  "cancelled",
 ]);
 
 export const workspaceProviderEnum = pgEnum("workspace_provider", ["slack"]);

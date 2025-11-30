@@ -73,13 +73,14 @@ type ListTaskSessionsInput = {
 };
 
 const STATUS: Record<
-  "inProgress" | "blocked" | "paused" | "completed",
+  "inProgress" | "blocked" | "paused" | "completed" | "cancelled",
   TaskStatus
 > = {
   inProgress: "in_progress",
   blocked: "blocked",
   paused: "paused",
   completed: "completed",
+  cancelled: "cancelled",
 };
 
 const ensureRecord = <T>(record: T | undefined): T => {
