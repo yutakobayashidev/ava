@@ -5,6 +5,8 @@ import * as schema from "@/db/schema";
 import { Schema } from "../../env";
 import { AiSdkModels, createAiSdkModels } from "@/lib/ai";
 import { env } from "hono/adapter";
+import { secureHeaders } from "hono/secure-headers";
+import { logger } from "hono/logger";
 
 export type Env = {
   Bindings: Schema;
@@ -54,4 +56,6 @@ export const createHonoApp = () =>
         await next();
       });
     },
-  }).createApp();
+  })
+    .createApp()
+    .use("*", secureHeaders(), logger());
