@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/header";
+import Link from "next/link";
 
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
@@ -140,12 +141,19 @@ export default async function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {tasksWithDuration.map((task) => (
-                  <TableRow key={task.id}>
+                  <TableRow
+                    key={task.id}
+                    className="cursor-pointer hover:bg-slate-50"
+                  >
                     <TableCell className="font-medium max-w-md">
-                      <div className="truncate">{task.issueTitle}</div>
-                      <div className="text-xs text-slate-500 truncate mt-1">
-                        {task.initialSummary}
-                      </div>
+                      <Link href={`/tasks/${task.id}`} className="block">
+                        <div className="truncate hover:text-blue-600">
+                          {task.issueTitle}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate mt-1">
+                          {task.initialSummary}
+                        </div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={task.status} />
