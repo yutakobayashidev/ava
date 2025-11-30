@@ -92,20 +92,32 @@ const ensureRecord = <T>(record: T | undefined): T => {
 
 export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const createTaskSession = async (params: CreateTaskSessionInput) => {
-    const [session] = await db
-      .insert(schema.taskSessions)
-      .values({
-        id: uuidv7(),
-        userId: params.userId,
-        workspaceId: params.workspaceId,
-        issueProvider: params.issueProvider,
-        issueId: params.issueId ?? null,
-        issueTitle: params.issueTitle,
-        initialSummary: params.initialSummary,
-      })
-      .returning();
+    return db.transaction(async (tx) => {
+      const sessionId = uuidv7();
+      const [session] = await tx
+        .insert(schema.taskSessions)
+        .values({
+          id: sessionId,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
+          issueProvider: params.issueProvider,
+          issueId: params.issueId ?? null,
+          issueTitle: params.issueTitle,
+          initialSummary: params.initialSummary,
+        })
+        .returning();
 
-    return ensureRecord(session);
+      // started イベントを作成
+      await tx.insert(schema.taskEvents).values({
+        id: uuidv7(),
+        taskSessionId: sessionId,
+        eventType: "started",
+        summary: params.initialSummary,
+        rawContext: {},
+      });
+
+      return ensureRecord(session);
+    });
   };
 
   const findTaskSessionById = async (
@@ -128,24 +140,35 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const addTaskUpdate = async (params: AddTaskUpdateInput) => {
     const now = new Date();
 
-    const [session] = await db
-      .update(schema.taskSessions)
-      .set({
-        status: STATUS.inProgress,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(schema.taskSessions.id, params.taskSessionId),
-          eq(schema.taskSessions.workspaceId, params.workspaceId),
-        ),
-      )
-      .returning();
+    return db.transaction(async (tx) => {
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: STATUS.inProgress,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, params.taskSessionId),
+            eq(schema.taskSessions.workspaceId, params.workspaceId),
+          ),
+        )
+        .returning();
 
-    return {
-      session: ensureRecord(session),
-      update: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
-    };
+      // updated イベントを作成
+      await tx.insert(schema.taskEvents).values({
+        id: uuidv7(),
+        taskSessionId: params.taskSessionId,
+        eventType: "updated",
+        summary: params.summary,
+        rawContext: params.rawContext ?? {},
+      });
+
+      return {
+        session: ensureRecord(session),
+        update: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
+      };
+    });
   };
 
   const reportBlock = async (params: ReportBlockInput) => {
@@ -218,6 +241,15 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 
       const validSession = ensureRecord(session);
 
+      // completed イベントを作成
+      await tx.insert(schema.taskEvents).values({
+        id: uuidv7(),
+        taskSessionId: params.taskSessionId,
+        eventType: "completed",
+        summary: params.summary,
+        rawContext: {},
+      });
+
       return {
         session: validSession,
         completion: { id: uuidv7(), summary: params.summary }, // 互換性のためダミーオブジェクト
@@ -245,7 +277,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   };
 
   const getUnresolvedBlockReports = async (taskSessionId: string) => {
-    // ブロックイベントを取得し、解決されていないものをフィルタ
+    // ブロックイベントを取得
     const blockedEvents = await db
       .select()
       .from(schema.taskEvents)
@@ -268,16 +300,15 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         ),
       );
 
-    // 解決されていないブロックをフィルタ
-    const resolvedReasons = new Set(
+    // 解決されたブロックのIDを収集
+    const resolvedBlockIds = new Set(
       resolvedEvents
-        .map((e) => e.reason?.replace("Resolved: ", "") ?? null)
-        .filter((r): r is string => r !== null),
+        .map((e) => e.relatedEventId)
+        .filter((id): id is string => id !== null),
     );
 
-    return blockedEvents.filter(
-      (block) => !block.reason || !resolvedReasons.has(block.reason),
-    );
+    // 解決されていないブロックのみを返す
+    return blockedEvents.filter((block) => !resolvedBlockIds.has(block.id));
   };
 
   const resolveBlockReport = async (params: ResolveBlockInput) => {
@@ -303,9 +334,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
         eventType: "block_resolved",
-        reason: validBlockReport.reason
-          ? `Resolved: ${validBlockReport.reason}`
-          : "Block resolved",
+        reason: validBlockReport.reason,
+        relatedEventId: params.blockReportId,
         rawContext: {},
       });
 
@@ -416,6 +446,19 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
+      // 最新のpausedイベントを取得
+      const [latestPausedEvent] = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
+            eq(schema.taskEvents.eventType, "paused"),
+          ),
+        )
+        .orderBy(desc(schema.taskEvents.createdAt))
+        .limit(1);
+
       const [session] = await tx
         .update(schema.taskSessions)
         .set({
@@ -438,6 +481,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         taskSessionId: params.taskSessionId,
         eventType: "resumed",
         summary: params.summary,
+        relatedEventId: latestPausedEvent?.id ?? null,
         rawContext: params.rawContext ?? {},
       });
 

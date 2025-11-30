@@ -1,7 +1,6 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
-import { createTaskEventRepository } from "@/repos/taskEvents";
 
 export type StartTask = {
   issue: {
@@ -17,7 +16,6 @@ export const startTasks = async (params: StartTask, ctx: Env["Variables"]) => {
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
-  const taskEventRepository = createTaskEventRepository({ db });
   const notificationService = createNotificationService(
     workspace,
     taskRepository,
@@ -30,13 +28,6 @@ export const startTasks = async (params: StartTask, ctx: Env["Variables"]) => {
     issueId: issue.id ?? null,
     issueTitle: issue.title,
     initialSummary: initial_summary,
-  });
-
-  // イベントログに保存
-  await taskEventRepository.createEvent({
-    taskSessionId: session.id,
-    eventType: "started",
-    summary: initial_summary,
   });
 
   const slackNotification = await notificationService.notifyTaskStarted({

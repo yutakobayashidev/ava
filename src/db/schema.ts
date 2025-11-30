@@ -216,8 +216,6 @@ export const refreshTokens = pgTable(
   }),
 );
 
-// workspace_members テーブルは削除 - users.workspaceId で直接参照
-
 export const taskSessions = pgTable(
   "task_sessions",
   {
@@ -262,6 +260,7 @@ export const taskEvents = pgTable(
     eventType: taskEventTypeEnum("event_type").notNull(),
     reason: text("reason"),
     summary: text("summary"),
+    relatedEventId: text("related_event_id"),
     rawContext: jsonb("raw_context")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
