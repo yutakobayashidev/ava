@@ -8,6 +8,13 @@
       "when": 1764488411736,
       "tag": "0000_gray_kylun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764512268391,
+      "tag": "0001_strange_psynapse",
+      "breakpoints": true
     }
   ]
 }

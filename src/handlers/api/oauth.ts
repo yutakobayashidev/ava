@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { uuidv7 } from "uuidv7";
 import * as schema from "@/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -6,6 +6,8 @@ import { createHonoApp } from "@/app/create-app";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
+import { sha256 } from "@oslojs/crypto/sha2";
+import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 
 const app = createHonoApp();
 
@@ -130,13 +132,11 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
       let pkceValid = false;
       if (authCode.codeChallengeMethod === "S256") {
-        const hash = createHash("sha256").update(code_verifier).digest();
-        const base64url = hash
-          .toString("base64")
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=+$/, "");
-        pkceValid = base64url === authCode.codeChallenge;
+        const codeChallengeBytes = sha256(
+          new TextEncoder().encode(code_verifier),
+        );
+        const computedChallenge = encodeBase64urlNoPadding(codeChallengeBytes);
+        pkceValid = computedChallenge === authCode.codeChallenge;
       } else {
         pkceValid = code_verifier === authCode.codeChallenge;
       }
@@ -203,6 +203,9 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     }
 
     const accessToken = randomBytes(32).toString("hex");
+    const accessTokenHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(accessToken)),
+    );
     const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     console.log("Creating access token for user:", authCode.userId);
@@ -210,7 +213,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       .insert(schema.accessTokens)
       .values({
         id: uuidv7(),
-        token: accessToken,
+        tokenHash: accessTokenHash,
         expiresAt: accessTokenExpiresAt,
         clientId: client.id,
         userId: authCode.userId,
@@ -221,9 +224,9 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
     // Generate refresh token
     const refreshToken = randomBytes(32).toString("hex");
-    const refreshTokenHash = createHash("sha256")
-      .update(refreshToken)
-      .digest("hex");
+    const refreshTokenHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(refreshToken)),
+    );
     const refreshTokenExpiresAt = new Date(
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ); // 30 days
@@ -253,9 +256,9 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     const db = c.get("db");
 
     // Hash the provided refresh token to compare with stored hash
-    const refreshTokenHash = createHash("sha256")
-      .update(refresh_token)
-      .digest("hex");
+    const refreshTokenHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(refresh_token)),
+    );
 
     // Find the refresh token
     const [storedRefreshToken] = await db
@@ -315,12 +318,15 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
     // Generate new tokens
     const newAccessToken = randomBytes(32).toString("hex");
+    const newAccessTokenHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(newAccessToken)),
+    );
     const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     const newRefreshToken = randomBytes(32).toString("hex");
-    const newRefreshTokenHash = createHash("sha256")
-      .update(newRefreshToken)
-      .digest("hex");
+    const newRefreshTokenHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(newRefreshToken)),
+    );
     const refreshTokenExpiresAt = new Date(
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ); // 30 days
@@ -343,7 +349,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         .insert(schema.accessTokens)
         .values({
           id: uuidv7(),
-          token: newAccessToken,
+          tokenHash: newAccessTokenHash,
           expiresAt: accessTokenExpiresAt,
           clientId: storedRefreshToken.clientId,
           userId: storedRefreshToken.userId,

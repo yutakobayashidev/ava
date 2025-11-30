@@ -138,7 +138,7 @@ export const accessTokens = pgTable(
   "access_tokens",
   {
     id: text("id").primaryKey().notNull(),
-    token: text("token").notNull(),
+    tokenHash: text("token_hash").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     clientId: text("client_id")
       .references(() => clients.id, { onDelete: "cascade" })
@@ -154,7 +154,9 @@ export const accessTokens = pgTable(
       .notNull(),
   },
   (table) => ({
-    tokenUnique: uniqueIndex("access_tokens_token_unique").on(table.token),
+    tokenHashUnique: uniqueIndex("access_tokens_token_hash_unique").on(
+      table.tokenHash,
+    ),
   }),
 );
 
