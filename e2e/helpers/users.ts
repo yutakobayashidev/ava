@@ -25,7 +25,7 @@ export async function registerUserToDB(user: NonNullableUser, dbUrl: string) {
       email: user.email,
       slackId: user.slackId,
       slackTeamId: user.slackTeamId,
-      workspaceId: user.workspaceId,
+      workspaceId: null, // ワークスペースは後で setupWorkspaceForUser で設定
       image: user.image,
       onboardingCompletedAt: user.onboardingCompletedAt,
       createdAt: user.createdAt,

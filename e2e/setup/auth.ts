@@ -10,8 +10,11 @@ setup("Create user1 auth", async ({ context, setup: setupFixture }) => {
   const workspaceRepository = createWorkspaceRepository({ db: drizzle.db });
   const workspace = await workspaceRepository.createWorkspace(workspace1);
 
-  // ユーザーを作成（workspaceIdを上書き）
-  const userWithWorkspace = { ...user1, workspaceId: workspace.id };
-  await registerUserToDB(userWithWorkspace, setupFixture.dbURL);
-  await createUserAuthState(context, userWithWorkspace, setupFixture.dbURL);
+  // ユーザーを作成
+  await registerUserToDB(user1, setupFixture.dbURL);
+
+  // ワークスペースを紐付け
+  await workspaceRepository.setUserWorkspace(user1.id, workspace.id);
+
+  await createUserAuthState(context, user1, setupFixture.dbURL);
 });
