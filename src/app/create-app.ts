@@ -52,7 +52,6 @@ export const createHonoApp = () =>
             },
           }),
         );
-        // TODO: AI SDK
         await next();
       });
     },
