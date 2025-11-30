@@ -141,13 +141,14 @@ export const generateDailyReport = async (
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // 全タスクを取得
-  const allCompletedTasks = await taskRepository.listTaskSessions({
+  // 今日完了したタスクを取得（1回のクエリで完了イベント情報も含む）
+  const todayCompletedTasks = await taskRepository.getTodayCompletedTasks({
     userId: user.id,
     workspaceId: workspace.id,
-    status: "completed",
-    limit: 100,
+    dateRange: { from: today, to: tomorrow },
   });
+
+  // 今日更新された進行中・ブロック中タスクを取得
   const inProgressTasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
@@ -160,22 +161,6 @@ export const generateDailyReport = async (
     status: "blocked",
     limit: 100,
   });
-
-  // 今日完了したタスクをフィルタリング (completedAtがないため、task_eventsから取得する必要がある)
-  const todayCompletedTasks = await Promise.all(
-    allCompletedTasks.map(async (task) => {
-      const completedEvent = await taskRepository.getLatestEvent({
-        taskSessionId: task.id,
-        eventType: "completed",
-      });
-      if (!completedEvent) return null;
-      const completedAt = new Date(completedEvent.createdAt);
-      if (completedAt >= today && completedAt < tomorrow) {
-        return { ...task, completedAt: completedEvent.createdAt };
-      }
-      return null;
-    }),
-  ).then((tasks) => tasks.filter((t) => t !== null));
 
   // 今日更新された進行中・ブロック中タスクをフィルタリング
   const todayActiveTasks = [...inProgressTasks, ...blockedTasks].filter(
@@ -192,21 +177,14 @@ export const generateDailyReport = async (
   // 各完了タスクの詳細情報を取得
   const completedTasksWithDetails = await Promise.all(
     todayCompletedTasks.map(async (task) => {
-      const completedEvent = await taskRepository.getLatestEvent({
-        taskSessionId: task.id,
-        eventType: "completed",
-      });
       const unresolvedBlocks = await taskRepository.getUnresolvedBlockReports(
         task.id,
       );
       return {
         title: task.issueTitle,
         initialSummary: task.initialSummary,
-        completionSummary: completedEvent?.summary || "",
-        duration:
-          task.completedAt && task.createdAt
-            ? task.completedAt.getTime() - task.createdAt.getTime()
-            : 0,
+        completionSummary: task.completionSummary || "",
+        duration: task.completedAt.getTime() - task.createdAt.getTime(),
         unresolvedBlocks: unresolvedBlocks.map((block) => ({
           reason: block.reason,
           createdAt: block.createdAt,

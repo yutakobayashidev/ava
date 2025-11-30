@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
@@ -542,6 +542,46 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     );
   };
 
+  const getTodayCompletedTasks = async (params: {
+    userId: string;
+    workspaceId: string;
+    dateRange: { from: Date; to: Date };
+  }) => {
+    const completedAlias = schema.taskEvents;
+
+    const result = await db
+      .select({
+        session: schema.taskSessions,
+        completedEvent: completedAlias,
+      })
+      .from(schema.taskSessions)
+      .innerJoin(
+        completedAlias,
+        and(
+          eq(completedAlias.taskSessionId, schema.taskSessions.id),
+          eq(completedAlias.eventType, "completed"),
+        ),
+      )
+      .where(
+        and(
+          eq(schema.taskSessions.userId, params.userId),
+          eq(schema.taskSessions.workspaceId, params.workspaceId),
+          eq(schema.taskSessions.status, STATUS.completed),
+          and(
+            sql`${completedAlias.createdAt} >= ${params.dateRange.from}`,
+            sql`${completedAlias.createdAt} < ${params.dateRange.to}`,
+          ),
+        ),
+      )
+      .orderBy(desc(completedAlias.createdAt));
+
+    return result.map((r) => ({
+      ...r.session,
+      completedAt: r.completedEvent.createdAt,
+      completionSummary: r.completedEvent.summary,
+    }));
+  };
+
   return {
     createTaskSession,
     findTaskSessionById,
@@ -558,6 +598,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     listEvents,
     getLatestEvent,
     getLatestEventByTypes,
+    getTodayCompletedTasks,
   };
 };
 
