@@ -11,9 +11,9 @@ type RequireWorkspaceResult = RequireAuthResult & {
   workspace: NonNullable<
     Awaited<
       ReturnType<
-        ReturnType<typeof createWorkspaceRepository>["listWorkspacesForUser"]
+        ReturnType<typeof createWorkspaceRepository>["findWorkspaceByUser"]
       >
-    >[0]["workspace"]
+    >
   >;
 };
 
@@ -41,11 +41,7 @@ export async function requireWorkspace(
   const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
+  const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   if (!workspace) {
     redirect("/onboarding/connect-slack");

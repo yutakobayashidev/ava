@@ -27,8 +27,8 @@ export default async function ConnectSlackPage({
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository({ db });
 
-  // ユーザーの Slack Team ID を使って既存ワークスペースを検索し、自動的にメンバーに追加
-  if (user.slackTeamId) {
+  // ユーザーの Slack Team ID を使って既存ワークスペースを検索し、自動的に設定
+  if (user.slackTeamId && !user.workspaceId) {
     const existingWorkspace =
       await workspaceRepository.findWorkspaceByExternalId({
         provider: "slack",
@@ -36,19 +36,12 @@ export default async function ConnectSlackPage({
       });
 
     if (existingWorkspace) {
-      // 自動的にメンバーに追加 (冪等性あり)
-      await workspaceRepository.addMember({
-        workspaceId: existingWorkspace.id,
-        userId: user.id,
-      });
+      // 自動的にワークスペースを設定
+      await workspaceRepository.setUserWorkspace(user.id, existingWorkspace.id);
     }
   }
 
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
+  const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack連携済み + 通知先設定済みの場合は次のステップへ
   if (
@@ -82,11 +75,7 @@ export default async function ConnectSlackPage({
     }
 
     const workspaceRepository = createWorkspaceRepository({ db });
-    const [membership] = await workspaceRepository.listWorkspacesForUser({
-      userId: user.id,
-      limit: 1,
-    });
-    const workspace = membership?.workspace;
+    const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
     if (!workspace?.botAccessToken) {
       redirect("/onboarding/connect-slack?error=missing_token");

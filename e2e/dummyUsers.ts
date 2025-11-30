@@ -14,6 +14,7 @@ export const user1: NonNullableUser = {
   email: "john@example.com",
   slackId: "U01234ABCDE",
   slackTeamId: "T01234ABCDE",
+  workspaceId: "workspace1",
   image: "https://example.com/avatar.jpg",
   onboardingCompletedAt: new Date("2024-01-01T00:00:00Z"),
   createdAt: new Date("2024-01-01T00:00:00Z"),

@@ -13,11 +13,7 @@ export default async function OnboardingPage() {
   const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
+  const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack連携が完了していればStep 2へ
   if (workspace?.botAccessToken) {

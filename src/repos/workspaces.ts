@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
 import type { Database } from "../clients/drizzle";
@@ -48,20 +48,8 @@ type FindByExternalIdInput = {
   externalId: string;
 };
 
-type AddMemberInput = {
-  workspaceId: string;
-  userId: string;
-};
-
-type IsMemberInput = {
-  workspaceId: string;
-  userId: string;
-};
-
-type ListWorkspacesForUserInput = {
-  userId: string;
-  limit?: number;
-};
+// AddMemberInput, IsMemberInput, ListWorkspacesForUserInput は削除
+// workspace_members テーブルが不要になったため
 
 export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
   const createWorkspace = async (input: CreateWorkspaceInput) => {
@@ -128,58 +116,24 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
     return workspace ?? null;
   };
 
-  const listWorkspacesForUser = async (input: ListWorkspacesForUserInput) => {
-    const limit = input.limit ?? 50;
-
-    return db
-      .select({
-        workspace: schema.workspaces,
-        membership: schema.workspaceMembers,
-      })
-      .from(schema.workspaces)
-      .innerJoin(
-        schema.workspaceMembers,
-        and(
-          eq(schema.workspaceMembers.workspaceId, schema.workspaces.id),
-          eq(schema.workspaceMembers.userId, input.userId),
-        ),
-      )
-      .orderBy(desc(schema.workspaces.createdAt))
-      .limit(limit);
-  };
-
-  const addMember = async (input: AddMemberInput) => {
-    const [membership] = await db
-      .insert(schema.workspaceMembers)
-      .values({
-        id: uuidv7(),
-        workspaceId: input.workspaceId,
-        userId: input.userId,
-      })
-      .onConflictDoNothing({
-        target: [
-          schema.workspaceMembers.workspaceId,
-          schema.workspaceMembers.userId,
-        ],
-      })
-      .returning();
-
-    return membership ?? null;
-  };
-
-  const isMember = async (input: IsMemberInput) => {
-    const [membership] = await db
+  const findWorkspaceByUser = async (userId: string) => {
+    const [user] = await db
       .select()
-      .from(schema.workspaceMembers)
-      .where(
-        and(
-          eq(schema.workspaceMembers.workspaceId, input.workspaceId),
-          eq(schema.workspaceMembers.userId, input.userId),
-        ),
-      )
-      .limit(1);
+      .from(schema.users)
+      .where(eq(schema.users.id, userId));
 
-    return Boolean(membership);
+    if (!user?.workspaceId) {
+      return null;
+    }
+
+    return findWorkspaceById(user.workspaceId);
+  };
+
+  const setUserWorkspace = async (userId: string, workspaceId: string) => {
+    await db
+      .update(schema.users)
+      .set({ workspaceId })
+      .where(eq(schema.users.id, userId));
   };
 
   const updateWorkspaceCredentials = async (input: UpdateCredentialsInput) => {
@@ -230,11 +184,10 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
     createWorkspace,
     findWorkspaceById,
     findWorkspaceByExternalId,
-    listWorkspacesForUser,
+    findWorkspaceByUser,
+    setUserWorkspace,
     updateWorkspaceCredentials,
     updateNotificationChannel,
-    addMember,
-    isMember,
   };
 };
 
@@ -244,7 +197,4 @@ export type {
   UpdateCredentialsInput,
   FindByExternalIdInput,
   UpdateNotificationChannelInput,
-  AddMemberInput,
-  IsMemberInput,
-  ListWorkspacesForUserInput,
 };

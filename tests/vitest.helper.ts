@@ -82,10 +82,7 @@ export async function setup() {
       notificationChannelName: "general",
     });
 
-    await workspaceRepository.addMember({
-      workspaceId: workspace.id,
-      userId: user.id,
-    });
+    await workspaceRepository.setUserWorkspace(user.id, workspace.id);
 
     return { user, workspace };
   }

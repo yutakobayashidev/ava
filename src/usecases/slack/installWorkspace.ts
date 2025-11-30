@@ -31,6 +31,8 @@ export const installWorkspace = async (
       externalId: oauthResult.teamId,
     });
 
+    let workspaceId: string;
+
     if (existing) {
       // 既存ワークスペースの更新
       await workspaceRepository.updateWorkspaceCredentials({
@@ -43,10 +45,7 @@ export const installWorkspace = async (
         domain: oauthResult.teamDomain ?? existing.domain,
         iconUrl,
       });
-      await workspaceRepository.addMember({
-        workspaceId: existing.id,
-        userId,
-      });
+      workspaceId = existing.id;
     } else {
       // 新規ワークスペースの作成
       const workspace = await workspaceRepository.createWorkspace({
@@ -61,11 +60,11 @@ export const installWorkspace = async (
         botTokenExpiresAt: oauthResult.expiresAt,
         installedAt: new Date(),
       });
-      await workspaceRepository.addMember({
-        workspaceId: workspace.id,
-        userId,
-      });
+      workspaceId = workspace.id;
     }
+
+    // ユーザーにワークスペースを設定
+    await workspaceRepository.setUserWorkspace(userId, workspaceId);
 
     return {
       success: true,

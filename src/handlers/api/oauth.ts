@@ -170,20 +170,15 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
-    const [[workspace], [membership]] = await Promise.all([
+    const [[workspace], [user]] = await Promise.all([
       db
         .select()
         .from(schema.workspaces)
         .where(eq(schema.workspaces.id, authCode.workspaceId)),
       db
         .select()
-        .from(schema.workspaceMembers)
-        .where(
-          and(
-            eq(schema.workspaceMembers.workspaceId, authCode.workspaceId),
-            eq(schema.workspaceMembers.userId, authCode.userId),
-          ),
-        )
+        .from(schema.users)
+        .where(eq(schema.users.id, authCode.userId))
         .limit(1),
     ]);
 
@@ -194,10 +189,11 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
-    if (!membership) {
-      console.log("User not a member of workspace", {
+    if (!user || user.workspaceId !== authCode.workspaceId) {
+      console.log("User not associated with workspace", {
         workspaceId: authCode.workspaceId,
         userId: authCode.userId,
+        userWorkspaceId: user?.workspaceId,
       });
       throw new HTTPException(403, { message: "forbidden_workspace" });
     }

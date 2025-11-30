@@ -12,10 +12,7 @@ export async function setupWorkspaceForUser(
 
   const workspace = await workspaceRepository.createWorkspace(workspaceInput);
 
-  await workspaceRepository.addMember({
-    workspaceId: workspace.id,
-    userId: user.id,
-  });
+  await workspaceRepository.setUserWorkspace(user.id, workspace.id);
 
   return workspace;
 }

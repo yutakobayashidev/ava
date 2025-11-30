@@ -22,11 +22,7 @@ export default async function SetupMcpPage() {
   const { user } = await requireAuth();
 
   const workspaceRepository = createWorkspaceRepository({ db });
-  const [membership] = await workspaceRepository.listWorkspacesForUser({
-    userId: user.id,
-    limit: 1,
-  });
-  const workspace = membership?.workspace;
+  const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack未連携の場合は戻す
   if (!workspace?.botAccessToken) {
