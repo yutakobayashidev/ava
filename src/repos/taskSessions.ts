@@ -246,31 +246,6 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         })
         .returning();
 
-      // 未解決のブロックに対して block_resolved イベントを作成
-      for (const block of unresolvedBlocks) {
-        const hasResolved = await tx
-          .select()
-          .from(schema.taskEvents)
-          .where(
-            and(
-              eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-              eq(schema.taskEvents.eventType, "block_resolved"),
-              eq(schema.taskEvents.reason, `Resolved: ${block.reason}`),
-            ),
-          )
-          .limit(1);
-
-        if (hasResolved.length === 0) {
-          await tx.insert(schema.taskEvents).values({
-            id: uuidv7(),
-            taskSessionId: params.taskSessionId,
-            eventType: "block_resolved",
-            reason: `Resolved: ${block.reason}`,
-            rawContext: {},
-          });
-        }
-      }
-
       return {
         session: validSession,
         completion: ensureRecord(completion),
