@@ -3,6 +3,7 @@ import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { db } from "@/clients/drizzle";
 import { absoluteUrl } from "@/lib/utils";
+import { serializeSearchParams } from "@/utils/urls";
 
 export const authorizeRequestSchema = z
   .object({
@@ -103,16 +104,19 @@ export const validateAuthorizeRequest = async (
 export const createLoginRedirectUrl = (
   params: Record<string, unknown>,
 ): string => {
-  const loginUrl = new URL(absoluteUrl("/login"));
-  const callbackUrl = new URL(absoluteUrl("/oauth/authorize"));
+  const base = absoluteUrl("");
 
-  // 現在のすべてのクエリパラメータをコールバックURLに追加する
-  Object.entries(params).forEach(([key, value]) => {
-    if (typeof value === "string") {
-      callbackUrl.searchParams.set(key, value);
-    }
-  });
+  // 文字列型のパラメータのみを抽出
+  const stringParams = Object.fromEntries(
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
 
-  loginUrl.searchParams.set("callbackUrl", callbackUrl.toString());
-  return loginUrl.toString();
+  const callbackUrl = serializeSearchParams(
+    base,
+    "/oauth/authorize",
+    stringParams,
+  );
+  return serializeSearchParams(base, "/login", { callbackUrl });
 };

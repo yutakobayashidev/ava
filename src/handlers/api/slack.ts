@@ -9,23 +9,11 @@ import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { env } from "hono/adapter";
 import { installWorkspace } from "@/usecases/slack/installWorkspace";
+import { buildRedirectUrl } from "@/utils/urls";
 
 const app = createHonoApp();
 
 const STATE_COOKIE = "slack_install_state";
-
-const redirectWithMessage = (
-  req: Request,
-  path: string,
-  params: Record<string, string>,
-) => {
-  const base = new URL(req.url).origin;
-  const url = new URL(path, base);
-  Object.entries(params).forEach(([key, value]) =>
-    url.searchParams.set(key, value),
-  );
-  return url.toString();
-};
 
 app.get("/install/callback", async (ctx) => {
   const sessionToken = getCookie(ctx, "session");
@@ -44,7 +32,7 @@ app.get("/install/callback", async (ctx) => {
 
   if (!code) {
     return ctx.redirect(
-      redirectWithMessage(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, "/slack/install", {
         error: "missing_code",
       }),
     );
@@ -52,7 +40,7 @@ app.get("/install/callback", async (ctx) => {
 
   if (!storedState || storedState !== state) {
     return ctx.redirect(
-      redirectWithMessage(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, "/slack/install", {
         error: "state_mismatch",
       }),
     );
@@ -76,14 +64,14 @@ app.get("/install/callback", async (ctx) => {
   // 結果に応じてリダイレクト
   if (result.success) {
     return ctx.redirect(
-      redirectWithMessage(ctx.req.raw, "/onboarding/connect-slack", {
+      buildRedirectUrl(ctx.req.raw, "/onboarding/connect-slack", {
         installed: "1",
         team: result.teamName,
       }),
     );
   } else {
     return ctx.redirect(
-      redirectWithMessage(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, "/slack/install", {
         error: result.error,
       }),
     );
