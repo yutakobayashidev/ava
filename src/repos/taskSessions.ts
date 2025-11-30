@@ -209,8 +209,8 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
-      // 未解決のブロッキングを取得
-      const unresolvedBlocks = await tx
+      // ブロックイベントを取得
+      const blockedEvents = await tx
         .select()
         .from(schema.taskEvents)
         .where(
@@ -220,6 +220,29 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           ),
         )
         .orderBy(desc(schema.taskEvents.createdAt));
+
+      // 解決イベントを取得
+      const resolvedEvents = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
+            eq(schema.taskEvents.eventType, "block_resolved"),
+          ),
+        );
+
+      // 解決されたブロックのIDを収集
+      const resolvedBlockIds = new Set(
+        resolvedEvents
+          .map((e) => e.relatedEventId)
+          .filter((id): id is string => id !== null),
+      );
+
+      // 未解決のブロックのみをフィルタリング
+      const unresolvedBlocks = blockedEvents.filter(
+        (block) => !resolvedBlockIds.has(block.id),
+      );
 
       const [session] = await tx
         .update(schema.taskSessions)
