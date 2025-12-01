@@ -295,7 +295,7 @@ export default async function LandingPage() {
             <div className="grid md:grid-cols-2 gap-8">
               <Card className="p-8 gap-6">
                 <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
                     <svg
                       className="h-6 w-6 text-primary"
                       fill="none"
