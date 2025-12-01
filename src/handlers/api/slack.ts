@@ -1,4 +1,5 @@
-import { getCookie, deleteCookie } from "hono/cookie";
+import { generateState } from "arctic";
+import { getCookie, deleteCookie, setCookie } from "hono/cookie";
 
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
 import { validateSessionToken } from "@/lib/session";
@@ -10,10 +11,40 @@ import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { env } from "hono/adapter";
 import { installWorkspace } from "@/usecases/slack/installWorkspace";
 import { buildRedirectUrl } from "@/utils/urls";
+import { buildSlackInstallUrl } from "@/lib/slackInstall";
 
 const app = createHonoApp();
 
 const STATE_COOKIE = "slack_install_state";
+
+app.get("/install/start", async (ctx) => {
+  const sessionToken = getCookie(ctx, "session");
+
+  const { user } = sessionToken
+    ? await validateSessionToken(sessionToken)
+    : { user: null };
+  if (!user) {
+    return ctx.redirect(
+      buildRedirectUrl(ctx.req.raw, "/login", {
+        callbackUrl: "/settings",
+      }),
+    );
+  }
+
+  const state = generateState();
+  const authorizeUrl = buildSlackInstallUrl(state);
+  const { NODE_ENV } = env(ctx);
+
+  setCookie(ctx, STATE_COOKIE, state, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: NODE_ENV === "production",
+    path: "/",
+    maxAge: 600,
+  });
+
+  return ctx.redirect(authorizeUrl);
+});
 
 app.get("/install/callback", async (ctx) => {
   const sessionToken = getCookie(ctx, "session");
@@ -22,7 +53,11 @@ app.get("/install/callback", async (ctx) => {
     ? await validateSessionToken(sessionToken)
     : { user: null };
   if (!user) {
-    return ctx.redirect("/login?callbackUrl=/slack/install");
+    return ctx.redirect(
+      buildRedirectUrl(ctx.req.raw, "/login", {
+        callbackUrl: "/settings",
+      }),
+    );
   }
 
   const code = ctx.req.query("code");
@@ -30,9 +65,13 @@ app.get("/install/callback", async (ctx) => {
   const storedState = getCookie(ctx, STATE_COOKIE);
   const { NODE_ENV } = env(ctx);
 
+  // オンボーディング完了済みかどうかで戻り先を決定
+  const isOnboarding = !user.onboardingCompletedAt;
+  const fallbackPath = isOnboarding ? "/onboarding/connect-slack" : "/settings";
+
   if (!code) {
     return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, fallbackPath, {
         error: "missing_code",
       }),
     );
@@ -40,7 +79,7 @@ app.get("/install/callback", async (ctx) => {
 
   if (!storedState || storedState !== state) {
     return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, fallbackPath, {
         error: "state_mismatch",
       }),
     );
@@ -71,7 +110,7 @@ app.get("/install/callback", async (ctx) => {
     );
   } else {
     return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/slack/install", {
+      buildRedirectUrl(ctx.req.raw, fallbackPath, {
         error: result.error,
       }),
     );

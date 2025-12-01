@@ -11,7 +11,12 @@ export type StartTask = {
   initial_summary: string;
 };
 
-export const startTasks = async (params: StartTask, ctx: Env["Variables"]) => {
+export const startTasks = async (
+  params: StartTask,
+  ctx: Env["Variables"],
+): Promise<
+  { success: true; data: string } | { success: false; error: string }
+> => {
   const { issue, initial_summary } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
@@ -30,6 +35,13 @@ export const startTasks = async (params: StartTask, ctx: Env["Variables"]) => {
     initialSummary: initial_summary,
   });
 
+  if (!session) {
+    return {
+      success: false,
+      error: "タスクセッションの作成に失敗しました",
+    };
+  }
+
   const slackNotification = await notificationService.notifyTaskStarted({
     session: { id: session.id },
     issue: {
@@ -45,11 +57,16 @@ export const startTasks = async (params: StartTask, ctx: Env["Variables"]) => {
     },
   });
 
-  return {
+  const result = {
     task_session_id: session.id,
     status: session.status,
     issued_at: session.createdAt,
     slack_notification: slackNotification,
     message: "タスクの追跡を開始しました。",
+  };
+
+  return {
+    success: true,
+    data: JSON.stringify(result, null, 2),
   };
 };

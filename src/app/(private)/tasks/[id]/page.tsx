@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/clients/drizzle";
 import { createTaskRepository } from "@/repos";
-import { createTaskEventRepository } from "@/repos/taskEvents";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,8 +79,7 @@ export default async function TaskDetailPage({ params }: PageProps) {
   }
 
   // イベントを取得
-  const taskEventRepository = createTaskEventRepository({ db });
-  const events = await taskEventRepository.listEvents({
+  const events = await taskRepository.listEvents({
     taskSessionId: id,
     limit: 100,
   });
@@ -92,10 +90,13 @@ export default async function TaskDetailPage({ params }: PageProps) {
   let duration: number | null = null;
 
   if (task.status === "completed") {
-    const completion = await taskRepository.findCompletionByTaskSessionId(id);
-    if (completion) {
-      completedAt = completion.createdAt;
-      completionSummary = completion.summary;
+    const completedEvent = await taskRepository.getLatestEvent({
+      taskSessionId: id,
+      eventType: "completed",
+    });
+    if (completedEvent) {
+      completedAt = completedEvent.createdAt;
+      completionSummary = completedEvent.summary;
       duration = completedAt.getTime() - task.createdAt.getTime();
     }
   }

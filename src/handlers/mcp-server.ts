@@ -32,9 +32,6 @@ export function createMcpServer(ctx: Env["Variables"]) {
       .describe("タスクの簡潔なタイトル"),
   });
 
-  const toJsonResponse = (payload: Record<string, unknown>) =>
-    toTextResponse(JSON.stringify(payload, null, 2));
-
   server.registerTool(
     "start_task",
     {
@@ -53,7 +50,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { issue, initial_summary },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -79,7 +76,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, summary, raw_context },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -105,7 +102,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, reason, raw_context },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -131,7 +128,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, reason, raw_context },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -157,7 +154,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, summary, raw_context },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -182,7 +179,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, summary },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -209,7 +206,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { task_session_id, block_report_id },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 
@@ -236,7 +233,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
         { status, limit },
         ctx,
       );
-      return toJsonResponse(result);
+      return toTextResponse(result.success ? result.data : result.error);
     },
   );
 

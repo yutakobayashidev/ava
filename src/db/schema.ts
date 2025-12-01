@@ -216,8 +216,6 @@ export const refreshTokens = pgTable(
   }),
 );
 
-// workspace_members テーブルは削除 - users.workspaceId で直接参照
-
 export const taskSessions = pgTable(
   "task_sessions",
   {
@@ -252,48 +250,6 @@ export const taskSessions = pgTable(
   }),
 );
 
-export const taskUpdates = pgTable(
-  "task_updates",
-  {
-    id: text("id").primaryKey().notNull(),
-    taskSessionId: text("task_session_id")
-      .references(() => taskSessions.id, { onDelete: "cascade" })
-      .notNull(),
-    summary: text("summary").notNull(),
-    rawContext: jsonb("raw_context")
-      .$type<Record<string, unknown>>()
-      .default(sql`'{}'::jsonb`)
-      .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    taskSessionIdx: index("task_updates_task_session_idx").on(
-      table.taskSessionId,
-    ),
-  }),
-);
-
-export const taskCompletions = pgTable(
-  "task_completions",
-  {
-    id: text("id").primaryKey().notNull(),
-    taskSessionId: text("task_session_id")
-      .references(() => taskSessions.id, { onDelete: "cascade" })
-      .notNull(),
-    summary: text("summary").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    taskSessionUnique: uniqueIndex("task_completions_task_session_unique").on(
-      table.taskSessionId,
-    ),
-  }),
-);
-
 export const taskEvents = pgTable(
   "task_events",
   {
@@ -304,6 +260,7 @@ export const taskEvents = pgTable(
     eventType: taskEventTypeEnum("event_type").notNull(),
     reason: text("reason"),
     summary: text("summary"),
+    relatedEventId: text("related_event_id"),
     rawContext: jsonb("raw_context")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
@@ -334,26 +291,7 @@ export const taskSessionRelations = relations(
       fields: [taskSessions.workspaceId],
       references: [workspaces.id],
     }),
-    updates: many(taskUpdates),
-    completions: many(taskCompletions),
     events: many(taskEvents),
-  }),
-);
-
-export const taskUpdateRelations = relations(taskUpdates, ({ one }) => ({
-  taskSession: one(taskSessions, {
-    fields: [taskUpdates.taskSessionId],
-    references: [taskSessions.id],
-  }),
-}));
-
-export const taskCompletionRelations = relations(
-  taskCompletions,
-  ({ one }) => ({
-    taskSession: one(taskSessions, {
-      fields: [taskCompletions.taskSessionId],
-      references: [taskSessions.id],
-    }),
   }),
 );
 
@@ -446,10 +384,6 @@ export const clientRelations = relations(clients, ({ many }) => ({
 
 export type TaskSession = typeof taskSessions.$inferSelect;
 export type NewTaskSession = typeof taskSessions.$inferInsert;
-export type TaskUpdate = typeof taskUpdates.$inferSelect;
-export type NewTaskUpdate = typeof taskUpdates.$inferInsert;
-export type TaskCompletion = typeof taskCompletions.$inferSelect;
-export type NewTaskCompletion = typeof taskCompletions.$inferInsert;
 export type TaskEvent = typeof taskEvents.$inferSelect;
 export type NewTaskEvent = typeof taskEvents.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;

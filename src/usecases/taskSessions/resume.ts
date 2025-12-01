@@ -1,7 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
-import { validateTransition } from "@/domain/task-status";
+import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 export type ResumeTask = {
   task_session_id: string;
@@ -9,7 +9,12 @@ export type ResumeTask = {
   raw_context?: Record<string, unknown>;
 };
 
-export const resumeTask = async (params: ResumeTask, ctx: Env["Variables"]) => {
+export const resumeTask = async (
+  params: ResumeTask,
+  ctx: Env["Variables"],
+): Promise<
+  { success: true; data: string } | { success: false; error: string }
+> => {
   const { task_session_id, summary, raw_context } = params;
 
   const [workspace, db] = [ctx.workspace, ctx.db];
@@ -26,11 +31,19 @@ export const resumeTask = async (params: ResumeTask, ctx: Env["Variables"]) => {
   );
 
   if (!currentSession) {
-    throw new Error("タスクセッションが見つかりません");
+    return {
+      success: false,
+      error: "タスクセッションが見つかりません",
+    };
   }
 
   // paused → in_progress への遷移を検証
-  validateTransition(currentSession.status, "in_progress");
+  if (!isValidTransition(currentSession.status, "in_progress")) {
+    return {
+      success: false,
+      error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+    };
+  }
 
   const { session } = await taskRepository.resumeTask({
     taskSessionId: task_session_id,
@@ -38,6 +51,13 @@ export const resumeTask = async (params: ResumeTask, ctx: Env["Variables"]) => {
     summary,
     rawContext: raw_context ?? {},
   });
+
+  if (!session) {
+    return {
+      success: false,
+      error: "タスクの再開処理に失敗しました",
+    };
+  }
 
   const slackNotification = await notificationService.notifyTaskResumed({
     session: {
@@ -48,11 +68,16 @@ export const resumeTask = async (params: ResumeTask, ctx: Env["Variables"]) => {
     summary,
   });
 
-  return {
+  const result = {
     task_session_id: session.id,
     status: session.status,
     resumed_at: session.updatedAt,
     slack_notification: slackNotification,
     message: "タスクを再開しました。",
+  };
+
+  return {
+    success: true,
+    data: JSON.stringify(result, null, 2),
   };
 };
