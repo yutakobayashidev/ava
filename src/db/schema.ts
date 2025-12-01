@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   pgEnum,
@@ -72,6 +73,7 @@ export const clients = pgTable(
     clientSecret: text("client_secret"),
     name: text("name").notNull(),
     redirectUris: text("redirect_uris").array().notNull(),
+    isPreRegistered: boolean("is_pre_registered").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

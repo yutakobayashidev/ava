@@ -51,6 +51,7 @@ Model Context Protocol (MCP) に対応した HTTP サーバーを `/mcp` エン�
 セキュアな認証フローで MCP クライアントを保護：
 
 - 動的クライアント登録 (`/api/oauth/register`)
+- 事前登録クライアントのサポート（Raycast 拡張機能など）
 - Authorization Code + PKCE フロー (`/oauth/authorize`)
 - アクセストークン管理 (`/api/oauth/token`)
 - Well-Known メタデータエンドポイント
@@ -326,6 +327,34 @@ $ pnpm db:migrate   # マイグレーションを実行
 $ pnpm db:studio    # Drizzle Studio を起動
 $ pnpm db:down      # PostgreSQL コンテナを停止
 ```
+
+### 事前登録 OAuth クライアント
+
+Raycast 拡張機能など、動的クライアント登録 (DCR) を使用できないクライアント用に、事前登録クライアントを作成できます。
+
+**クライアントを登録:**
+
+```bash
+$ pnpm tsx scripts/register-client.ts <client_id> <name> <redirect_uri1> [redirect_uri2...]
+```
+
+**例（Raycast 拡張機能）:**
+
+```bash
+$ pnpm tsx scripts/register-client.ts raycast-extension "Raycast Extension" "raycast://extensions/redirect"
+```
+
+**動作:**
+
+- 指定された `client_id` で事前登録クライアントを作成
+- PKCE フローに対応（`client_secret` は不要）
+- 同じ `client_id` で再度実行すると、名前とリダイレクト URI が更新されます
+
+**注意事項:**
+
+- 事前登録クライアントは `isPreRegistered` フラグが `true` に設定されます
+- DCR で作成されたクライアントと区別されます
+- OAuth token エンドポイントは PKCE をサポートしているため、追加の設定は不要です
 
 ---
 

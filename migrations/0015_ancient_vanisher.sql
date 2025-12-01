@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "is_pre_registered" boolean DEFAULT false NOT NULL;
