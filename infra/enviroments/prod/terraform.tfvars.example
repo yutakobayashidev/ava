@@ -1,0 +1,2 @@
+# 本番環境で使用する変数のサンプル値
+project_name = "your-prod-project"
