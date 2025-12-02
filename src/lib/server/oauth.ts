@@ -4,6 +4,11 @@ import { eq } from "drizzle-orm";
 import { db } from "@/clients/drizzle";
 import { absoluteUrl } from "@/lib/utils";
 import { serializeSearchParams } from "@/utils/urls";
+import {
+  isCimdClientId,
+  fetchCimdDocumentWithCache,
+  type CimdDocument,
+} from "./cimd";
 
 export const authorizeRequestSchema = z
   .object({
@@ -41,11 +46,21 @@ export const authorizeRequestSchema = z
     },
   );
 
+export type ClientInfo =
+  | {
+      type: "registered";
+      data: typeof schema.clients.$inferSelect;
+    }
+  | {
+      type: "cimd";
+      data: CimdDocument;
+    };
+
 export type ValidateAuthorizeRequestResult =
   | {
       success: true;
       requestParams: z.infer<typeof authorizeRequestSchema>;
-      client: typeof schema.clients.$inferSelect;
+      client: ClientInfo;
     }
   | {
       success: false;
@@ -69,6 +84,40 @@ export const validateAuthorizeRequest = async (
 
   const { client_id: clientId, redirect_uri: redirectUri } = request.data;
 
+  // CIMD (Client ID Metadata Document) のチェック
+  if (isCimdClientId(clientId)) {
+    const cimdResult = await fetchCimdDocumentWithCache(clientId);
+
+    if (!cimdResult.success) {
+      return {
+        success: false,
+        error: cimdResult.error,
+        errorDescription: cimdResult.errorDescription,
+      };
+    }
+
+    const cimdDocument = cimdResult.document;
+
+    // redirect_uri の検証（CIMD ドキュメント内の redirect_uris と完全一致）
+    if (!cimdDocument.redirect_uris.includes(redirectUri)) {
+      return {
+        success: false,
+        error: "invalid_request",
+        errorDescription: "リダイレクトURIが登録されていません。",
+      };
+    }
+
+    return {
+      success: true,
+      requestParams: request.data,
+      client: {
+        type: "cimd",
+        data: cimdDocument,
+      },
+    };
+  }
+
+  // 従来の登録済みクライアント
   const [client] = await db
     .select()
     .from(schema.clients)
@@ -93,7 +142,10 @@ export const validateAuthorizeRequest = async (
   return {
     success: true,
     requestParams: request.data,
-    client,
+    client: {
+      type: "registered",
+      data: client,
+    },
   };
 };
 

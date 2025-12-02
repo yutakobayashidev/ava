@@ -83,11 +83,15 @@ export default async function AuthorizePage({
     const authorizationCode = randomBytes(16).toString("hex");
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+    // CIMD クライアントの場合は client.id に client_id URL を使用
+    const clientIdForStorage =
+      client.type === "cimd" ? client.data.client_id : client.data.id;
+
     await db.insert(schema.authCodes).values({
       id: uuidv7(),
       code: authorizationCode,
       expiresAt,
-      clientId: client.id,
+      clientId: clientIdForStorage,
       userId: user.id,
       workspaceId,
       redirectUri: requestParams.redirect_uri,
@@ -125,7 +129,11 @@ export default async function AuthorizePage({
 
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
           <p className="text-sm text-gray-600 mb-2">アプリケーション</p>
-          <p className="text-lg font-semibold text-gray-900">{client.name}</p>
+          <p className="text-lg font-semibold text-gray-900">
+            {client.type === "cimd"
+              ? client.data.client_name || client.data.client_id
+              : client.data.name}
+          </p>
         </div>
 
         <div className="mb-6">

@@ -14,6 +14,8 @@ wellknownHandler.get("/oauth-authorization-server", (c) => {
     grant_types_supported: ["authorization_code", "refresh_token"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
     code_challenge_methods_supported: ["plain", "S256"],
+    // CIMD (Client ID Metadata Document) サポート
+    client_id_metadata_document_supported: true,
   };
 
   return c.json(metadata);

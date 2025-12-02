@@ -50,10 +50,12 @@ Model Context Protocol (MCP) に対応した HTTP サーバーを `/mcp` エン�
 
 セキュアな認証フローで MCP クライアントを保護：
 
-- 動的クライアント登録 (`/api/oauth/register`)
+- **Client ID Metadata Document (CIMD) 対応** - 事前登録不要で簡単接続
+- 動的クライアント登録 (`/api/oauth/register`) - 従来の DCR もサポート
 - Authorization Code + PKCE フロー (`/oauth/authorize`)
 - アクセストークン管理 (`/api/oauth/token`)
 - Well-Known メタデータエンドポイント
+- SSRF 対策とセキュリティ検証
 
 ### Slack 統合
 

@@ -35,6 +35,11 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
   - 動的クライアント登録: `/api/oauth/register`
   - メタデータ: `/.well-known/oauth-authorization-server` / `/.well-known/oauth-protected-resource`
 - アクセストークンは DB（`access_tokens`）に保存し、期限切れは拒否。
+- **CIMD（Client ID Metadata Document）対応**:
+  - `client_id` が HTTPS URL の場合、その URL から JSON メタデータを取得して検証
+  - 事前のクライアント登録が不要（従来の DCR も引き続きサポート）
+  - SSRF 対策: プライベート IP・localhost を拒否、5KB サイズ制限、10秒タイムアウト
+  - キャッシュ: メモリ内で 15 分間キャッシュ（成功時のみ）
 
 ### ルーティング構成
 

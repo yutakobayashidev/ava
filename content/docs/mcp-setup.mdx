@@ -39,6 +39,8 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
 
     ### 2. MCP サーバーを設定
 
+    Avaは**Client ID Metadata Document (CIMD)** に対応しています。これにより、事前のクライアント登録なしで簡単にMCPサーバーに接続できます。
+
     `.mcp.json` ファイルを作成し、以下を追加：
 
     ```json
@@ -55,6 +57,80 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     **設定ファイルの場所:**
     - プロジェクト固有: プロジェクトルートに `.mcp.json`
     - グローバル: ホームディレクトリに `.mcp.json`
+
+    <Accordions type="single">
+      <Accordion title="CIMD（Client ID Metadata Document）とは？">
+        **CIMD** は、OAuth 2.1の新しい拡張仕様で、クライアント登録を簡素化する仕組みです。
+
+        **従来の方法（DCR - Dynamic Client Registration）:**
+        1. `/api/oauth/register` にクライアント情報を POST
+        2. サーバーから `client_id` と `client_secret` を受け取る
+        3. これらを設定ファイルに記述
+
+        **CIMDを使った方法:**
+        1. クライアントメタデータを公開URLでホスト
+        2. そのURL自体を `client_id` として使用
+        3. サーバーは自動的にメタデータを取得して検証
+
+        **メリット:**
+        - 事前登録が不要
+        - PKCE（Proof Key for Code Exchange）で安全に認証
+        - ローカル開発やテストが簡単
+
+        Avaは **CIMD と DCR の両方** をサポートしているため、Claude Code などの対応クライアントは自動的にこの仕組みを使って接続します。
+
+        詳しくは [IETF Draft - OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/) をご覧ください。
+      </Accordion>
+
+      <Accordion title="Dynamic Client Registration (DCR) を使いたい場合">
+        **DCR（Dynamic Client Registration）** は、OAuth 2.0 の標準仕様で、プログラムから動的にクライアントを登録する仕組みです。
+
+        **使用方法:**
+
+        1. Avaの登録エンドポイントに POST リクエストを送信：
+
+        ```bash
+        curl -X POST https://ava-dusky-gamma.vercel.app/api/oauth/register \
+          -H "Content-Type: application/json" \
+          -d '{
+            "client_name": "My Application",
+            "redirect_uris": ["https://myapp.example.com/callback"]
+          }'
+        ```
+
+        2. レスポンスで `client_id` と `client_secret` を取得：
+
+        ```json
+        {
+          "client_id": "abc123...",
+          "client_secret": "xyz789...",
+          "redirect_uris": ["https://myapp.example.com/callback"]
+        }
+        ```
+
+        3. これらの値を `.mcp.json` に設定：
+
+        ```json
+        {
+          "mcpServers": {
+            "ava": {
+              "type": "http",
+              "url": "https://ava-dusky-gamma.vercel.app/mcp",
+              "oauth": {
+                "client_id": "abc123...",
+                "client_secret": "xyz789..."
+              }
+            }
+          }
+        }
+        ```
+
+        **注意:**
+        - DCR は主に自動化やプログラムからの利用を想定しています
+        - 通常のユーザーは CIMD を使った方が簡単です
+        - `client_secret` は安全に保管してください
+      </Accordion>
+    </Accordions>
 
     ### 3. 初回接続と認証
 

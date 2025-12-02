@@ -8,6 +8,7 @@ import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
+import { isCimdClientId, fetchCimdDocumentWithCache } from "@/lib/server/cimd";
 
 const app = createHonoApp();
 
@@ -89,13 +90,38 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     const db = c.get("db");
 
     console.log("Finding client for client_id:", client_id);
-    const [client] = await db
-      .select()
-      .from(schema.clients)
-      .where(eq(schema.clients.clientId, client_id));
-    if (!client) {
-      console.log("Invalid client.", { client_id });
-      throw new HTTPException(401, { message: "invalid_client" });
+
+    // Check if client_id is a CIMD URL
+    let clientIdForStorage: string;
+    let requiresClientSecret = false;
+
+    if (isCimdClientId(client_id)) {
+      console.log("CIMD client detected:", client_id);
+
+      // CIMD クライアントの検証
+      const cimdResult = await fetchCimdDocumentWithCache(client_id);
+      if (!cimdResult.success) {
+        console.log("Invalid CIMD client:", cimdResult.errorDescription);
+        throw new HTTPException(401, { message: "invalid_client" });
+      }
+
+      clientIdForStorage = client_id;
+      // CIMD では共有シークレットは使わない（PKCE のみ）
+      requiresClientSecret = false;
+    } else {
+      // 従来の登録済みクライアント
+      const [client] = await db
+        .select()
+        .from(schema.clients)
+        .where(eq(schema.clients.clientId, client_id));
+
+      if (!client) {
+        console.log("Invalid client.", { client_id });
+        throw new HTTPException(401, { message: "invalid_client" });
+      }
+
+      clientIdForStorage = client.id;
+      requiresClientSecret = !!client.clientSecret; // clientSecret がある場合は検証が必要
     }
 
     console.log("Finding auth code:", code);
@@ -106,12 +132,12 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
     if (
       !authCode ||
-      authCode.clientId !== client.id ||
+      authCode.clientId !== clientIdForStorage ||
       authCode.redirectUri !== redirect_uri
     ) {
       console.log("Invalid code or redirect_uri mismatch.", {
         authCode,
-        client_id: client.id,
+        clientIdForStorage,
         redirect_uri,
       });
       throw new HTTPException(400, { message: "invalid_grant" });
@@ -144,11 +170,16 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       if (!pkceValid) {
         throw new HTTPException(400, { message: "invalid_grant" });
       }
-    } else {
-      // No PKCE - client_secret is required
+    } else if (requiresClientSecret) {
+      // No PKCE - client_secret is required (only for non-CIMD clients)
+      const [client] = await db
+        .select()
+        .from(schema.clients)
+        .where(eq(schema.clients.id, clientIdForStorage));
+
       if (
         !client_secret ||
-        !client.clientSecret ||
+        !client?.clientSecret ||
         client.clientSecret !== client_secret
       ) {
         console.log("Invalid client_secret.", { client_id });
@@ -211,7 +242,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         id: uuidv7(),
         tokenHash: accessTokenHash,
         expiresAt: accessTokenExpiresAt,
-        clientId: client.id,
+        clientId: clientIdForStorage,
         userId: authCode.userId,
         workspaceId: authCode.workspaceId,
       })
@@ -232,7 +263,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       id: uuidv7(),
       tokenHash: refreshTokenHash,
       accessTokenId: createdAccessToken.id,
-      clientId: client.id,
+      clientId: clientIdForStorage,
       userId: authCode.userId,
       workspaceId: authCode.workspaceId,
       expiresAt: refreshTokenExpiresAt,

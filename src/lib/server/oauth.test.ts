@@ -143,20 +143,10 @@ describe("lib/server/oauth", () => {
 
       const result = await validateAuthorizeRequest(params);
 
-      expect(result.success).toBe(true);
-      expect(result).toHaveProperty("client");
-      expect(result).toHaveProperty("requestParams");
-      expect(
-        (result as { success: true; client: typeof testClient }).client.id,
-      ).toBe(testClient.id);
-      expect(
-        (
-          result as {
-            success: true;
-            requestParams: { client_id: string };
-          }
-        ).requestParams.client_id,
-      ).toBe("test-client-id");
+      expect.assert(result.success === true);
+      expect.assert(result.client.type === "registered");
+      expect(result.client.data.id).toBe(testClient.id);
+      expect(result.requestParams.client_id).toBe("test-client-id");
     });
 
     it("不正なパラメータでエラーを返す", async () => {
@@ -168,14 +158,9 @@ describe("lib/server/oauth", () => {
 
       const result = await validateAuthorizeRequest(params);
 
-      expect.assert(!result.success);
-      expect((result as { success: false; error: string }).error).toBe(
-        "invalid_request",
-      );
-      expect(
-        (result as { success: false; errorDescription?: string })
-          .errorDescription,
-      ).toContain("client_id");
+      expect.assert(result.success === false);
+      expect(result.error).toBe("invalid_request");
+      expect(result.errorDescription).toContain("client_id");
     });
 
     it("存在しないクライアントでエラーを返す", async () => {
@@ -187,14 +172,9 @@ describe("lib/server/oauth", () => {
 
       const result = await validateAuthorizeRequest(params);
 
-      expect.assert(!result.success);
-      expect((result as { success: false; error: string }).error).toBe(
-        "invalid_client",
-      );
-      expect(
-        (result as { success: false; errorDescription?: string })
-          .errorDescription,
-      ).toContain("不正なクライアント");
+      expect.assert(result.success === false);
+      expect(result.error).toBe("invalid_client");
+      expect(result.errorDescription).toContain("不正なクライアント");
     });
 
     it("登録されていないリダイレクトURIでエラーを返す", async () => {
@@ -206,14 +186,9 @@ describe("lib/server/oauth", () => {
 
       const result = await validateAuthorizeRequest(params);
 
-      expect.assert(!result.success);
-      expect((result as { success: false; error: string }).error).toBe(
-        "invalid_request",
-      );
-      expect(
-        (result as { success: false; errorDescription?: string })
-          .errorDescription,
-      ).toContain("リダイレクトURI");
+      expect.assert(result.success === false);
+      expect(result.error).toBe("invalid_request");
+      expect(result.errorDescription).toContain("リダイレクトURI");
     });
   });
 

@@ -18,6 +18,7 @@ describe("wellknown", () => {
         grant_types_supported: ["authorization_code", "refresh_token"],
         token_endpoint_auth_methods_supported: ["none", "client_secret_post"],
         code_challenge_methods_supported: ["plain", "S256"],
+        client_id_metadata_document_supported: true,
       });
 
       // Verify all required fields are present
@@ -26,6 +27,7 @@ describe("wellknown", () => {
       expect(json).toHaveProperty("token_endpoint");
       expect(json).toHaveProperty("registration_endpoint");
       expect(json).toHaveProperty("scopes_supported");
+      expect(json).toHaveProperty("client_id_metadata_document_supported");
 
       // Verify endpoint URLs
       expect(json.authorization_endpoint).toContain("/oauth/authorize");
