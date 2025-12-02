@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CopyButton } from "../onboarding/setup-mcp/CopyButton";
 import { McpSetupTabs } from "../onboarding/setup-mcp/McpSetupTabs";
 import { absoluteUrl } from "@/lib/utils";
 import { getSlackInstallConfig } from "@/lib/slackInstall";
@@ -32,16 +31,7 @@ export default async function SettingsPage({
   const statusMessage = getSlackStatusMessage(params);
   const isSuccess = isSuccessMessage(params);
 
-  const mcpConfig = {
-    mcpServers: {
-      ava: {
-        type: "http",
-        url: absoluteUrl("/mcp"),
-      },
-    },
-  };
-
-  const configJson = JSON.stringify(mcpConfig, null, 2);
+  const mcpUrl = absoluteUrl("/mcp");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -78,20 +68,7 @@ export default async function SettingsPage({
                 コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。
               </p>
 
-              <McpSetupTabs />
-
-              <div className="space-y-4">
-                <div className="relative rounded-lg bg-slate-900 p-4">
-                  <CopyButton text={configJson} />
-                  <pre className="overflow-x-auto text-sm text-slate-100">
-                    <code>{configJson}</code>
-                  </pre>
-                </div>
-
-                <p className="text-sm text-muted-foreground">
-                  上記の設定を、選択したエディタの指定された場所に配置してください。
-                </p>
-              </div>
+              <McpSetupTabs mcpUrl={mcpUrl} />
             </CardContent>
           </Card>
 

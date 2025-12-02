@@ -145,4 +145,20 @@ export const Icons = {
       />
     </svg>
   ),
+  codex: (props: IconProps) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <rect x={3} y={4.5} width={18} height={15} rx={3} ry={3} />
+      <path d="M9 9.25C9 7.455 10.455 6 12.25 6H19" />
+      <path d="M9 14.75C9 16.545 10.455 18 12.25 18H19" />
+    </svg>
+  ),
 };
