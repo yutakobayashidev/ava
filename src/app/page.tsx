@@ -571,12 +571,14 @@ export default async function LandingPage() {
               </Link>
               <Link
                 href="/docs/terms"
+                rel="terms-of-service"
                 className="hover:text-white transition-colors"
               >
                 利用規約
               </Link>
               <Link
                 href="/docs/privacy"
+                rel="privacy-policy"
                 className="hover:text-white transition-colors"
               >
                 プライバシーポリシー
@@ -588,7 +590,7 @@ export default async function LandingPage() {
                 特定商取引法に基づく表記
               </Link>
               <a
-                href="https://github.com/yutakobayashidev/ai-task"
+                href={siteConfig.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white transition-colors"
