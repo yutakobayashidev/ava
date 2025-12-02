@@ -1,4 +1,5 @@
 import type { SubscriptionRepository } from "@/repos/subscriptions";
+import { absoluteUrl } from "@/lib/utils";
 
 const FREE_PLAN_LIMIT = 5;
 
@@ -23,8 +24,7 @@ export async function checkFreePlanLimit(
   const sessionCount = await subscriptionRepo.countUserTaskSessions(userId);
 
   if (sessionCount >= FREE_PLAN_LIMIT) {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    return `無料プランの制限（${FREE_PLAN_LIMIT}セッション）に達しました。引き続きご利用いただくには、有料プランへのアップグレードをお願いします。\n詳細: ${baseUrl}/pricing`;
+    return `無料プランの制限（${FREE_PLAN_LIMIT}セッション）に達しました。引き続きご利用いただくには、有料プランへのアップグレードをお願いします。\n詳細: ${absoluteUrl("/docs/pricing")}`;
   }
 
   return null;
