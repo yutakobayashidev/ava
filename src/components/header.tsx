@@ -85,6 +85,9 @@ export function Header({ user, className = "bg-white" }: HeaderProps) {
                 <DropdownMenuItem asChild>
                   <Link href="/settings">設定</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/billing">請求管理</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   ログアウト

@@ -564,6 +564,12 @@ export default async function LandingPage() {
                 ドキュメント
               </Link>
               <Link
+                href="/docs/pricing"
+                className="hover:text-white transition-colors"
+              >
+                料金
+              </Link>
+              <Link
                 href="/docs/terms"
                 className="hover:text-white transition-colors"
               >
@@ -574,6 +580,12 @@ export default async function LandingPage() {
                 className="hover:text-white transition-colors"
               >
                 プライバシーポリシー
+              </Link>
+              <Link
+                href="/docs/law"
+                className="hover:text-white transition-colors"
+              >
+                特定商取引法に基づく表記
               </Link>
               <a
                 href="https://github.com/yutakobayashidev/ai-task"
