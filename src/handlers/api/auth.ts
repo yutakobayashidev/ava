@@ -25,12 +25,7 @@ const app = createHonoApp()
       sameSite: "lax",
     });
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: url.toString(),
-      },
-    });
+    return c.redirect(url.toString());
   })
   .get("/slack/callback", async (c) => {
     const { code, state } = c.req.query();
@@ -62,12 +57,7 @@ const app = createHonoApp()
       expires: result.session.expiresAt,
     });
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: "/",
-      },
-    });
+    return c.redirect("/");
   })
   .post("/logout", async (c) => {
     const token = getCookie(c, "session");
