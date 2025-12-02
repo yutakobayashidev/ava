@@ -12,3 +12,8 @@ variable "stripe_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "webhook_base_url" {
+  description = "Webhook のベース URL (例: https://yourdomain.com)"
+  type        = string
+}
