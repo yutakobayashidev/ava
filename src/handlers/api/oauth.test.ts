@@ -750,6 +750,100 @@ describe("api/oauth", () => {
       expect(secondRes.status).toBe(400);
     });
 
+    it("should prevent race condition with concurrent authorization code exchanges", async () => {
+      // Simulate two concurrent requests with the same authorization code
+      // Only one should succeed, the other should fail
+      const makeCodeExchangeRequest = () =>
+        app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+      // Fire two concurrent requests
+      const [res1, res2] = await Promise.all([
+        makeCodeExchangeRequest(),
+        makeCodeExchangeRequest(),
+      ]);
+
+      // Exactly one should succeed
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 400]);
+
+      // Verify the auth code was deleted
+      const authCodes = await db.query.authCodes.findMany({
+        where: (t, { eq }) => eq(t.code, authCode),
+      });
+      expect(authCodes).toHaveLength(0);
+
+      // Verify only one set of tokens was created
+      const accessTokens = await db.query.accessTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(accessTokens).toHaveLength(1);
+
+      const refreshTokens = await db.query.refreshTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(refreshTokens).toHaveLength(1);
+    });
+
+    it("should handle high concurrency authorization code exchanges correctly", async () => {
+      // Simulate 5 concurrent requests
+      const concurrentRequests = 5;
+      const makeCodeExchangeRequest = () =>
+        app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+      // Fire multiple concurrent requests
+      const results = await Promise.all(
+        Array.from({ length: concurrentRequests }, makeCodeExchangeRequest),
+      );
+
+      // Exactly one should succeed, others should fail
+      const successCount = results.filter((r) => r.status === 200).length;
+      const failureCount = results.filter((r) => r.status === 400).length;
+
+      expect(successCount).toBe(1);
+      expect(failureCount).toBe(concurrentRequests - 1);
+
+      // Verify the auth code was deleted
+      const authCodes = await db.query.authCodes.findMany({
+        where: (t, { eq }) => eq(t.code, authCode),
+      });
+      expect(authCodes).toHaveLength(0);
+
+      // Verify exactly one set of tokens was created
+      const accessTokens = await db.query.accessTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(accessTokens).toHaveLength(1);
+
+      const refreshTokens = await db.query.refreshTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(refreshTokens).toHaveLength(1);
+    });
+
     it("should fail when using auth code with different client_id", async () => {
       // Create another client
       const [otherClient] = await db

@@ -112,151 +112,13 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       throw new HTTPException(401, { message: "invalid_client" });
     }
 
-    console.log("Finding auth code:", code);
-    const [authCode] = await db
-      .select()
-      .from(schema.authCodes)
-      .where(eq(schema.authCodes.code, code));
-
-    if (
-      !authCode ||
-      authCode.clientId !== client.id ||
-      authCode.redirectUri !== redirect_uri
-    ) {
-      console.log("Invalid code or redirect_uri mismatch.", {
-        authCode,
-        client_id: client.id,
-        redirect_uri,
-      });
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-    console.log("Found auth code for user:", authCode.userId);
-
-    if (authCode.expiresAt < new Date()) {
-      console.log("Auth code expired at:", authCode.expiresAt);
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-    console.log("Auth code is valid.");
-
-    // Step 1: Validate PKCE if it was used
-    if (authCode.codeChallenge) {
-      if (!code_verifier) {
-        console.log("PKCE code_verifier missing");
-        throw new HTTPException(400, { message: "invalid_request" });
-      }
-
-      let pkceValid = false;
-      if (authCode.codeChallengeMethod === "S256") {
-        const codeChallengeBytes = sha256(
-          new TextEncoder().encode(code_verifier),
-        );
-        const computedChallenge = encodeBase64urlNoPadding(codeChallengeBytes);
-        // Use timing-safe comparison to prevent timing attacks
-        pkceValid = timingSafeCompare(
-          computedChallenge,
-          authCode.codeChallenge,
-        );
-      } else {
-        // Use timing-safe comparison for plain method as well
-        pkceValid = timingSafeCompare(code_verifier, authCode.codeChallenge);
-      }
-
-      if (!pkceValid) {
-        console.log("PKCE validation failed");
-        throw new HTTPException(400, { message: "invalid_grant" });
-      }
-      console.log("PKCE validation successful");
-    }
-
-    // Step 2: Validate client authentication based on client type
-    if (client.clientSecret) {
-      // Confidential client: client_secret authentication is required
-      if (!client_secret) {
-        console.log("Missing client_secret for confidential client", {
-          client_id,
-        });
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-      // Use timing-safe comparison to prevent timing attacks
-      if (!timingSafeCompare(client.clientSecret, client_secret)) {
-        console.log("Invalid client_secret", { client_id });
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-      console.log("Client secret validation successful");
-    } else {
-      // Public client: PKCE is required
-      if (!authCode.codeChallenge) {
-        console.log("PKCE required for public client but not provided", {
-          client_id,
-        });
-        throw new HTTPException(400, { message: "invalid_request" });
-      }
-      console.log("Public client validated with PKCE");
-    }
-
-    // Delete auth code immediately after validation
-    console.log("Deleting auth code:", authCode.id);
-    await db
-      .delete(schema.authCodes)
-      .where(eq(schema.authCodes.id, authCode.id));
-    console.log("Auth code deleted.");
-
-    if (!authCode.workspaceId) {
-      console.log("Auth code missing workspace_id", {
-        authCodeId: authCode.id,
-      });
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-
-    const [[workspace], [user]] = await Promise.all([
-      db
-        .select()
-        .from(schema.workspaces)
-        .where(eq(schema.workspaces.id, authCode.workspaceId)),
-      db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.id, authCode.userId))
-        .limit(1),
-    ]);
-
-    if (!workspace) {
-      console.log("Workspace not found for auth code", {
-        workspaceId: authCode.workspaceId,
-      });
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-
-    if (!user || user.workspaceId !== authCode.workspaceId) {
-      console.log("User not associated with workspace", {
-        workspaceId: authCode.workspaceId,
-        userId: authCode.userId,
-        userWorkspaceId: user?.workspaceId,
-      });
-      throw new HTTPException(403, { message: "forbidden_workspace" });
-    }
-
+    // Generate tokens outside transaction to minimize transaction time
     const accessToken = randomBytes(32).toString("hex");
     const accessTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(accessToken)),
     );
     const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    console.log("Creating access token for user:", authCode.userId);
-    const [createdAccessToken] = await db
-      .insert(schema.accessTokens)
-      .values({
-        id: uuidv7(),
-        tokenHash: accessTokenHash,
-        expiresAt: accessTokenExpiresAt,
-        clientId: client.id,
-        userId: authCode.userId,
-        workspaceId: authCode.workspaceId,
-      })
-      .returning();
-    console.log("Access token created.");
-
-    // Generate refresh token
     const refreshToken = randomBytes(32).toString("hex");
     const refreshTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(refreshToken)),
@@ -265,17 +127,183 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ); // 30 days
 
-    console.log("Creating refresh token for user:", authCode.userId);
-    await db.insert(schema.refreshTokens).values({
-      id: uuidv7(),
-      tokenHash: refreshTokenHash,
-      accessTokenId: createdAccessToken.id,
-      clientId: client.id,
-      userId: authCode.userId,
-      workspaceId: authCode.workspaceId,
-      expiresAt: refreshTokenExpiresAt,
+    // Transaction: Acquire lock, validate, consume code, and issue tokens atomically
+    // This prevents race conditions from concurrent authorization code exchange requests
+    const result = await db.transaction(async (tx) => {
+      // SELECT FOR UPDATE acquires a row-level lock, preventing concurrent access
+      console.log("Finding and locking auth code:", code);
+      const [authCode] = await tx
+        .select()
+        .from(schema.authCodes)
+        .where(eq(schema.authCodes.code, code))
+        .for("update");
+
+      if (
+        !authCode ||
+        authCode.clientId !== client.id ||
+        authCode.redirectUri !== redirect_uri
+      ) {
+        console.log("Invalid code or redirect_uri mismatch.", {
+          authCode,
+          client_id: client.id,
+          redirect_uri,
+        });
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+      console.log("Found auth code for user:", authCode.userId);
+
+      if (authCode.expiresAt < new Date()) {
+        console.log("Auth code expired at:", authCode.expiresAt);
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+      console.log("Auth code is valid.");
+
+      // Step 1: Validate PKCE if it was used
+      if (authCode.codeChallenge) {
+        if (!code_verifier) {
+          console.log("PKCE code_verifier missing");
+          throw new HTTPException(400, { message: "invalid_request" });
+        }
+
+        let pkceValid = false;
+        if (authCode.codeChallengeMethod === "S256") {
+          const codeChallengeBytes = sha256(
+            new TextEncoder().encode(code_verifier),
+          );
+          const computedChallenge =
+            encodeBase64urlNoPadding(codeChallengeBytes);
+          // Use timing-safe comparison to prevent timing attacks
+          pkceValid = timingSafeCompare(
+            computedChallenge,
+            authCode.codeChallenge,
+          );
+        } else {
+          // Use timing-safe comparison for plain method as well
+          pkceValid = timingSafeCompare(code_verifier, authCode.codeChallenge);
+        }
+
+        if (!pkceValid) {
+          console.log("PKCE validation failed");
+          throw new HTTPException(400, { message: "invalid_grant" });
+        }
+        console.log("PKCE validation successful");
+      }
+
+      // Step 2: Validate client authentication based on client type
+      if (client.clientSecret) {
+        // Confidential client: client_secret authentication is required
+        if (!client_secret) {
+          console.log("Missing client_secret for confidential client", {
+            client_id,
+          });
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+        // Use timing-safe comparison to prevent timing attacks
+        if (!timingSafeCompare(client.clientSecret, client_secret)) {
+          console.log("Invalid client_secret", { client_id });
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+        console.log("Client secret validation successful");
+      } else {
+        // Public client: PKCE is required
+        if (!authCode.codeChallenge) {
+          console.log("PKCE required for public client but not provided", {
+            client_id,
+          });
+          throw new HTTPException(400, { message: "invalid_request" });
+        }
+        console.log("Public client validated with PKCE");
+      }
+
+      // Delete auth code atomically - this ensures single-use
+      // If another concurrent request already deleted it, this will return 0 rows
+      console.log("Consuming auth code:", authCode.id);
+      const deletedRows = await tx
+        .delete(schema.authCodes)
+        .where(eq(schema.authCodes.id, authCode.id))
+        .returning();
+
+      // Verify the delete was successful (should return 1 row)
+      // If no rows were deleted, it means another request already consumed this code
+      if (deletedRows.length === 0) {
+        console.log(
+          "Auth code was already used by concurrent request - race condition detected",
+          {
+            codeId: authCode.id,
+          },
+        );
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+      console.log("Auth code consumed successfully.");
+
+      if (!authCode.workspaceId) {
+        console.log("Auth code missing workspace_id", {
+          authCodeId: authCode.id,
+        });
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+
+      const [[workspace], [user]] = await Promise.all([
+        tx
+          .select()
+          .from(schema.workspaces)
+          .where(eq(schema.workspaces.id, authCode.workspaceId)),
+        tx
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.id, authCode.userId))
+          .limit(1),
+      ]);
+
+      if (!workspace) {
+        console.log("Workspace not found for auth code", {
+          workspaceId: authCode.workspaceId,
+        });
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+
+      if (!user || user.workspaceId !== authCode.workspaceId) {
+        console.log("User not associated with workspace", {
+          workspaceId: authCode.workspaceId,
+          userId: authCode.userId,
+          userWorkspaceId: user?.workspaceId,
+        });
+        throw new HTTPException(403, { message: "forbidden_workspace" });
+      }
+
+      console.log("Creating access token for user:", authCode.userId);
+      const [createdAccessToken] = await tx
+        .insert(schema.accessTokens)
+        .values({
+          id: uuidv7(),
+          tokenHash: accessTokenHash,
+          expiresAt: accessTokenExpiresAt,
+          clientId: client.id,
+          userId: authCode.userId,
+          workspaceId: authCode.workspaceId,
+        })
+        .returning();
+      console.log("Access token created.");
+
+      console.log("Creating refresh token for user:", authCode.userId);
+      await tx.insert(schema.refreshTokens).values({
+        id: uuidv7(),
+        tokenHash: refreshTokenHash,
+        accessTokenId: createdAccessToken.id,
+        clientId: client.id,
+        userId: authCode.userId,
+        workspaceId: authCode.workspaceId,
+        expiresAt: refreshTokenExpiresAt,
+      });
+      console.log("Refresh token created.");
+
+      return { userId: authCode.userId };
     });
-    console.log("Refresh token created.");
+
+    console.log(
+      "Authorization code exchanged successfully for user:",
+      result.userId,
+    );
 
     return c.json({
       access_token: accessToken,
