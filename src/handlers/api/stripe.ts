@@ -4,7 +4,7 @@ import { validateSessionToken } from "@/lib/session";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "hono/adapter";
-import { buildRedirectUrl } from "@/utils/urls";
+import { absoluteUrl } from "@/lib/utils";
 
 const app = createHonoApp()
   // TODO: Implement Stripe webhook endpoint
@@ -40,8 +40,8 @@ const app = createHonoApp()
       );
     }
 
-    const successUrl = buildRedirectUrl(ctx.req.raw, "/billing/success", {});
-    const cancelUrl = buildRedirectUrl(ctx.req.raw, "/billing", {});
+    const successUrl = absoluteUrl("/billing/success");
+    const cancelUrl = absoluteUrl("/billing");
 
     const customer = await stripe.customers.create({
       email: me.email,
