@@ -10,6 +10,7 @@ import type {
   CallToolResult,
   TextContent,
 } from "@modelcontextprotocol/sdk/types.js";
+import type Stripe from "stripe";
 
 const { db, createTestUserAndWorkspace } = await setup();
 
@@ -91,7 +92,7 @@ describe("createMcpServer", async () => {
           OPENAI_API_KEY: process.env.OPENAI_API_KEY,
         },
       }),
-      stripe: null,
+      stripe: {} as Stripe,
     };
 
     // クライアントとサーバーを接続

@@ -16,7 +16,7 @@ export type Env = {
     user: schema.User;
     workspace: schema.Workspace;
     ai: AiSdkModels;
-    stripe: Stripe | null;
+    stripe: Stripe;
   };
 };
 
@@ -59,11 +59,9 @@ export const createHonoApp = () =>
         const { STRIPE_SECRET_KEY } = env(c);
         c.set(
           "stripe",
-          STRIPE_SECRET_KEY
-            ? new Stripe(STRIPE_SECRET_KEY, {
-                apiVersion: "2025-11-17.clover",
-              })
-            : null,
+          new Stripe(STRIPE_SECRET_KEY, {
+            apiVersion: "2025-11-17.clover",
+          }),
         );
 
         await next();
