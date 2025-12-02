@@ -120,25 +120,45 @@ const app = createHonoApp()
     const successUrl = absoluteUrl("/billing/success");
     const cancelUrl = absoluteUrl("/billing");
 
-    let stripeId = me.stripeId;
+    // Get or create Stripe customer with transaction lock to prevent race conditions
+    const { stripeId } = await db.transaction(async (tx) => {
+      // Lock the user row to prevent concurrent customer creation
+      const [lockedUser] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, me.id))
+        .for("update");
 
-    if (!stripeId) {
+      if (!lockedUser) {
+        throw new HTTPException(404, { message: "user not found" });
+      }
+
+      // If stripeId already exists, return it
+      if (lockedUser.stripeId) {
+        return { stripeId: lockedUser.stripeId };
+      }
+
+      // Create Stripe customer
       try {
         const customer = await stripe.customers.create({
-          email: me.email,
-          name: me.name ?? "-",
+          email: lockedUser.email!,
+          name: lockedUser.name ?? "-",
         });
 
-        stripeId = customer.id;
+        // Update user with stripeId
+        await tx
+          .update(users)
+          .set({ stripeId: customer.id })
+          .where(eq(users.id, lockedUser.id));
 
-        await db.update(users).set({ stripeId }).where(eq(users.id, me.id));
+        return { stripeId: customer.id };
       } catch (error) {
         console.error("Failed to create stripe customer:", error);
         throw new HTTPException(500, {
           message: "Failed to create stripe customer",
         });
       }
-    }
+    });
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",

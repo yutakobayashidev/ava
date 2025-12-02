@@ -13,11 +13,13 @@ const {
   createCheckoutSession,
   createPortalSession,
   constructEventAsync,
+  listPrices,
 } = vi.hoisted(() => ({
   createCustomer: vi.fn(),
   createCheckoutSession: vi.fn(),
   createPortalSession: vi.fn(),
   constructEventAsync: vi.fn(),
+  listPrices: vi.fn(),
 }));
 
 const { handleSubscriptionUpsert } = vi.hoisted(() => ({
@@ -31,6 +33,9 @@ vi.mock("stripe", () => {
     default: class MockStripe {
       customers = {
         create: createCustomer,
+      };
+      prices = {
+        list: listPrices,
       };
       checkout = {
         sessions: {
@@ -102,6 +107,10 @@ describe("api/stripe", () => {
       const sessionToken = generateSessionToken();
       await createSession(db, sessionToken, user.id);
 
+      listPrices.mockResolvedValueOnce({
+        data: [{ id: "price_xxx" }],
+      });
+
       createCustomer.mockResolvedValueOnce({
         id: "cus_test123",
       });
@@ -127,6 +136,10 @@ describe("api/stripe", () => {
       const { user } = await createTestUserAndWorkspace();
       const sessionToken = generateSessionToken();
       await createSession(db, sessionToken, user.id);
+
+      listPrices.mockResolvedValueOnce({
+        data: [{ id: "price_xxx" }],
+      });
 
       createCustomer.mockResolvedValueOnce({
         id: "cus_test123",
