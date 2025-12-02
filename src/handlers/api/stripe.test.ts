@@ -8,12 +8,21 @@ import {
 import { users, subscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const { createCustomer, createCheckoutSession, createPortalSession } =
-  vi.hoisted(() => ({
-    createCustomer: vi.fn(),
-    createCheckoutSession: vi.fn(),
-    createPortalSession: vi.fn(),
-  }));
+const {
+  createCustomer,
+  createCheckoutSession,
+  createPortalSession,
+  constructEventAsync,
+} = vi.hoisted(() => ({
+  createCustomer: vi.fn(),
+  createCheckoutSession: vi.fn(),
+  createPortalSession: vi.fn(),
+  constructEventAsync: vi.fn(),
+}));
+
+const { handleSubscriptionUpsert } = vi.hoisted(() => ({
+  handleSubscriptionUpsert: vi.fn(),
+}));
 
 const { db, createTestUserAndWorkspace } = await setup();
 
@@ -33,9 +42,16 @@ vi.mock("stripe", () => {
           create: createPortalSession,
         },
       };
+      webhooks = {
+        constructEventAsync,
+      };
     },
   };
 });
+
+vi.mock("@/usecases/stripe/handleSubscriptionUpsert", () => ({
+  handleSubscriptionUpsert,
+}));
 
 describe("api/stripe", () => {
   beforeEach(async () => {
@@ -189,6 +205,10 @@ describe("api/stripe", () => {
     });
 
     it("should return 400 if signature verification fails", async () => {
+      constructEventAsync.mockRejectedValueOnce(
+        new Error("Webhook signature verification failed"),
+      );
+
       const res = await app.request("/webhook", {
         method: "POST",
         headers: {
@@ -200,6 +220,119 @@ describe("api/stripe", () => {
       expect(res.status).toBe(400);
       const text = await res.text();
       expect(text).toContain("Webhook signature verification failed");
+    });
+
+    it("should handle customer.subscription.created event", async () => {
+      constructEventAsync.mockResolvedValueOnce({
+        type: "customer.subscription.created",
+        data: { object: {} },
+      });
+
+      const res = await app.request("/webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "test-signature",
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("");
+      expect(handleSubscriptionUpsert).toHaveBeenCalled();
+    });
+
+    it("should handle customer.subscription.updated event", async () => {
+      constructEventAsync.mockResolvedValueOnce({
+        type: "customer.subscription.updated",
+        data: { object: {} },
+      });
+
+      const res = await app.request("/webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "test-signature",
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("");
+      expect(handleSubscriptionUpsert).toHaveBeenCalled();
+    });
+
+    it("should handle customer.subscription.deleted event", async () => {
+      constructEventAsync.mockResolvedValueOnce({
+        type: "customer.subscription.deleted",
+        data: { object: {} },
+      });
+
+      const res = await app.request("/webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "test-signature",
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("");
+      expect(handleSubscriptionUpsert).toHaveBeenCalled();
+    });
+
+    it("should handle customer.deleted event", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const stripeId = "cus_test_12345";
+
+      // Set up user with stripeId and subscriptions
+      await db.update(users).set({ stripeId }).where(eq(users.id, user.id));
+      await db.insert(subscriptions).values([
+        {
+          id: "sub_1",
+          userId: user.id,
+          subscriptionId: "sub_123",
+          status: "active",
+          cancelAtPeriodEnd: false,
+        },
+        {
+          id: "sub_2",
+          userId: user.id,
+          subscriptionId: "sub_456",
+          status: "canceled",
+          cancelAtPeriodEnd: false,
+        },
+      ]);
+
+      constructEventAsync.mockResolvedValueOnce({
+        type: "customer.deleted",
+        data: {
+          object: {
+            id: stripeId,
+          },
+        },
+      });
+
+      const res = await app.request("/webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "test-signature",
+        },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("");
+
+      // Verify stripeId was set to null
+      const updatedUser = await db.query.users.findFirst({
+        where: eq(users.id, user.id),
+      });
+      expect(updatedUser?.stripeId).toBeNull();
+
+      // Verify subscriptions were deleted
+      const remainingSubscriptions = await db.query.subscriptions.findMany({
+        where: eq(subscriptions.userId, user.id),
+      });
+      expect(remainingSubscriptions.length).toBe(0);
     });
   });
 
