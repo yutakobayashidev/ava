@@ -61,7 +61,7 @@ export default function NotFound() {
               </Link>
               をご確認いただくか、
               <a
-                href="https://github.com/yutakobayashidev/ai-task"
+                href={siteConfig.github}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline font-medium ml-1"
