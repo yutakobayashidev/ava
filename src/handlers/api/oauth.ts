@@ -8,53 +8,8 @@ import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
-
-/**
- * Extract client credentials from request.
- * Supports both client_secret_basic (Authorization header) and client_secret_post (form body).
- *
- * @returns Object containing client_id and client_secret (if present)
- */
-function extractClientCredentials(
-  authHeader: string | undefined,
-  formClientId: string | undefined,
-  formClientSecret: string | undefined,
-): { client_id: string | undefined; client_secret: string | undefined } {
-  // Try Authorization header first (client_secret_basic)
-  if (authHeader?.toLowerCase().startsWith("basic ")) {
-    const base64Credentials = authHeader.slice(6); // Remove "Basic " prefix
-    try {
-      const credentials = Buffer.from(base64Credentials, "base64").toString(
-        "utf-8",
-      );
-      // Split on first colon only to handle colons in client_secret
-      const colonIndex = credentials.indexOf(":");
-      if (colonIndex === -1) {
-        return { client_id: undefined, client_secret: undefined };
-      }
-      const client_id = credentials.slice(0, colonIndex);
-      const client_secret = credentials.slice(colonIndex + 1);
-
-      if (client_id) {
-        return {
-          client_id: decodeURIComponent(client_id),
-          client_secret: client_secret
-            ? decodeURIComponent(client_secret)
-            : undefined,
-        };
-      }
-    } catch (error) {
-      console.error("Failed to decode Basic auth header:", error);
-      // Fall through to form credentials
-    }
-  }
-
-  // Fall back to form body (client_secret_post or none)
-  return {
-    client_id: formClientId,
-    client_secret: formClientSecret,
-  };
-}
+import { extractClientCredentials } from "@/lib/oauth-credentials";
+import { timingSafeCompare } from "@/lib/timing-safe";
 
 const app = createHonoApp();
 
@@ -196,9 +151,14 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
           new TextEncoder().encode(code_verifier),
         );
         const computedChallenge = encodeBase64urlNoPadding(codeChallengeBytes);
-        pkceValid = computedChallenge === authCode.codeChallenge;
+        // Use timing-safe comparison to prevent timing attacks
+        pkceValid = timingSafeCompare(
+          computedChallenge,
+          authCode.codeChallenge,
+        );
       } else {
-        pkceValid = code_verifier === authCode.codeChallenge;
+        // Use timing-safe comparison for plain method as well
+        pkceValid = timingSafeCompare(code_verifier, authCode.codeChallenge);
       }
 
       if (!pkceValid) {
@@ -217,7 +177,8 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         });
         throw new HTTPException(401, { message: "invalid_client" });
       }
-      if (client.clientSecret !== client_secret) {
+      // Use timing-safe comparison to prevent timing attacks
+      if (!timingSafeCompare(client.clientSecret, client_secret)) {
         console.log("Invalid client_secret", { client_id });
         throw new HTTPException(401, { message: "invalid_client" });
       }
@@ -403,7 +364,8 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         console.log("Missing client_secret for confidential client");
         throw new HTTPException(401, { message: "invalid_client" });
       }
-      if (client.clientSecret !== client_secret) {
+      // Use timing-safe comparison to prevent timing attacks
+      if (!timingSafeCompare(client.clientSecret, client_secret)) {
         console.log("Invalid client_secret");
         throw new HTTPException(401, { message: "invalid_client" });
       }
