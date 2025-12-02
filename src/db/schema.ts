@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   pgEnum,
@@ -140,7 +141,7 @@ export const subscriptions = pgTable(
     currentPeriodEnd: timestamp("current_period_end", {
       withTimezone: true,
     }),
-    cancelAtPeriodEnd: text("cancel_at_period_end").notNull().default("false"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
     userId: text("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),

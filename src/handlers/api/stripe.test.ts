@@ -310,21 +310,21 @@ describe("api/stripe", () => {
         {
           id: "sub_expired",
           userId: user.id,
-          cancelAtPeriodEnd: "false",
+          cancelAtPeriodEnd: false,
           subscriptionId: "sub_1",
           status: "expired",
         },
         {
           id: "sub_active",
           userId: user.id,
-          cancelAtPeriodEnd: "false",
+          cancelAtPeriodEnd: false,
           subscriptionId: "sub_2",
           status: "active",
         },
         {
           id: "sub_complete",
           userId: user.id,
-          cancelAtPeriodEnd: "true",
+          cancelAtPeriodEnd: true,
           subscriptionId: "sub_3",
           status: "complete",
         },
@@ -342,7 +342,7 @@ describe("api/stripe", () => {
       expect(await res1.json()).toMatchInlineSnapshot(`
         {
           "data": {
-            "cancelAtPeriodEnd": "false",
+            "cancelAtPeriodEnd": false,
             "currentPeriodEnd": null,
             "subscriptionId": "sub_2",
           },
@@ -365,7 +365,7 @@ describe("api/stripe", () => {
       expect(await res2.json()).toMatchInlineSnapshot(`
         {
           "data": {
-            "cancelAtPeriodEnd": "true",
+            "cancelAtPeriodEnd": true,
             "currentPeriodEnd": null,
             "subscriptionId": "sub_3",
           },

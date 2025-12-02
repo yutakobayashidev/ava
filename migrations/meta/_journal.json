@@ -113,6 +113,13 @@
       "when": 1764636089477,
       "tag": "0015_foamy_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1764638815874,
+      "tag": "0016_polite_baron_strucker",
+      "breakpoints": true
     }
   ]
 }
