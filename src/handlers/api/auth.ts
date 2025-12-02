@@ -1,7 +1,6 @@
 import { generateState } from "arctic";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
-import { cors } from "hono/cors";
 import { env } from "hono/adapter";
 import { slack } from "@/lib/oauth";
 import { loginWithSlack } from "@/usecases/auth/loginWithSlack";
@@ -9,12 +8,6 @@ import { invalidateSession, validateSessionToken } from "@/lib/session";
 import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp()
-  .use(
-    cors({
-      origin: (origin) => origin,
-      credentials: true,
-    }),
-  )
   .get("/slack", async (c) => {
     const { NODE_ENV } = env(c);
     const state = generateState();
