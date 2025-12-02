@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { uuidv7 } from "uuidv7";
 import * as schema from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { createHonoApp } from "@/app/create-app";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
@@ -302,76 +302,7 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       sha256(new TextEncoder().encode(refresh_token)),
     );
 
-    // Find the refresh token
-    const [storedRefreshToken] = await db
-      .select()
-      .from(schema.refreshTokens)
-      .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash));
-
-    if (!storedRefreshToken) {
-      console.log("Invalid refresh token");
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-
-    // Check if token has been used (rotation detection)
-    if (storedRefreshToken.usedAt) {
-      console.log("Refresh token already used - potential replay attack", {
-        tokenId: storedRefreshToken.id,
-      });
-      // Invalidate all tokens for this user/client (security measure)
-      await db
-        .delete(schema.refreshTokens)
-        .where(
-          and(
-            eq(schema.refreshTokens.userId, storedRefreshToken.userId),
-            eq(schema.refreshTokens.clientId, storedRefreshToken.clientId),
-          ),
-        );
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-
-    // Check if token has expired
-    if (storedRefreshToken.expiresAt < new Date()) {
-      console.log("Refresh token expired");
-      throw new HTTPException(400, { message: "invalid_grant" });
-    }
-
-    // Always fetch client information from the stored refresh token
-    const [client] = await db
-      .select()
-      .from(schema.clients)
-      .where(eq(schema.clients.id, storedRefreshToken.clientId));
-
-    if (!client) {
-      console.log("Client not found for refresh token", {
-        clientId: storedRefreshToken.clientId,
-      });
-      throw new HTTPException(401, { message: "invalid_client" });
-    }
-
-    // Verify client_id matches if provided
-    if (client_id && client.clientId !== client_id) {
-      console.log("Client ID mismatch", {
-        provided: client_id,
-        expected: client.clientId,
-      });
-      throw new HTTPException(401, { message: "invalid_client" });
-    }
-
-    // For confidential clients (with client_secret), authentication is required
-    if (client.clientSecret) {
-      if (!client_secret) {
-        console.log("Missing client_secret for confidential client");
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-      // Use timing-safe comparison to prevent timing attacks
-      if (!timingSafeCompare(client.clientSecret, client_secret)) {
-        console.log("Invalid client_secret");
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-    }
-
-    // Generate new tokens
+    // Generate new tokens outside transaction to minimize transaction time
     const newAccessToken = randomBytes(32).toString("hex");
     const newAccessTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(newAccessToken)),
@@ -386,13 +317,136 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       Date.now() + 30 * 24 * 60 * 60 * 1000,
     ); // 30 days
 
-    // Transaction: Mark old refresh token as used, delete old access token, create new tokens
-    await db.transaction(async (tx) => {
-      // Mark the old refresh token as used FIRST (for replay attack detection)
-      await tx
+    // Transaction: Acquire lock, validate, and rotate tokens atomically
+    // This prevents race conditions from concurrent refresh requests
+    const result = await db.transaction(async (tx) => {
+      // SELECT FOR UPDATE acquires a row-level lock, preventing concurrent access
+      const [storedRefreshToken] = await tx
+        .select()
+        .from(schema.refreshTokens)
+        .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash))
+        .for("update");
+
+      if (!storedRefreshToken) {
+        console.log("Invalid refresh token");
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+
+      // Check if token has been used (rotation detection)
+      // This check is now inside the transaction, after acquiring the lock
+      if (storedRefreshToken.usedAt) {
+        console.log("Refresh token already used - potential replay attack", {
+          tokenId: storedRefreshToken.id,
+        });
+        // Invalidate all tokens for this user/client (security measure)
+        await tx
+          .delete(schema.refreshTokens)
+          .where(
+            and(
+              eq(schema.refreshTokens.userId, storedRefreshToken.userId),
+              eq(schema.refreshTokens.clientId, storedRefreshToken.clientId),
+            ),
+          );
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+
+      // Check if token has expired
+      if (storedRefreshToken.expiresAt < new Date()) {
+        console.log("Refresh token expired");
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
+
+      // Always fetch client information from the stored refresh token
+      const [client] = await tx
+        .select()
+        .from(schema.clients)
+        .where(eq(schema.clients.id, storedRefreshToken.clientId));
+
+      if (!client) {
+        console.log("Client not found for refresh token", {
+          clientId: storedRefreshToken.clientId,
+        });
+        throw new HTTPException(401, { message: "invalid_client" });
+      }
+
+      // Client authentication based on client type
+      if (client.clientSecret) {
+        // Confidential client: Both client_id and client_secret are required
+        if (!client_id || !client_secret) {
+          console.log("Missing credentials for confidential client", {
+            has_client_id: !!client_id,
+            has_client_secret: !!client_secret,
+          });
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+
+        // Verify client_id matches the token's client
+        if (client.clientId !== client_id) {
+          console.log("Client ID mismatch for confidential client", {
+            provided: client_id,
+            expected: client.clientId,
+          });
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+
+        // Use timing-safe comparison to prevent timing attacks
+        if (!timingSafeCompare(client.clientSecret, client_secret)) {
+          console.log("Invalid client_secret");
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+        console.log("Confidential client authentication successful");
+      } else {
+        // Public client: client_id is required for identification (no client_secret)
+        if (!client_id) {
+          console.log("Missing client_id for public client");
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+
+        // Verify client_id matches the token's client
+        if (client.clientId !== client_id) {
+          console.log("Client ID mismatch for public client", {
+            provided: client_id,
+            expected: client.clientId,
+          });
+          throw new HTTPException(401, { message: "invalid_client" });
+        }
+        console.log("Public client validated");
+      }
+
+      // Mark the old refresh token as used with atomic UPDATE
+      // The WHERE clause ensures we only update if usedAt is still NULL
+      // This is a defense-in-depth measure alongside SELECT FOR UPDATE
+      const updatedRows = await tx
         .update(schema.refreshTokens)
         .set({ usedAt: new Date() })
-        .where(eq(schema.refreshTokens.id, storedRefreshToken.id));
+        .where(
+          and(
+            eq(schema.refreshTokens.id, storedRefreshToken.id),
+            isNull(schema.refreshTokens.usedAt),
+          ),
+        )
+        .returning();
+
+      // Verify the update was successful (should return 1 row)
+      // If no rows were returned, it means another request already marked it as used
+      if (updatedRows.length === 0) {
+        console.log(
+          "Refresh token was already used by concurrent request - race condition detected",
+          {
+            tokenId: storedRefreshToken.id,
+          },
+        );
+        // Invalidate all tokens for this user/client (security measure)
+        await tx
+          .delete(schema.refreshTokens)
+          .where(
+            and(
+              eq(schema.refreshTokens.userId, storedRefreshToken.userId),
+              eq(schema.refreshTokens.clientId, storedRefreshToken.clientId),
+            ),
+          );
+        throw new HTTPException(400, { message: "invalid_grant" });
+      }
 
       // Delete the old access token if it exists
       // Note: With onDelete: "set null", this will set accessTokenId to null in the refresh token
@@ -426,12 +480,11 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
         workspaceId: storedRefreshToken.workspaceId,
         expiresAt: refreshTokenExpiresAt,
       });
+
+      return { userId: storedRefreshToken.userId };
     });
 
-    console.log(
-      "Refresh token rotated successfully for user:",
-      storedRefreshToken.userId,
-    );
+    console.log("Refresh token rotated successfully for user:", result.userId);
 
     return c.json({
       access_token: newAccessToken,
