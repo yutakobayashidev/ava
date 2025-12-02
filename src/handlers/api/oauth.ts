@@ -11,6 +11,10 @@ import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { extractClientCredentials } from "@/lib/oauth-credentials";
 import { timingSafeCompare } from "@/lib/timing-safe";
 
+// Token expiration times
+const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 const app = createHonoApp();
 
 app.post(
@@ -117,15 +121,15 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     const accessTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(accessToken)),
     );
-    const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const accessTokenExpiresAt = new Date(Date.now() + ACCESS_TOKEN_EXPIRY_MS);
 
     const refreshToken = randomBytes(32).toString("hex");
     const refreshTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(refreshToken)),
     );
     const refreshTokenExpiresAt = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000,
-    ); // 30 days
+      Date.now() + REFRESH_TOKEN_EXPIRY_MS,
+    );
 
     // Transaction: Acquire lock, validate, consume code, and issue tokens atomically
     // This prevents race conditions from concurrent authorization code exchange requests
@@ -335,15 +339,15 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     const newAccessTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(newAccessToken)),
     );
-    const accessTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const accessTokenExpiresAt = new Date(Date.now() + ACCESS_TOKEN_EXPIRY_MS);
 
     const newRefreshToken = randomBytes(32).toString("hex");
     const newRefreshTokenHash = encodeHexLowerCase(
       sha256(new TextEncoder().encode(newRefreshToken)),
     );
     const refreshTokenExpiresAt = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000,
-    ); // 30 days
+      Date.now() + REFRESH_TOKEN_EXPIRY_MS,
+    );
 
     // Transaction: Acquire lock, validate, and rotate tokens atomically
     // This prevents race conditions from concurrent refresh requests
