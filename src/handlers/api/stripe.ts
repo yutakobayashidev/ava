@@ -84,9 +84,32 @@ const app = createHonoApp()
 
     return ctx.redirect(checkoutSession.url);
   })
-  // TODO: Implement customer portal session creation
   .post("/portal-session", async (ctx) => {
-    return ctx.json({ message: "Not implemented" }, 501);
+    const sessionToken = getCookie(ctx, "session");
+    const { user } = sessionToken
+      ? await validateSessionToken(sessionToken)
+      : { user: null };
+
+    if (!user) {
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
+
+    const { db, stripe } = getUsecaseContext(ctx);
+
+    const me = await db.query.users.findFirst({
+      where: eq(users.id, user.id),
+    });
+
+    if (!me?.stripeId) {
+      throw new HTTPException(404, { message: "user not found" });
+    }
+
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: me.stripeId,
+      return_url: absoluteUrl("/billing"),
+    });
+
+    return ctx.redirect(portal.url);
   })
   // TODO: Implement get subscription
   .get("/subscription", async (ctx) => {

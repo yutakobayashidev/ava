@@ -8,10 +8,12 @@ import {
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const { createCustomer, createCheckoutSession } = vi.hoisted(() => ({
-  createCustomer: vi.fn(),
-  createCheckoutSession: vi.fn(),
-}));
+const { createCustomer, createCheckoutSession, createPortalSession } =
+  vi.hoisted(() => ({
+    createCustomer: vi.fn(),
+    createCheckoutSession: vi.fn(),
+    createPortalSession: vi.fn(),
+  }));
 
 const { db, createTestUserAndWorkspace } = await setup();
 
@@ -24,6 +26,11 @@ vi.mock("stripe", () => {
       checkout = {
         sessions: {
           create: createCheckoutSession,
+        },
+      };
+      billingPortal = {
+        sessions: {
+          create: createPortalSession,
         },
       };
     },
@@ -184,15 +191,76 @@ describe("api/stripe", () => {
   });
 
   describe("POST /portal-session", () => {
-    it("should return 501 not implemented", async () => {
+    it("should throw an error if there is no session token", async () => {
       const res = await app.request("/portal-session", {
         method: "POST",
       });
 
-      expect(res.status).toBe(501);
-      expect(await res.json()).toMatchObject({
-        message: "Not implemented",
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchInlineSnapshot(`
+        {
+          "error": "Unauthorized",
+        }
+      `);
+    });
+
+    it("should throw an error if user has no stripeId", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const sessionToken = generateSessionToken();
+      await createSession(db, sessionToken, user.id);
+
+      const res = await app.request("/portal-session", {
+        method: "POST",
+        headers: {
+          Cookie: `session=${sessionToken}`,
+        },
       });
+
+      expect(res.status).toBe(404);
+      expect(await res.json()).toMatchInlineSnapshot(`
+        {
+          "error": "user not found",
+        }
+      `);
+    });
+
+    it("should redirect to portal url", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const sessionToken = generateSessionToken();
+      await createSession(db, sessionToken, user.id);
+
+      // Update user to have stripeId
+      await db
+        .update(users)
+        .set({ stripeId: "cus_test123" })
+        .where(eq(users.id, user.id));
+
+      createPortalSession.mockResolvedValueOnce({
+        url: "https://billing.stripe.com/portal/test",
+      });
+
+      const res = await app.request("/portal-session", {
+        method: "POST",
+        headers: {
+          Cookie: `session=${sessionToken}`,
+        },
+      });
+
+      expect(createPortalSession.mock.calls).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "customer": "cus_test123",
+              "return_url": "https://localhost:3000/billing",
+            },
+          ],
+        ]
+      `);
+
+      expect(res.status).toBe(302);
+      expect(res.headers.get("Location")).toBe(
+        "https://billing.stripe.com/portal/test",
+      );
     });
   });
 
