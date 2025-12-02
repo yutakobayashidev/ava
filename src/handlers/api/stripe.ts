@@ -1,16 +1,18 @@
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
 import { getCookie } from "hono/cookie";
 import { validateSessionToken } from "@/lib/session";
-import { users } from "@/db/schema";
+import { users, subscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "hono/adapter";
 import { absoluteUrl } from "@/lib/utils";
 import { HTTPException } from "hono/http-exception";
+import { handleSubscriptionUpsert } from "@/usecases/stripe/handleSubscriptionUpsert";
+import type Stripe from "stripe";
 
 const app = createHonoApp()
   .post("/webhook", async (ctx) => {
     const { STRIPE_WEBHOOK_SECRET } = env(ctx);
-    const { stripe } = getUsecaseContext(ctx);
+    const { stripe, db } = getUsecaseContext(ctx);
 
     const signature = ctx.req.header("stripe-signature");
 
@@ -27,12 +29,49 @@ const app = createHonoApp()
       );
 
       switch (event.type) {
-        case "payment_intent.created": {
-          console.log(event.data.object);
+        case "customer.subscription.created":
+        case "customer.subscription.deleted":
+        case "customer.subscription.updated": {
+          const subscription = event.data.object as Stripe.Subscription;
+
+          try {
+            await handleSubscriptionUpsert(db, subscription);
+          } catch (error) {
+            console.error("Error upserting subscription:", error);
+            return ctx.text("Error upserting subscription", 500);
+          }
           break;
         }
-        default:
+
+        case "customer.deleted": {
+          const customer = event.data.object as Stripe.Customer;
+
+          try {
+            await db.transaction(async (tx) => {
+              const user = await tx.query.users.findFirst({
+                where: eq(users.stripeId, customer.id),
+              });
+
+              if (user) {
+                await tx
+                  .delete(subscriptions)
+                  .where(eq(subscriptions.userId, user.id));
+                await tx
+                  .update(users)
+                  .set({ stripeId: null })
+                  .where(eq(users.id, user.id));
+              }
+            });
+          } catch (error) {
+            console.error("Error deleting customer:", error);
+            return ctx.text("Error deleting customer", 500);
+          }
           break;
+        }
+
+        default: {
+          console.log(`Unhandled event type: ${event.type}`);
+        }
       }
 
       return ctx.text("", 200);
