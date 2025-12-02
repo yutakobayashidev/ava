@@ -90,7 +90,7 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
 
 **通知:**
 
-- 通知先チャンネル: `/onboarding/connect-slack` で選択し、`workspaces.notification_channel_id` に保存
+- 通知先チャンネル: 初回は `/onboarding/connect-slack`、変更は `/settings/channel` で設定し、`workspaces.notification_channel_id` に保存
 - 投稿内容: 開始/進捗/詰まり/休止/再開/完了をチャンネルの同一スレッドに投稿
 - セキュリティ: コード断片や機密情報は投稿せず、抽象的なサマリのみを送信
 
