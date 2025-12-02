@@ -70,6 +70,13 @@ export default async function AuthorizePage({
 
     const consent = formData.get("consent");
 
+    // TOCTOU
+    const validation = await validateAuthorizeRequest(params);
+
+    if (!validation.success) {
+      return redirect("/");
+    }
+
     const redirectUrl = new URL(requestParams.redirect_uri);
     if (requestParams.state) {
       redirectUrl.searchParams.set("state", requestParams.state);
