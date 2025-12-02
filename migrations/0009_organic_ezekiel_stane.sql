@@ -1,1 +1,0 @@
-ALTER TABLE "users" ALTER COLUMN "slack_team_id" SET NOT NULL;

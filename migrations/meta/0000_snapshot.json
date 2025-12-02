@@ -1,5 +1,5 @@
 {
-  "id": "f7b59716-38df-4f92-907d-25b0e2195c4b",
+  "id": "31db3185-71b9-44a8-bee0-be4471109100",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -14,8 +14,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "token": {
-          "name": "token",
+        "token_hash": {
+          "name": "token_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -53,11 +53,11 @@
         }
       },
       "indexes": {
-        "access_tokens_token_unique": {
-          "name": "access_tokens_token_unique",
+        "access_tokens_token_hash_unique": {
+          "name": "access_tokens_token_hash_unique",
           "columns": [
             {
-              "expression": "token",
+              "expression": "token_hash",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -315,7 +315,7 @@
           "name": "access_token_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "client_id": {
           "name": "client_id",
@@ -409,7 +409,7 @@
           "tableTo": "access_tokens",
           "columnsFrom": ["access_token_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "refresh_tokens_client_id_clients_id_fk": {
@@ -510,8 +510,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.task_block_reports": {
-      "name": "task_block_reports",
+    "public.subscriptions": {
+      "name": "subscriptions",
       "schema": "",
       "columns": {
         "id": {
@@ -520,91 +520,33 @@
           "primaryKey": true,
           "notNull": true
         },
-        "task_session_id": {
-          "name": "task_session_id",
+        "subscription_id": {
+          "name": "subscription_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "reason": {
-          "name": "reason",
+        "status": {
+          "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "raw_context": {
-          "name": "raw_context",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "resolved_at": {
-          "name": "resolved_at",
+        "current_period_end": {
+          "name": "current_period_end",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
+        "cancel_at_period_end": {
+          "name": "cancel_at_period_end",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "task_block_reports_task_session_idx": {
-          "name": "task_block_reports_task_session_idx",
-          "columns": [
-            {
-              "expression": "task_session_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_block_reports_task_session_id_task_sessions_id_fk": {
-          "name": "task_block_reports_task_session_id_task_sessions_id_fk",
-          "tableFrom": "task_block_reports",
-          "tableTo": "task_sessions",
-          "columnsFrom": ["task_session_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.task_completions": {
-      "name": "task_completions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "default": false
         },
-        "task_session_id": {
-          "name": "task_session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -615,14 +557,21 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "task_completions_task_session_unique": {
-          "name": "task_completions_task_session_unique",
+        "subscriptions_subscription_id_unique": {
+          "name": "subscriptions_subscription_id_unique",
           "columns": [
             {
-              "expression": "task_session_id",
+              "expression": "subscription_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -632,14 +581,29 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "subscriptions_user_idx": {
+          "name": "subscriptions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "task_completions_task_session_id_task_sessions_id_fk": {
-          "name": "task_completions_task_session_id_task_sessions_id_fk",
-          "tableFrom": "task_completions",
-          "tableTo": "task_sessions",
-          "columnsFrom": ["task_session_id"],
+        "subscriptions_user_id_users_id_fk": {
+          "name": "subscriptions_user_id_users_id_fk",
+          "tableFrom": "subscriptions",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -651,8 +615,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.task_pause_reports": {
-      "name": "task_pause_reports",
+    "public.task_events": {
+      "name": "task_events",
       "schema": "",
       "columns": {
         "id": {
@@ -667,11 +631,30 @@
           "primaryKey": false,
           "notNull": true
         },
+        "event_type": {
+          "name": "event_type",
+          "type": "task_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
         "reason": {
           "name": "reason",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "related_event_id": {
+          "name": "related_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "raw_context": {
           "name": "raw_context",
@@ -679,12 +662,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::jsonb"
-        },
-        "resumed_at": {
-          "name": "resumed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -695,8 +672,8 @@
         }
       },
       "indexes": {
-        "task_pause_reports_task_session_idx": {
-          "name": "task_pause_reports_task_session_idx",
+        "task_events_task_session_idx": {
+          "name": "task_events_task_session_idx",
           "columns": [
             {
               "expression": "task_session_id",
@@ -709,12 +686,48 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "task_events_event_type_idx": {
+          "name": "task_events_event_type_idx",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "task_events_task_session_event_type_idx": {
+          "name": "task_events_task_session_event_type_idx",
+          "columns": [
+            {
+              "expression": "task_session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "task_pause_reports_task_session_id_task_sessions_id_fk": {
-          "name": "task_pause_reports_task_session_id_task_sessions_id_fk",
-          "tableFrom": "task_pause_reports",
+        "task_events_task_session_id_task_sessions_id_fk": {
+          "name": "task_events_task_session_id_task_sessions_id_fk",
+          "tableFrom": "task_events",
           "tableTo": "task_sessions",
           "columnsFrom": ["task_session_id"],
           "columnsTo": ["id"],
@@ -792,30 +805,6 @@
         "slack_channel": {
           "name": "slack_channel",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "blocked_at": {
-          "name": "blocked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "paused_at": {
-          "name": "paused_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "resumed_at": {
-          "name": "resumed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -907,77 +896,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.task_updates": {
-      "name": "task_updates",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "task_session_id": {
-          "name": "task_session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "raw_context": {
-          "name": "raw_context",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "task_updates_task_session_idx": {
-          "name": "task_updates_task_session_idx",
-          "columns": [
-            {
-              "expression": "task_session_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "task_updates_task_session_id_task_sessions_id_fk": {
-          "name": "task_updates_task_session_id_task_sessions_id_fk",
-          "tableFrom": "task_updates",
-          "tableTo": "task_sessions",
-          "columnsFrom": ["task_session_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.users": {
       "name": "users",
       "schema": "",
@@ -1006,8 +924,26 @@
           "primaryKey": false,
           "notNull": false
         },
+        "slack_team_id": {
+          "name": "slack_team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "image": {
           "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_id": {
+          "name": "stripe_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1027,71 +963,17 @@
         }
       },
       "indexes": {
-        "users_slack_id_unique": {
-          "name": "users_slack_id_unique",
+        "users_slack_id_team_id_unique": {
+          "name": "users_slack_id_team_id_unique",
           "columns": [
             {
               "expression": "slack_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.workspace_members": {
-      "name": "workspace_members",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "workspace_members_workspace_user_unique": {
-          "name": "workspace_members_workspace_user_unique",
-          "columns": [
-            {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
             },
             {
-              "expression": "user_id",
+              "expression": "slack_team_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1102,54 +984,30 @@
           "method": "btree",
           "with": {}
         },
-        "workspace_members_workspace_idx": {
-          "name": "workspace_members_workspace_idx",
+        "users_stripe_id_unique": {
+          "name": "users_stripe_id_unique",
           "columns": [
             {
-              "expression": "workspace_id",
+              "expression": "stripe_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "workspace_members_user_idx": {
-          "name": "workspace_members_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
       "foreignKeys": {
-        "workspace_members_workspace_id_workspaces_id_fk": {
-          "name": "workspace_members_workspace_id_workspaces_id_fk",
-          "tableFrom": "workspace_members",
+        "users_workspace_id_workspaces_id_fk": {
+          "name": "users_workspace_id_workspaces_id_fk",
+          "tableFrom": "users",
           "tableTo": "workspaces",
           "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "workspace_members_user_id_users_id_fk": {
-          "name": "workspace_members_user_id_users_id_fk",
-          "tableFrom": "workspace_members",
-          "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1194,6 +1052,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "icon_url": {
+          "name": "icon_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "bot_user_id": {
           "name": "bot_user_id",
           "type": "text",
@@ -1209,6 +1073,12 @@
         "bot_refresh_token": {
           "name": "bot_refresh_token",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bot_token_expires_at": {
+          "name": "bot_token_expires_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -1282,10 +1152,23 @@
       "schema": "public",
       "values": ["github", "manual"]
     },
+    "public.task_event_type": {
+      "name": "task_event_type",
+      "schema": "public",
+      "values": [
+        "started",
+        "updated",
+        "blocked",
+        "block_resolved",
+        "paused",
+        "resumed",
+        "completed"
+      ]
+    },
     "public.task_status": {
       "name": "task_status",
       "schema": "public",
-      "values": ["in_progress", "blocked", "paused", "completed"]
+      "values": ["in_progress", "blocked", "paused", "completed", "cancelled"]
     },
     "public.workspace_provider": {
       "name": "workspace_provider",

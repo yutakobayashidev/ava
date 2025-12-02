@@ -1,1 +1,0 @@
-ALTER TABLE "workspaces" ADD COLUMN "bot_token_expires_at" timestamp with time zone;

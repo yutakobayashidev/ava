@@ -1,1 +1,0 @@
-ALTER TABLE "subscriptions" ALTER COLUMN "cancel_at_period_end" SET DATA TYPE boolean;
