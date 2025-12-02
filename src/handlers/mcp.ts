@@ -11,7 +11,12 @@ mcpHandler.all(
   cors({
     origin: "*",
     exposeHeaders: ["Mcp-Session-Id"],
-    allowHeaders: ["Content-Type", "mcp-session-id", "mcp-protocol-version"],
+    allowHeaders: [
+      "Content-Type",
+      "mcp-session-id",
+      "mcp-protocol-version",
+      "Authorization",
+    ],
   }),
   oauthMiddleware,
   async (c) => {
