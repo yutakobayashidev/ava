@@ -8,9 +8,41 @@ import { absoluteUrl } from "@/lib/utils";
 import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp()
-  // TODO: Implement Stripe webhook endpoint
   .post("/webhook", async (ctx) => {
-    return ctx.json({ message: "Not implemented" }, 501);
+    const { STRIPE_WEBHOOK_SECRET } = env(ctx);
+    const { stripe } = getUsecaseContext(ctx);
+
+    const signature = ctx.req.header("stripe-signature");
+
+    try {
+      if (!signature) {
+        return ctx.text("", 400);
+      }
+
+      const body = await ctx.req.text();
+      const event = await stripe.webhooks.constructEventAsync(
+        body,
+        signature,
+        STRIPE_WEBHOOK_SECRET,
+      );
+
+      switch (event.type) {
+        case "payment_intent.created": {
+          console.log(event.data.object);
+          break;
+        }
+        default:
+          break;
+      }
+
+      return ctx.text("", 200);
+    } catch (err) {
+      const errorMessage = `⚠️  Webhook signature verification failed. ${
+        err instanceof Error ? err.message : "Internal server error"
+      }`;
+      console.log(errorMessage);
+      return ctx.text(errorMessage, 400);
+    }
   })
   .post("/checkout", async (ctx) => {
     const sessionToken = getCookie(ctx, "session");

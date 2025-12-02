@@ -178,15 +178,28 @@ describe("api/stripe", () => {
   });
 
   describe("POST /webhook", () => {
-    it("should return 501 not implemented", async () => {
+    it("should return 400 if stripe-signature header is missing", async () => {
       const res = await app.request("/webhook", {
         method: "POST",
+        body: JSON.stringify({}),
       });
 
-      expect(res.status).toBe(501);
-      expect(await res.json()).toMatchObject({
-        message: "Not implemented",
+      expect(res.status).toBe(400);
+      expect(await res.text()).toBe("");
+    });
+
+    it("should return 400 if signature verification fails", async () => {
+      const res = await app.request("/webhook", {
+        method: "POST",
+        headers: {
+          "stripe-signature": "invalid_signature",
+        },
+        body: JSON.stringify({}),
       });
+
+      expect(res.status).toBe(400);
+      const text = await res.text();
+      expect(text).toContain("Webhook signature verification failed");
     });
   });
 
