@@ -193,10 +193,11 @@ describe("api/stripe", () => {
         ]
       `);
 
-      expect(res.status).toBe(302);
-      expect(res.headers.get("Location")).toBe(
-        "https://checkout.stripe.com/test",
-      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toEqual({
+        url: "https://checkout.stripe.com/test",
+      });
 
       // Verify stripeId was updated
       const userAfter = await db.query.users.findFirst({
@@ -416,10 +417,11 @@ describe("api/stripe", () => {
         ]
       `);
 
-      expect(res.status).toBe(302);
-      expect(res.headers.get("Location")).toMatchInlineSnapshot(
-        `"https://billing.stripe.com/session/test_123"`,
-      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toEqual({
+        url: "https://billing.stripe.com/session/test_123",
+      });
     });
   });
 
