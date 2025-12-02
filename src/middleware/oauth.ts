@@ -7,6 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Database } from "@/clients/drizzle";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
+import { absoluteUrl } from "@/lib/utils";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
@@ -51,13 +52,28 @@ function getToken(c: Context<Env>) {
   return auth.slice("Bearer ".length);
 }
 
+function throwUnauthorized(): never {
+  const resourceMetadataUrl = absoluteUrl(
+    "/.well-known/oauth-protected-resource",
+  );
+  throw new HTTPException(401, {
+    res: new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
+        "Content-Type": "application/json",
+      },
+    }),
+  });
+}
+
 export const oauthMiddleware = createMiddleware<Env>(async (c, next) => {
   const token = getToken(c);
-  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
+  if (!token) throwUnauthorized();
 
   const db = c.get("db");
   const auth = await findUserAndWorkspaceByToken(token, db);
-  if (!auth) throw new HTTPException(401, { message: "Unauthorized" });
+  if (!auth) throwUnauthorized();
 
   c.set("user", auth.user);
   c.set("workspace", auth.workspace);
