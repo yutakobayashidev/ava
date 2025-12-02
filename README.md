@@ -564,7 +564,7 @@ Slack で `/daily-report` コマンドを実行すると、AI が本日のタス
 
 ### データベース接続エラー
 
-**症状:** `ECONNREFUSED` や `database "ai_task" does not exist` エラー
+**症状:** `ECONNREFUSED` や `database "ava" does not exist` エラー
 
 **解決方法:**
 

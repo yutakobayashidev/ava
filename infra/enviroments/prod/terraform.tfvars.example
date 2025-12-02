@@ -1,2 +1,10 @@
 # 本番環境で使用する変数のサンプル値
-project_name = "your-prod-project"
+# このファイルをコピーして terraform.tfvars を作成し、適切な値を設定してください
+# または、環境変数 TF_VAR_* を使用して値を設定することもできます
+
+project_name = "ava"
+
+# Stripe APIキーは環境変数 TF_VAR_stripe_api_key で設定することを推奨
+# 本番環境では sk_live_ で始まるライブモードのAPIキーを使用してください
+# 例: export TF_VAR_stripe_api_key=sk_live_xxxxx
+# stripe_api_key = "sk_live_xxxxx"

@@ -6,3 +6,9 @@ variable "project_name" {
     error_message = "プロジェクト名には小文字のアルファベット、数字、ハイフンのみを使用してください。"
   }
 }
+
+variable "stripe_api_key" {
+  description = "Stripe APIキー (環境変数 TF_VAR_stripe_api_key で設定)"
+  type        = string
+  sensitive   = true
+}
