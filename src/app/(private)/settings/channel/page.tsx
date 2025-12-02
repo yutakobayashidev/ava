@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { db } from "@/clients/drizzle";
-import { listChannels, type SlackChannel } from "@/clients/slack";
+import {
+  listChannels,
+  type SlackChannel,
+  getWorkspaceBotToken,
+} from "@/clients/slack";
 import { requireAuth } from "@/lib/auth";
 import { createWorkspaceRepository } from "@/repos";
 import { Header } from "@/components/header";
@@ -33,7 +37,11 @@ export default async function ChannelSettingsPage({
   let channelError: string | null = null;
 
   try {
-    channels = await listChannels(workspace.botAccessToken);
+    const validToken = await getWorkspaceBotToken({
+      workspace,
+      workspaceRepository,
+    });
+    channels = await listChannels(validToken);
   } catch (error) {
     channelError = error instanceof Error ? error.message : "unknown_error";
   }
@@ -59,7 +67,11 @@ export default async function ChannelSettingsPage({
     let availableChannels: SlackChannel[] = [];
 
     try {
-      availableChannels = await listChannels(workspace.botAccessToken);
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
+      });
+      availableChannels = await listChannels(validToken);
     } catch (error) {
       console.error("Failed to load Slack channels", error);
       redirect("/settings/channel?error=channel_fetch_failed");

@@ -19,7 +19,7 @@ type RotatedTokens = {
  * @param minutesBeforeExpiration Minutes before expiration to trigger rotation (default: 120)
  * @returns Rotated tokens if rotation was necessary, null otherwise
  */
-export const performBotTokenRotation = async ({
+const performBotTokenRotation = async ({
   botRefreshToken,
   botTokenExpiresAt,
   clientId,
