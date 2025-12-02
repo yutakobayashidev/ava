@@ -103,11 +103,17 @@ const app = createHonoApp()
       throw new HTTPException(404, { message: "user not found" });
     }
 
-    const { STRIPE_PRICE_ID } = env(ctx);
+    // Get price by lookup key
+    const prices = await stripe.prices.list({
+      lookup_keys: ["basic_monthly"],
+      limit: 1,
+    });
 
-    if (!STRIPE_PRICE_ID) {
+    const price = prices.data[0];
+
+    if (!price) {
       throw new HTTPException(500, {
-        message: "Stripe price ID not configured",
+        message: "Price not found for lookup key: basic_monthly",
       });
     }
 
@@ -138,7 +144,7 @@ const app = createHonoApp()
       mode: "subscription",
       line_items: [
         {
-          price: STRIPE_PRICE_ID,
+          price: price.id,
           quantity: 1,
         },
       ],
