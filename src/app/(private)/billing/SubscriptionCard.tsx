@@ -33,8 +33,8 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     try {
       const response = await paymentClient.checkout.$post();
       if (response.ok) {
-        // Stripe checkout will redirect automatically
-        window.location.href = response.url;
+        const data = await response.json();
+        window.location.href = data.url;
       } else {
         console.error("Checkout failed");
       }
@@ -50,8 +50,8 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     try {
       const response = await paymentClient["portal-session"].$post();
       if (response.ok) {
-        // Stripe portal will redirect automatically
-        window.location.href = response.url;
+        const data = await response.json();
+        window.location.href = data.url;
       } else {
         console.error("Portal session creation failed");
       }

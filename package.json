@@ -8,7 +8,7 @@
     "preinstall": "npx only-allow pnpm",
     "prepare": "lefthook install",
     "dev": "pnpm db:up && next dev --experimental-https",
-    "dev:stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
     "build": "fumadocs-mdx && next build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",

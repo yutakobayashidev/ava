@@ -189,7 +189,7 @@ const app = createHonoApp()
       });
     }
 
-    return ctx.redirect(checkoutSession.url);
+    return ctx.json({ url: checkoutSession.url });
   })
   .post("/portal-session", async (ctx) => {
     const sessionToken = getCookie(ctx, "session");
@@ -216,7 +216,7 @@ const app = createHonoApp()
       return_url: absoluteUrl("/billing"),
     });
 
-    return ctx.redirect(portal.url);
+    return ctx.json({ url: portal.url });
   })
   .get("/subscription", async (ctx) => {
     const sessionToken = getCookie(ctx, "session");
