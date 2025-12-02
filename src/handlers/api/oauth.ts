@@ -9,6 +9,46 @@ import { HTTPException } from "hono/http-exception";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 
+/**
+ * Extract client credentials from request.
+ * Supports both client_secret_basic (Authorization header) and client_secret_post (form body).
+ *
+ * @returns Object containing client_id and client_secret (if present)
+ */
+function extractClientCredentials(
+  authHeader: string | undefined,
+  formClientId: string | undefined,
+  formClientSecret: string | undefined,
+): { client_id: string | undefined; client_secret: string | undefined } {
+  // Try Authorization header first (client_secret_basic)
+  if (authHeader?.toLowerCase().startsWith("basic ")) {
+    const base64Credentials = authHeader.slice(6); // Remove "Basic " prefix
+    try {
+      const credentials = Buffer.from(base64Credentials, "base64").toString(
+        "utf-8",
+      );
+      const [client_id, client_secret] = credentials.split(":", 2);
+      if (client_id) {
+        return {
+          client_id: decodeURIComponent(client_id),
+          client_secret: client_secret
+            ? decodeURIComponent(client_secret)
+            : undefined,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to decode Basic auth header:", error);
+      // Fall through to form credentials
+    }
+  }
+
+  // Fall back to form body (client_secret_post or none)
+  return {
+    client_id: formClientId,
+    client_secret: formClientSecret,
+  };
+}
+
 const app = createHonoApp();
 
 app.post(
@@ -48,7 +88,7 @@ app.post(
 // Schema for OAuth2.0 authorization code exchange
 const authCodeExchangeSchema = z.object({
   grant_type: z.literal("authorization_code"),
-  client_id: z.string().min(1),
+  client_id: z.string().min(1).optional(), // Optional because it can come from Authorization header
   client_secret: z.string().optional(),
   code: z.string().min(1, "Missing code"),
   redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
@@ -84,9 +124,21 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
 
   if (grant_type === "authorization_code") {
     // Authorization code exchange flow
-    const { code, redirect_uri, client_id, client_secret, code_verifier } =
-      formData;
+    const { code, redirect_uri, code_verifier } = formData;
     const db = c.get("db");
+
+    // Extract client credentials from Authorization header or form body
+    const authHeader = c.req.header("Authorization");
+    const { client_id, client_secret } = extractClientCredentials(
+      authHeader,
+      formData.client_id,
+      formData.client_secret,
+    );
+
+    if (!client_id) {
+      console.log("Missing client_id");
+      throw new HTTPException(400, { message: "invalid_request" });
+    }
 
     console.log("Finding client for client_id:", client_id);
     const [client] = await db
@@ -124,9 +176,10 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     }
     console.log("Auth code is valid.");
 
-    // PKCE or client_secret validation
+    // Step 1: Validate PKCE if it was used
     if (authCode.codeChallenge) {
       if (!code_verifier) {
+        console.log("PKCE code_verifier missing");
         throw new HTTPException(400, { message: "invalid_request" });
       }
 
@@ -142,18 +195,35 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       }
 
       if (!pkceValid) {
+        console.log("PKCE validation failed");
         throw new HTTPException(400, { message: "invalid_grant" });
       }
-    } else {
-      // No PKCE - client_secret is required
-      if (
-        !client_secret ||
-        !client.clientSecret ||
-        client.clientSecret !== client_secret
-      ) {
-        console.log("Invalid client_secret.", { client_id });
+      console.log("PKCE validation successful");
+    }
+
+    // Step 2: Validate client authentication based on client type
+    if (client.clientSecret) {
+      // Confidential client: client_secret authentication is required
+      if (!client_secret) {
+        console.log("Missing client_secret for confidential client", {
+          client_id,
+        });
         throw new HTTPException(401, { message: "invalid_client" });
       }
+      if (client.clientSecret !== client_secret) {
+        console.log("Invalid client_secret", { client_id });
+        throw new HTTPException(401, { message: "invalid_client" });
+      }
+      console.log("Client secret validation successful");
+    } else {
+      // Public client: PKCE is required
+      if (!authCode.codeChallenge) {
+        console.log("PKCE required for public client but not provided", {
+          client_id,
+        });
+        throw new HTTPException(400, { message: "invalid_request" });
+      }
+      console.log("Public client validated with PKCE");
     }
 
     // Delete auth code immediately after validation
@@ -247,9 +317,17 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
     });
   } else if (grant_type === "refresh_token") {
     // Refresh token flow
-    const { refresh_token, client_id, client_secret } = formData;
+    const { refresh_token } = formData;
 
     const db = c.get("db");
+
+    // Extract client credentials from Authorization header or form body
+    const authHeader = c.req.header("Authorization");
+    const { client_id, client_secret } = extractClientCredentials(
+      authHeader,
+      formData.client_id,
+      formData.client_secret,
+    );
 
     // Hash the provided refresh token to compare with stored hash
     const refreshTokenHash = encodeHexLowerCase(
@@ -290,23 +368,35 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
-    // Verify client if client_id is provided
-    if (client_id) {
-      const [client] = await db
-        .select()
-        .from(schema.clients)
-        .where(eq(schema.clients.clientId, client_id));
+    // Always fetch client information from the stored refresh token
+    const [client] = await db
+      .select()
+      .from(schema.clients)
+      .where(eq(schema.clients.id, storedRefreshToken.clientId));
 
-      if (!client || client.id !== storedRefreshToken.clientId) {
-        console.log("Client mismatch");
+    if (!client) {
+      console.log("Client not found for refresh token", {
+        clientId: storedRefreshToken.clientId,
+      });
+      throw new HTTPException(401, { message: "invalid_client" });
+    }
+
+    // Verify client_id matches if provided
+    if (client_id && client.clientId !== client_id) {
+      console.log("Client ID mismatch", {
+        provided: client_id,
+        expected: client.clientId,
+      });
+      throw new HTTPException(401, { message: "invalid_client" });
+    }
+
+    // For confidential clients (with client_secret), authentication is required
+    if (client.clientSecret) {
+      if (!client_secret) {
+        console.log("Missing client_secret for confidential client");
         throw new HTTPException(401, { message: "invalid_client" });
       }
-
-      // Verify client_secret if provided and client has one
-      if (
-        client.clientSecret &&
-        (!client_secret || client.clientSecret !== client_secret)
-      ) {
+      if (client.clientSecret !== client_secret) {
         console.log("Invalid client_secret");
         throw new HTTPException(401, { message: "invalid_client" });
       }
