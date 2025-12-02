@@ -1,8 +1,9 @@
-variable "project_name" {
-  description = "リソースの接頭辞として使用されるプロジェクト名"
-  type        = string
-  validation {
-    condition     = can(regex("^[a-z0-9-]+$", var.project_name))
-    error_message = "プロジェクト名には小文字のアルファベット、数字、ハイフンのみを使用してください。"
-  }
-}
+# terraform.tfvars.example
+# このファイルをコピーして terraform.tfvars を作成し、適切な値を設定してください
+# または、環境変数 TF_VAR_* を使用して値を設定することもできます
+
+project_name = "ava"
+
+# Stripe APIキーは環境変数 TF_VAR_stripe_api_key で設定することを推奨
+# 例: export TF_VAR_stripe_api_key=sk_test_xxxxx
+# stripe_api_key = "sk_test_xxxxx"

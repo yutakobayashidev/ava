@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   pgEnum,
@@ -97,6 +98,7 @@ export const users = pgTable(
       onDelete: "set null",
     }),
     image: text("image"),
+    stripeId: text("stripe_id"),
     onboardingCompletedAt: timestamp("onboarding_completed_at", {
       withTimezone: true,
     }),
@@ -109,6 +111,7 @@ export const users = pgTable(
       table.slackId,
       table.slackTeamId,
     ),
+    stripeIdUnique: uniqueIndex("users_stripe_id_unique").on(table.stripeId),
   }),
 );
 
@@ -126,6 +129,35 @@ export const sessions = pgTable(
   },
   (table) => ({
     userIdx: index("sessions_user_idx").on(table.userId),
+  }),
+);
+
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: text("id").primaryKey().notNull(),
+    subscriptionId: text("subscription_id").notNull(),
+    status: text("status").notNull(),
+    currentPeriodEnd: timestamp("current_period_end", {
+      withTimezone: true,
+    }),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    subscriptionIdUnique: uniqueIndex(
+      "subscriptions_subscription_id_unique",
+    ).on(table.subscriptionId),
+    userIdx: index("subscriptions_user_idx").on(table.userId),
   }),
 );
 
@@ -307,6 +339,7 @@ export const userRelations = relations(users, ({ many, one }) => ({
   accessTokens: many(accessTokens),
   refreshTokens: many(refreshTokens),
   sessions: many(sessions),
+  subscriptions: many(subscriptions),
   taskSessions: many(taskSessions),
   workspace: one(workspaces, {
     fields: [users.workspaceId],
@@ -317,6 +350,13 @@ export const userRelations = relations(users, ({ many, one }) => ({
 export const sessionRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const subscriptionRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
     references: [users.id],
   }),
 }));
@@ -400,4 +440,5 @@ export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
-// WorkspaceMember 型は削除 - workspace_members テーブルが不要になったため
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;

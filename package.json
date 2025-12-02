@@ -1,5 +1,5 @@
 {
-  "name": "ai-task",
+  "name": "ava",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.23.0+sha512.21c4e5698002ade97e4efe8b8b4a89a8de3c85a37919f957e7a0f30f38fbc5bbdd05980ffe29179b2fb6e6e691242e098d945d1601772cad0fef5fb6411e2a4b",
@@ -8,6 +8,7 @@
     "preinstall": "npx only-allow pnpm",
     "prepare": "lefthook install",
     "dev": "pnpm db:up && next dev --experimental-https",
+    "dev:stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "build": "fumadocs-mdx && next build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
@@ -93,6 +94,7 @@
     "recharts": "2.15.4",
     "server-only": "0.0.1",
     "sonner": "2.0.7",
+    "stripe": "20.0.0",
     "tailwind-merge": "3.4.0",
     "uuidv7": "1.0.2",
     "vaul": "1.1.2",
