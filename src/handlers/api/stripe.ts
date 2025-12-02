@@ -4,6 +4,7 @@ import { validateSessionToken } from "@/lib/session";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "hono/adapter";
+import { buildRedirectUrl } from "@/utils/urls";
 
 const app = createHonoApp()
   // TODO: Implement Stripe webhook endpoint
@@ -30,7 +31,7 @@ const app = createHonoApp()
       return ctx.json({ success: false, message: "user not found" }, 404);
     }
 
-    const { STRIPE_PRICE_ID, NEXT_PUBLIC_BASE_URL } = env(ctx);
+    const { STRIPE_PRICE_ID } = env(ctx);
 
     if (!STRIPE_PRICE_ID) {
       return ctx.json(
@@ -39,8 +40,8 @@ const app = createHonoApp()
       );
     }
 
-    const successUrl = `${NEXT_PUBLIC_BASE_URL}/billing/success`;
-    const cancelUrl = `${NEXT_PUBLIC_BASE_URL}/billing`;
+    const successUrl = buildRedirectUrl(ctx.req.raw, "/billing/success", {});
+    const cancelUrl = buildRedirectUrl(ctx.req.raw, "/billing", {});
 
     const customer = await stripe.customers.create({
       email: me.email,
