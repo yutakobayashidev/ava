@@ -750,6 +750,100 @@ describe("api/oauth", () => {
       expect(secondRes.status).toBe(400);
     });
 
+    it("should prevent race condition with concurrent authorization code exchanges", async () => {
+      // Simulate two concurrent requests with the same authorization code
+      // Only one should succeed, the other should fail
+      const makeCodeExchangeRequest = () =>
+        app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+      // Fire two concurrent requests
+      const [res1, res2] = await Promise.all([
+        makeCodeExchangeRequest(),
+        makeCodeExchangeRequest(),
+      ]);
+
+      // Exactly one should succeed
+      const statuses = [res1.status, res2.status].sort();
+      expect(statuses).toEqual([200, 400]);
+
+      // Verify the auth code was deleted
+      const authCodes = await db.query.authCodes.findMany({
+        where: (t, { eq }) => eq(t.code, authCode),
+      });
+      expect(authCodes).toHaveLength(0);
+
+      // Verify only one set of tokens was created
+      const accessTokens = await db.query.accessTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(accessTokens).toHaveLength(1);
+
+      const refreshTokens = await db.query.refreshTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(refreshTokens).toHaveLength(1);
+    });
+
+    it("should handle high concurrency authorization code exchanges correctly", async () => {
+      // Simulate 5 concurrent requests
+      const concurrentRequests = 5;
+      const makeCodeExchangeRequest = () =>
+        app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+      // Fire multiple concurrent requests
+      const results = await Promise.all(
+        Array.from({ length: concurrentRequests }, makeCodeExchangeRequest),
+      );
+
+      // Exactly one should succeed, others should fail
+      const successCount = results.filter((r) => r.status === 200).length;
+      const failureCount = results.filter((r) => r.status === 400).length;
+
+      expect(successCount).toBe(1);
+      expect(failureCount).toBe(concurrentRequests - 1);
+
+      // Verify the auth code was deleted
+      const authCodes = await db.query.authCodes.findMany({
+        where: (t, { eq }) => eq(t.code, authCode),
+      });
+      expect(authCodes).toHaveLength(0);
+
+      // Verify exactly one set of tokens was created
+      const accessTokens = await db.query.accessTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(accessTokens).toHaveLength(1);
+
+      const refreshTokens = await db.query.refreshTokens.findMany({
+        where: (t, { eq }) => eq(t.userId, testUser.id),
+      });
+      expect(refreshTokens).toHaveLength(1);
+    });
+
     it("should fail when using auth code with different client_id", async () => {
       // Create another client
       const [otherClient] = await db
@@ -1036,12 +1130,35 @@ describe("api/oauth", () => {
         body: new URLSearchParams({
           grant_type: "refresh_token",
           refresh_token: refreshToken,
+          client_id: testClient.clientId, // Public client still needs client_id for identification
         }).toString(),
       });
 
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json).toHaveProperty("access_token");
+    });
+
+    it("should fail for public client without client_id", async () => {
+      // Update client to have no secret (public client)
+      await db
+        .update(schema.clients)
+        .set({ clientSecret: null })
+        .where(eq(schema.clients.id, testClient.id));
+
+      const res = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          // No client_id provided - should fail for public client
+        }).toString(),
+      });
+
+      expect(res.status).toBe(401);
     });
 
     it("should fail with invalid refresh_token", async () => {
@@ -1370,6 +1487,106 @@ describe("api/oauth", () => {
           .where(eq(schema.refreshTokens.tokenHash, finalTokenHash));
 
         expect(finalToken.usedAt).toBeNull();
+      });
+
+      it("should prevent race condition with concurrent refresh requests", async () => {
+        // Simulate two concurrent requests with the same refresh token
+        // Only one should succeed, the other should fail
+        const makeRefreshRequest = () =>
+          app.request("/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: refreshToken,
+              client_id: testClient.clientId,
+              client_secret: "test-client-secret",
+            }).toString(),
+          });
+
+        // Fire two concurrent requests
+        const [res1, res2] = await Promise.all([
+          makeRefreshRequest(),
+          makeRefreshRequest(),
+        ]);
+
+        // Exactly one should succeed
+        const statuses = [res1.status, res2.status].sort();
+        expect(statuses).toEqual([200, 400]);
+
+        // Verify the refresh token was marked as used
+        const refreshTokenHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(refreshToken)),
+        );
+        const [usedToken] = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash));
+
+        expect(usedToken.usedAt).not.toBeNull();
+        expect(usedToken.usedAt).toBeInstanceOf(Date);
+
+        // Verify only one new refresh token was created
+        const allRefreshTokens = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.userId, testUser.id));
+
+        // Should have: 1 old (used) + 1 new (unused)
+        const unusedTokens = allRefreshTokens.filter((t) => t.usedAt === null);
+        expect(unusedTokens).toHaveLength(1);
+      });
+
+      it("should handle high concurrency refresh requests correctly", async () => {
+        // Simulate 5 concurrent requests
+        const concurrentRequests = 5;
+        const makeRefreshRequest = () =>
+          app.request("/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: refreshToken,
+              client_id: testClient.clientId,
+              client_secret: "test-client-secret",
+            }).toString(),
+          });
+
+        // Fire multiple concurrent requests
+        const results = await Promise.all(
+          Array.from({ length: concurrentRequests }, makeRefreshRequest),
+        );
+
+        // Exactly one should succeed, others should fail
+        const successCount = results.filter((r) => r.status === 200).length;
+        const failureCount = results.filter((r) => r.status === 400).length;
+
+        expect(successCount).toBe(1);
+        expect(failureCount).toBe(concurrentRequests - 1);
+
+        // Verify the original refresh token was marked as used
+        const refreshTokenHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(refreshToken)),
+        );
+        const [usedToken] = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash));
+
+        expect(usedToken.usedAt).not.toBeNull();
+
+        // Verify exactly one new refresh token was created
+        const allRefreshTokens = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.userId, testUser.id));
+
+        const unusedTokens = allRefreshTokens.filter((t) => t.usedAt === null);
+        expect(unusedTokens).toHaveLength(1);
       });
     });
   });
