@@ -68,7 +68,7 @@ describe("handleSubscriptionUpsert", () => {
     const afterCount = await db.query.subscriptions.findMany();
     expect(afterCount.length).toBe(1);
 
-    const { id: _, createdAt: __, updatedAt: ___, ...rest } = res;
+    const { id: _, createdAt: __, updatedAt: ___, userId: ____, ...rest } = res;
 
     expect(rest).toMatchInlineSnapshot(`
       {
@@ -76,9 +76,9 @@ describe("handleSubscriptionUpsert", () => {
         "currentPeriodEnd": 1970-01-01T00:00:00.000Z,
         "status": "active",
         "subscriptionId": "sub_123",
-        "userId": "019adcb7-6e9b-7727-b8cf-795cde5b7b14",
       }
     `);
+    expect(res.userId).toBe(userId);
 
     {
       const dbRes = await db.query.subscriptions.findFirst();
@@ -87,7 +87,13 @@ describe("handleSubscriptionUpsert", () => {
         throw new Error("Subscription not found");
       }
 
-      const { id: _, createdAt: __, updatedAt: ___, ...rest } = dbRes;
+      const {
+        id: _,
+        createdAt: __,
+        updatedAt: ___,
+        userId: ____,
+        ...rest
+      } = dbRes;
 
       expect(rest).toMatchInlineSnapshot(`
         {
@@ -95,9 +101,9 @@ describe("handleSubscriptionUpsert", () => {
           "currentPeriodEnd": 1970-01-01T00:00:00.000Z,
           "status": "active",
           "subscriptionId": "sub_123",
-          "userId": "019adcb7-6e9b-7727-b8cf-795cde5b7b14",
         }
       `);
+      expect(dbRes.userId).toBe(userId);
     }
   });
 
@@ -146,17 +152,23 @@ describe("handleSubscriptionUpsert", () => {
         throw new Error("Subscription not updated");
       }
 
-      const { id: _, createdAt: __, updatedAt: ___, ...rest } = res;
+      const {
+        id: _,
+        createdAt: __,
+        updatedAt: ___,
+        userId: ____,
+        ...rest
+      } = res;
 
       expect(rest).toMatchInlineSnapshot(`
-                {
-                  "cancelAtPeriodEnd": true,
-                  "currentPeriodEnd": 1973-11-29T21:33:09.000Z,
-                  "status": "canceled",
-                  "subscriptionId": "sub_123",
-                  "userId": "019adcb7-6ec4-7169-93b7-ca48c3015013",
-                }
-              `);
+        {
+          "cancelAtPeriodEnd": true,
+          "currentPeriodEnd": 1973-11-29T21:33:09.000Z,
+          "status": "canceled",
+          "subscriptionId": "sub_123",
+        }
+      `);
+      expect(res.userId).toBe(userId);
     }
   });
 });
