@@ -57,6 +57,65 @@ Model Context Protocol (MCP) に対応した HTTP サーバーを `/mcp` エン�
 - Well-Known メタデータエンドポイント
 - SSRF 対策とセキュリティ検証
 
+#### CIMD (Client ID Metadata Document) とは
+
+OAuth 2.1の新しい拡張仕様で、クライアント登録を簡素化する仕組みです。
+
+**従来の方法（DCR - Dynamic Client Registration）:**
+
+1. `/api/oauth/register` にクライアント情報を POST
+2. サーバーから `client_id` と `client_secret` を受け取る
+3. これらを設定ファイルに記述
+
+**CIMDを使った方法:**
+
+1. クライアントメタデータを公開URLでホスト
+2. そのURL自体を `client_id` として使用
+3. サーバーは自動的にメタデータを取得して検証
+
+**メリット:**
+
+- 事前登録が不要
+- PKCE（Proof Key for Code Exchange）で安全に認証
+- ローカル開発やテストが簡単
+- 設定ミスのリスクを軽減
+
+**セキュリティ対策:**
+
+- SSRF対策: プライベートIP・localhostを拒否
+- サイズ制限: 5KB以下
+- タイムアウト: 10秒
+- キャッシュ: メモリ内で15分間キャッシュ（成功時のみ）
+
+Avaは **CIMD と DCR の両方** をサポートしているため、Claude Code などの対応クライアントは自動的にこの仕組みを使って接続できます。
+
+詳しくは [IETF Draft - OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/) をご覧ください。
+
+#### DCR (Dynamic Client Registration) を使う場合
+
+プログラムから動的にクライアントを登録する場合は、以下のエンドポイントを使用します：
+
+```bash
+curl -X POST https://ava-dusky-gamma.vercel.app/api/oauth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_name": "My Application",
+    "redirect_uris": ["https://myapp.example.com/callback"]
+  }'
+```
+
+レスポンス:
+
+```json
+{
+  "client_id": "abc123...",
+  "client_secret": "xyz789...",
+  "redirect_uris": ["https://myapp.example.com/callback"]
+}
+```
+
+**注意:** DCR は主に自動化やプログラムからの利用を想定しています。Claude CodeなどのMCPクライアントは自動的にCIMDを使用するため、手動でのクライアント登録は不要です。
+
 ### Slack 統合
 
 **ユーザー認証:**
