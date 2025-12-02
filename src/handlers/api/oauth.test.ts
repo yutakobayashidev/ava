@@ -110,6 +110,38 @@ describe("api/oauth", () => {
     });
   });
 
+  describe("POST /token", () => {
+    describe("grant_type validation", () => {
+      it("should fail with invalid grant_type", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(400);
+      });
+
+      it("should fail with missing grant_type", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            code: "some-code",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(400);
+      });
+    });
+  });
+
   describe("POST /token (authorization_code)", () => {
     let testClient: typeof schema.clients.$inferSelect;
     let testUser: typeof schema.users.$inferSelect;
@@ -641,6 +673,186 @@ describe("api/oauth", () => {
 
       expect(res.status).toBe(400);
     });
+
+    it("should fail when reusing authorization code (double usage prevention)", async () => {
+      // First exchange - should succeed
+      const firstRes = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: authCode,
+          redirect_uri: "https://example.com/callback",
+          client_id: testClient.clientId,
+          client_secret: "test-client-secret",
+        }).toString(),
+      });
+      expect(firstRes.status).toBe(200);
+
+      // Second exchange with same code - should fail
+      const secondRes = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: authCode,
+          redirect_uri: "https://example.com/callback",
+          client_id: testClient.clientId,
+          client_secret: "test-client-secret",
+        }).toString(),
+      });
+      expect(secondRes.status).toBe(400);
+    });
+
+    it("should fail when using auth code with different client_id", async () => {
+      // Create another client
+      const [otherClient] = await db
+        .insert(schema.clients)
+        .values({
+          id: uuidv7(),
+          clientId: "other-client-id",
+          clientSecret: "other-client-secret",
+          name: "Other Client",
+          redirectUris: ["https://example.com/callback"],
+        })
+        .returning();
+
+      // Try to use authCode belonging to testClient with otherClient
+      const res = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: authCode,
+          redirect_uri: "https://example.com/callback",
+          client_id: otherClient.clientId,
+          client_secret: "other-client-secret",
+        }).toString(),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should support PKCE with plain method", async () => {
+      const codeVerifier = "test-plain-verifier-12345";
+
+      // Create auth code with plain PKCE
+      const plainAuthCode = "test-auth-code-plain-" + uuidv7();
+      await db.insert(schema.authCodes).values({
+        id: uuidv7(),
+        code: plainAuthCode,
+        clientId: testClient.id,
+        userId: testUser.id,
+        workspaceId: testWorkspace.id,
+        redirectUri: "https://example.com/callback",
+        codeChallenge: codeVerifier, // Plain method uses verifier as-is
+        codeChallengeMethod: "plain",
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+
+      const res = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: plainAuthCode,
+          redirect_uri: "https://example.com/callback",
+          client_id: testClient.clientId,
+          client_secret: "test-client-secret",
+          code_verifier: codeVerifier,
+        }).toString(),
+      });
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toHaveProperty("access_token");
+    });
+
+    it("should fail when code_verifier is empty string", async () => {
+      const codeChallenge = encodeBase64urlNoPadding(
+        sha256(new TextEncoder().encode("test-verifier")),
+      );
+
+      const emptyVerifierCode = "test-auth-code-empty-verifier-" + uuidv7();
+      await db.insert(schema.authCodes).values({
+        id: uuidv7(),
+        code: emptyVerifierCode,
+        clientId: testClient.id,
+        userId: testUser.id,
+        workspaceId: testWorkspace.id,
+        redirectUri: "https://example.com/callback",
+        codeChallenge,
+        codeChallengeMethod: "S256",
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+
+      const res = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: emptyVerifierCode,
+          redirect_uri: "https://example.com/callback",
+          client_id: testClient.clientId,
+          client_secret: "test-client-secret",
+          code_verifier: "", // Empty string
+        }).toString(),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    describe("token issuance details", () => {
+      it("should return correct expires_in value", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.expires_in).toBe(3600); // 1 hour in seconds
+      });
+
+      it("should return Bearer token_type", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: authCode,
+            redirect_uri: "https://example.com/callback",
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.token_type).toBe("Bearer");
+      });
+    });
   });
 
   describe("POST /token (refresh_token)", () => {
@@ -952,6 +1164,171 @@ describe("api/oauth", () => {
       });
 
       expect(res.status).toBe(401);
+    });
+
+    describe("refresh token security", () => {
+      it("should ensure new refresh token is not linked to old access token", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+
+        // Verify new refresh token was created
+        const newRefreshTokenHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(json.refresh_token)),
+        );
+        const [newRefreshTokenRecord] = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.tokenHash, newRefreshTokenHash));
+
+        expect(newRefreshTokenRecord).toBeDefined();
+        // New refresh token should not be linked to old access token
+        expect(newRefreshTokenRecord.accessTokenId).not.toBe(accessToken.id);
+
+        // Verify old access token was deleted
+        const [oldAccessToken] = await db
+          .select()
+          .from(schema.accessTokens)
+          .where(eq(schema.accessTokens.id, accessToken.id));
+        expect(oldAccessToken).toBeUndefined();
+      });
+
+      it("should mark old refresh token as used after rotation", async () => {
+        const res = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+
+        expect(res.status).toBe(200);
+
+        // Verify old refresh token was marked as used
+        const refreshTokenHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(refreshToken)),
+        );
+        const [oldRefreshToken] = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.tokenHash, refreshTokenHash));
+
+        expect(oldRefreshToken.usedAt).not.toBeNull();
+        expect(oldRefreshToken.usedAt).toBeInstanceOf(Date);
+      });
+
+      it("should reject consecutive use of old refresh token", async () => {
+        // First use - should succeed
+        const firstRes = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+        expect(firstRes.status).toBe(200);
+
+        // Second use - should fail (token already used)
+        const secondRes = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+        expect(secondRes.status).toBe(400);
+
+        // Third use - should also fail
+        const thirdRes = await app.request("/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            client_id: testClient.clientId,
+            client_secret: "test-client-secret",
+          }).toString(),
+        });
+        expect(thirdRes.status).toBe(400);
+      });
+
+      it("should validate token rotation chain integrity", async () => {
+        // Perform multiple rotations and verify chain integrity
+        let currentRefreshToken = refreshToken;
+        const rotationCount = 3;
+
+        for (let i = 0; i < rotationCount; i++) {
+          const res = await app.request("/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: currentRefreshToken,
+              client_id: testClient.clientId,
+              client_secret: "test-client-secret",
+            }).toString(),
+          });
+
+          expect(res.status).toBe(200);
+          const json = await res.json();
+
+          // Verify old token is marked as used
+          const oldTokenHash = encodeHexLowerCase(
+            sha256(new TextEncoder().encode(currentRefreshToken)),
+          );
+          const [oldToken] = await db
+            .select()
+            .from(schema.refreshTokens)
+            .where(eq(schema.refreshTokens.tokenHash, oldTokenHash));
+
+          expect(oldToken.usedAt).not.toBeNull();
+
+          // Move to next token in chain
+          currentRefreshToken = json.refresh_token;
+        }
+
+        // Verify final token is valid (not used)
+        const finalTokenHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(currentRefreshToken)),
+        );
+        const [finalToken] = await db
+          .select()
+          .from(schema.refreshTokens)
+          .where(eq(schema.refreshTokens.tokenHash, finalTokenHash));
+
+        expect(finalToken.usedAt).toBeNull();
+      });
     });
   });
 });
