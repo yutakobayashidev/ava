@@ -1,0 +1,39 @@
+import { and, eq, sql } from "drizzle-orm";
+import type { Database } from "@/clients/drizzle";
+import { subscriptions, taskSessions } from "@/db/schema";
+
+export type SubscriptionRepository = ReturnType<
+  typeof createSubscriptionRepository
+>;
+
+export const createSubscriptionRepository = ({ db }: { db: Database }) => ({
+  /**
+   * ユーザーのアクティブなサブスクリプションを取得
+   */
+  async getActiveSubscription(userId: string) {
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          eq(subscriptions.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    return activeSubscriptions[0] ?? null;
+  },
+
+  /**
+   * ユーザーが作成したタスクセッション数をカウント
+   */
+  async countUserTaskSessions(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(taskSessions)
+      .where(eq(taskSessions.userId, userId));
+
+    return result[0]?.count ?? 0;
+  },
+});

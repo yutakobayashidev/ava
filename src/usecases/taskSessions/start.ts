@@ -1,6 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository } from "@/repos";
+import { createTaskRepository, createSubscriptionRepository } from "@/repos";
+import { checkFreePlanLimit } from "@/services/subscriptionService";
 
 export type StartTask = {
   issue: {
@@ -20,6 +21,17 @@ export const startTasks = async (
   const { issue, initial_summary } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
+
+  // プラン制限のチェック
+  const subscriptionRepository = createSubscriptionRepository({ db });
+  const limitError = await checkFreePlanLimit(user.id, subscriptionRepository);
+  if (limitError) {
+    return {
+      success: false,
+      error: limitError,
+    };
+  }
+
   const taskRepository = createTaskRepository({ db });
   const notificationService = createNotificationService(
     workspace,
