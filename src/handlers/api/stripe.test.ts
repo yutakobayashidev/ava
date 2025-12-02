@@ -5,7 +5,7 @@ import {
   generateSessionToken,
   createSession,
 } from "@/usecases/auth/loginWithSlack";
-import { users } from "@/db/schema";
+import { users, subscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const { createCustomer, createCheckoutSession, createPortalSession } =
@@ -265,15 +265,113 @@ describe("api/stripe", () => {
   });
 
   describe("GET /subscription", () => {
-    it("should return 501 not implemented", async () => {
+    it("should throw an error if there is no session token", async () => {
       const res = await app.request("/subscription", {
         method: "GET",
       });
 
-      expect(res.status).toBe(501);
-      expect(await res.json()).toMatchObject({
-        message: "Not implemented",
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchInlineSnapshot(`
+        {
+          "error": "Unauthorized",
+        }
+      `);
+    });
+
+    it("should return null if the subscription is not found", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const sessionToken = generateSessionToken();
+      await createSession(db, sessionToken, user.id);
+
+      const res = await app.request("/subscription", {
+        method: "GET",
+        headers: {
+          Cookie: `session=${sessionToken}`,
+        },
       });
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchInlineSnapshot(`
+        {
+          "data": null,
+          "message": "subscription not found",
+          "success": true,
+        }
+      `);
+    });
+
+    it("should return the subscription status", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const sessionToken = generateSessionToken();
+      await createSession(db, sessionToken, user.id);
+
+      // Create subscriptions with different statuses
+      await db.insert(subscriptions).values([
+        {
+          id: "sub_expired",
+          userId: user.id,
+          cancelAtPeriodEnd: "false",
+          subscriptionId: "sub_1",
+          status: "expired",
+        },
+        {
+          id: "sub_active",
+          userId: user.id,
+          cancelAtPeriodEnd: "false",
+          subscriptionId: "sub_2",
+          status: "active",
+        },
+        {
+          id: "sub_complete",
+          userId: user.id,
+          cancelAtPeriodEnd: "true",
+          subscriptionId: "sub_3",
+          status: "complete",
+        },
+      ]);
+
+      // Should return active subscription first
+      const res1 = await app.request("/subscription", {
+        method: "GET",
+        headers: {
+          Cookie: `session=${sessionToken}`,
+        },
+      });
+
+      expect(res1.status).toBe(200);
+      expect(await res1.json()).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "cancelAtPeriodEnd": "false",
+            "currentPeriodEnd": null,
+            "subscriptionId": "sub_2",
+          },
+          "success": true,
+        }
+      `);
+
+      // Delete active subscription
+      await db.delete(subscriptions).where(eq(subscriptions.id, "sub_active"));
+
+      // Should return complete subscription now
+      const res2 = await app.request("/subscription", {
+        method: "GET",
+        headers: {
+          Cookie: `session=${sessionToken}`,
+        },
+      });
+
+      expect(res2.status).toBe(200);
+      expect(await res2.json()).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "cancelAtPeriodEnd": "true",
+            "currentPeriodEnd": null,
+            "subscriptionId": "sub_3",
+          },
+          "success": true,
+        }
+      `);
     });
   });
 });

@@ -111,9 +111,42 @@ const app = createHonoApp()
 
     return ctx.redirect(portal.url);
   })
-  // TODO: Implement get subscription
   .get("/subscription", async (ctx) => {
-    return ctx.json({ message: "Not implemented" }, 501);
+    const sessionToken = getCookie(ctx, "session");
+    const { user } = sessionToken
+      ? await validateSessionToken(sessionToken)
+      : { user: null };
+
+    if (!user) {
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
+
+    const { db } = getUsecaseContext(ctx);
+
+    const subscription = await db.query.subscriptions.findFirst({
+      where: (subscriptions, { eq, and, inArray }) =>
+        and(
+          eq(subscriptions.userId, user.id),
+          inArray(subscriptions.status, ["active", "complete"]),
+        ),
+    });
+
+    if (!subscription) {
+      return ctx.json({
+        success: true,
+        data: null,
+        message: "subscription not found",
+      });
+    }
+
+    return ctx.json({
+      success: true,
+      data: {
+        subscriptionId: subscription.subscriptionId,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      },
+    });
   });
 
 export default app;
