@@ -564,6 +564,12 @@ export default async function LandingPage() {
                 ドキュメント
               </Link>
               <Link
+                href="/docs/pricing"
+                className="hover:text-white transition-colors"
+              >
+                料金
+              </Link>
+              <Link
                 href="/docs/terms"
                 className="hover:text-white transition-colors"
               >

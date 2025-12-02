@@ -256,4 +256,6 @@ const app = createHonoApp()
     });
   });
 
+export type StripeRoute = typeof app;
+
 export default app;
