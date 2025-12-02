@@ -1,13 +1,88 @@
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp, getUsecaseContext } from "@/app/create-app";
+import { getCookie } from "hono/cookie";
+import { validateSessionToken } from "@/lib/session";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { env } from "hono/adapter";
 
 const app = createHonoApp()
   // TODO: Implement Stripe webhook endpoint
   .post("/webhook", async (ctx) => {
     return ctx.json({ message: "Not implemented" }, 501);
   })
-  // TODO: Implement checkout session creation
   .post("/checkout", async (ctx) => {
-    return ctx.json({ message: "Not implemented" }, 501);
+    const sessionToken = getCookie(ctx, "session");
+    const { user } = sessionToken
+      ? await validateSessionToken(sessionToken)
+      : { user: null };
+
+    if (!user) {
+      return ctx.json({ success: false, message: "Unauthorized" }, 401);
+    }
+
+    const { db, stripe } = getUsecaseContext(ctx);
+
+    const me = await db.query.users.findFirst({
+      where: eq(users.id, user.id),
+    });
+
+    if (!me?.email) {
+      return ctx.json({ success: false, message: "user not found" }, 404);
+    }
+
+    const { STRIPE_PRICE_ID, NEXT_PUBLIC_BASE_URL } = env(ctx);
+
+    if (!STRIPE_PRICE_ID) {
+      return ctx.json(
+        { success: false, message: "Stripe price ID not configured" },
+        500,
+      );
+    }
+
+    const successUrl = `${NEXT_PUBLIC_BASE_URL}/billing/success`;
+    const cancelUrl = `${NEXT_PUBLIC_BASE_URL}/billing`;
+
+    const customer = await stripe.customers.create({
+      email: me.email,
+      name: me.name ?? "-",
+    });
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [
+        {
+          price: STRIPE_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      automatic_tax: {
+        enabled: true,
+      },
+      customer: customer.id,
+      customer_update: {
+        shipping: "auto",
+      },
+      shipping_address_collection: {
+        allowed_countries: ["JP"],
+      },
+      currency: "jpy",
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    });
+
+    await db
+      .update(users)
+      .set({ stripeId: customer.id })
+      .where(eq(users.id, me.id));
+
+    if (!checkoutSession.url) {
+      return ctx.json(
+        { success: false, message: "checkoutSession url not found" },
+        500,
+      );
+    }
+
+    return ctx.redirect(checkoutSession.url);
   })
   // TODO: Implement customer portal session creation
   .post("/portal-session", async (ctx) => {
