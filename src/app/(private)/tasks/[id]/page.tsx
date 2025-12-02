@@ -71,16 +71,18 @@ function EventTypeLabel({ eventType }: { eventType: string }) {
   );
 }
 
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function TaskDetailPage({ params }: PageProps) {
+export default async function TaskDetailPage({
+  params,
+}: PageProps<"/tasks/[id]">) {
   const { id } = await params;
   const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository({ db });
-  const task = await taskRepository.findTaskSessionById(id, workspace.id);
+  const task = await taskRepository.findTaskSessionById(
+    id,
+    workspace.id,
+    user.id,
+  );
 
   if (!task) {
     notFound();

@@ -16,7 +16,7 @@ export const resolveBlocked = async (
 > => {
   const { task_session_id, block_report_id } = params;
 
-  const [workspace, db] = [ctx.workspace, ctx.db];
+  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
   const notificationService = createNotificationService(
     workspace,
@@ -27,6 +27,7 @@ export const resolveBlocked = async (
   const currentSession = await taskRepository.findTaskSessionById(
     task_session_id,
     workspace.id,
+    user.id,
   );
 
   if (!currentSession) {
@@ -47,6 +48,7 @@ export const resolveBlocked = async (
   const { session, blockReport } = await taskRepository.resolveBlockReport({
     taskSessionId: task_session_id,
     workspaceId: workspace.id,
+    userId: user.id,
     blockReportId: block_report_id,
   });
 

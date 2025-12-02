@@ -98,6 +98,7 @@ export type NotificationService = {
     };
     initialSummary: string;
     user: {
+      id: string;
       name?: string | null;
       email?: string | null;
       slackId?: string | null;
@@ -191,6 +192,7 @@ export const createNotificationService = (
           await taskRepository.updateSlackThread({
             taskSessionId: session.id,
             workspaceId: workspace.id,
+            userId: user.id,
             threadTs: result.threadTs,
             channel: result.channel,
           });

@@ -24,6 +24,7 @@ type CreateTaskSessionInput = {
 type AddTaskUpdateInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
 };
@@ -31,6 +32,7 @@ type AddTaskUpdateInput = {
 type ReportBlockInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   reason: string;
   rawContext?: Record<string, unknown>;
 };
@@ -38,18 +40,21 @@ type ReportBlockInput = {
 type CompleteTaskInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   summary: string;
 };
 
 type ResolveBlockInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   blockReportId: string;
 };
 
 type PauseTaskInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   reason: string;
   rawContext?: Record<string, unknown>;
 };
@@ -57,6 +62,7 @@ type PauseTaskInput = {
 type ResumeTaskInput = {
   taskSessionId: string;
   workspaceId: string;
+  userId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
 };
@@ -118,6 +124,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const findTaskSessionById = async (
     taskSessionId: string,
     workspaceId: string,
+    userId: string,
   ) => {
     const [session] = await db
       .select()
@@ -126,6 +133,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         and(
           eq(schema.taskSessions.id, taskSessionId),
           eq(schema.taskSessions.workspaceId, workspaceId),
+          eq(schema.taskSessions.userId, userId),
         ),
       );
 
@@ -146,6 +154,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();
@@ -183,6 +192,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();
@@ -254,6 +264,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();
@@ -423,6 +434,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();
@@ -469,6 +481,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
   const updateSlackThread = async (params: {
     taskSessionId: string;
     workspaceId: string;
+    userId: string;
     threadTs: string;
     channel: string;
   }) => {
@@ -482,6 +495,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
         and(
           eq(schema.taskSessions.id, params.taskSessionId),
           eq(schema.taskSessions.workspaceId, params.workspaceId),
+          eq(schema.taskSessions.userId, params.userId),
         ),
       )
       .returning();
@@ -503,6 +517,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();
@@ -552,6 +567,7 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
           and(
             eq(schema.taskSessions.id, params.taskSessionId),
             eq(schema.taskSessions.workspaceId, params.workspaceId),
+            eq(schema.taskSessions.userId, params.userId),
           ),
         )
         .returning();

@@ -17,7 +17,7 @@ export const updateTask = async (
 > => {
   const { task_session_id, summary, raw_context } = params;
 
-  const [workspace, db] = [ctx.workspace, ctx.db];
+  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
   const notificationService = createNotificationService(
     workspace,
@@ -28,6 +28,7 @@ export const updateTask = async (
   const currentSession = await taskRepository.findTaskSessionById(
     task_session_id,
     workspace.id,
+    user.id,
   );
 
   if (!currentSession) {
@@ -48,6 +49,7 @@ export const updateTask = async (
   const { session, updateEvent } = await taskRepository.addTaskUpdate({
     taskSessionId: task_session_id,
     workspaceId: workspace.id,
+    userId: user.id,
     summary,
     rawContext: raw_context ?? {},
   });
