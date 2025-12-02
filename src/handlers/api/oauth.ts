@@ -114,8 +114,11 @@ async function handleAuthorizationCodeGrant(
       if (!client_secret) {
         throw new HTTPException(401, { message: "invalid_client" });
       }
-      // Use timing-safe comparison to prevent timing attacks
-      if (!timingSafeCompare(client.clientSecret, client_secret)) {
+      // Hash the provided client_secret and use timing-safe comparison to prevent timing attacks
+      const clientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode(client_secret)),
+      );
+      if (!timingSafeCompare(client.clientSecret, clientSecretHash)) {
         throw new HTTPException(401, { message: "invalid_client" });
       }
     } else {
@@ -283,8 +286,11 @@ async function handleRefreshTokenGrant(
         throw new HTTPException(401, { message: "invalid_client" });
       }
 
-      // Use timing-safe comparison to prevent timing attacks
-      if (!timingSafeCompare(client.clientSecret, client_secret)) {
+      // Hash the provided client_secret and use timing-safe comparison to prevent timing attacks
+      const clientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode(client_secret)),
+      );
+      if (!timingSafeCompare(client.clientSecret, clientSecretHash)) {
         throw new HTTPException(401, { message: "invalid_client" });
       }
     } else {
@@ -382,6 +388,9 @@ app.post(
   async (c) => {
     const { client_name, redirect_uris } = await c.req.valid("json");
     const clientSecret = randomBytes(32).toString("hex");
+    const clientSecretHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(clientSecret)),
+    );
     const generatedClientId = randomBytes(16).toString("hex");
     const db = c.get("db");
 
@@ -390,7 +399,7 @@ app.post(
       .values({
         id: uuidv7(),
         clientId: generatedClientId,
-        clientSecret,
+        clientSecret: clientSecretHash,
         name: client_name,
         redirectUris: redirect_uris,
       })

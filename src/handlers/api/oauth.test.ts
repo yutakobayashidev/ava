@@ -154,13 +154,16 @@ describe("api/oauth", () => {
       testUser = user;
       testWorkspace = workspace;
 
-      // Create test client
+      // Create test client (hash the client secret)
+      const clientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode("test-client-secret")),
+      );
       const [client] = await db
         .insert(schema.clients)
         .values({
           id: uuidv7(),
           clientId: "test-client-id",
-          clientSecret: "test-client-secret",
+          clientSecret: clientSecretHash,
           name: "Test Client",
           redirectUris: ["https://example.com/callback"],
         })
@@ -516,9 +519,12 @@ describe("api/oauth", () => {
     it("should handle URL-encoded characters in client_secret_basic", async () => {
       // Create a client with special characters in secret
       const specialSecret = "test:secret@123";
+      const specialSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode(specialSecret)),
+      );
       await db
         .update(schema.clients)
-        .set({ clientSecret: specialSecret })
+        .set({ clientSecret: specialSecretHash })
         .where(eq(schema.clients.id, testClient.id));
 
       // Update auth code to match
@@ -558,9 +564,12 @@ describe("api/oauth", () => {
     it("should handle multiple colons in client_secret", async () => {
       // Create a client with multiple colons in secret
       const secretWithColons = "secret:with:multiple:colons:here";
+      const secretWithColonsHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode(secretWithColons)),
+      );
       await db
         .update(schema.clients)
-        .set({ clientSecret: secretWithColons })
+        .set({ clientSecret: secretWithColonsHash })
         .where(eq(schema.clients.id, testClient.id));
 
       // Create new auth code
@@ -845,13 +854,16 @@ describe("api/oauth", () => {
     });
 
     it("should fail when using auth code with different client_id", async () => {
-      // Create another client
+      // Create another client (hash the client secret)
+      const otherClientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode("other-client-secret")),
+      );
       const [otherClient] = await db
         .insert(schema.clients)
         .values({
           id: uuidv7(),
           clientId: "other-client-id",
-          clientSecret: "other-client-secret",
+          clientSecret: otherClientSecretHash,
           name: "Other Client",
           redirectUris: ["https://example.com/callback"],
         })
@@ -1005,13 +1017,16 @@ describe("api/oauth", () => {
       testUser = user;
       testWorkspace = workspace;
 
-      // Create test client
+      // Create test client (hash the client secret)
+      const clientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode("test-client-secret")),
+      );
       const [client] = await db
         .insert(schema.clients)
         .values({
           id: uuidv7(),
           clientId: "test-client-id",
-          clientSecret: "test-client-secret",
+          clientSecret: clientSecretHash,
           name: "Test Client",
           redirectUris: ["https://example.com/callback"],
         })
