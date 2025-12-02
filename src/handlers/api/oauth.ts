@@ -27,7 +27,14 @@ function extractClientCredentials(
       const credentials = Buffer.from(base64Credentials, "base64").toString(
         "utf-8",
       );
-      const [client_id, client_secret] = credentials.split(":", 2);
+      // Split on first colon only to handle colons in client_secret
+      const colonIndex = credentials.indexOf(":");
+      if (colonIndex === -1) {
+        return { client_id: undefined, client_secret: undefined };
+      }
+      const client_id = credentials.slice(0, colonIndex);
+      const client_secret = credentials.slice(colonIndex + 1);
+
       if (client_id) {
         return {
           client_id: decodeURIComponent(client_id),

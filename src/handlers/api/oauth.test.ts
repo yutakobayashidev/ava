@@ -555,6 +555,48 @@ describe("api/oauth", () => {
       expect(json).toHaveProperty("access_token");
     });
 
+    it("should handle multiple colons in client_secret", async () => {
+      // Create a client with multiple colons in secret
+      const secretWithColons = "secret:with:multiple:colons:here";
+      await db
+        .update(schema.clients)
+        .set({ clientSecret: secretWithColons })
+        .where(eq(schema.clients.id, testClient.id));
+
+      // Create new auth code
+      const newAuthCode = "test-auth-code-colons-" + uuidv7();
+      await db.insert(schema.authCodes).values({
+        id: uuidv7(),
+        code: newAuthCode,
+        clientId: testClient.id,
+        userId: testUser.id,
+        workspaceId: testWorkspace.id,
+        redirectUri: "https://example.com/callback",
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      });
+
+      // URL-encode the credentials properly
+      const credentials = `${encodeURIComponent(testClient.clientId)}:${encodeURIComponent(secretWithColons)}`;
+      const basicAuth = `Basic ${Buffer.from(credentials).toString("base64")}`;
+
+      const res = await app.request("/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: basicAuth,
+        },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code: newAuthCode,
+          redirect_uri: "https://example.com/callback",
+        }).toString(),
+      });
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toHaveProperty("access_token");
+    });
+
     it("should support confidential client with both PKCE and client_secret", async () => {
       const codeVerifier = "test-code-verifier-confidential";
       const codeChallenge = encodeBase64urlNoPadding(
