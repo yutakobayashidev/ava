@@ -63,6 +63,7 @@ export const startTasks = async (
     },
     initialSummary: initial_summary,
     user: {
+      id: user.id,
       name: user.name,
       email: user.email,
       slackId: user.slackId,
