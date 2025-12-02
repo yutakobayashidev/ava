@@ -54,6 +54,6 @@ export async function setupDB({ port }: { port: "random" | number }) {
   } as const;
 }
 
-export async function truncate(db: PgDatabase) {
+async function truncate(db: PgDatabase) {
   await reset(db, schema);
 }

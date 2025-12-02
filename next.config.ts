@@ -1,10 +1,17 @@
 import type { NextConfig } from "next";
 import { config } from "./env";
 import { createMDX } from "fumadocs-mdx/next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
 config();
 
-const nextConfig: NextConfig = {
+const withMDX = createMDX();
+
+export const withAnalyzer = (sourceConfig: NextConfig): NextConfig =>
+  withBundleAnalyzer()(sourceConfig);
+
+// ベース設定
+let nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
   compiler: {
@@ -29,22 +36,10 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          {
-            key: "X-DNS-Prefetch-Control",
-            value: "on",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
     ];
@@ -66,9 +61,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withMDX = createMDX({
-  // customise the config file path
-  // configPath: "source.config.ts"
-});
+nextConfig = withMDX(nextConfig);
 
-export default withMDX(nextConfig);
+if (process.env.ANALYZE === "true") {
+  nextConfig = withAnalyzer(nextConfig);
+}
+
+export default nextConfig;
