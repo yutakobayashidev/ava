@@ -7,6 +7,7 @@ import { AiSdkModels, createAiSdkModels } from "@/lib/ai";
 import { env } from "hono/adapter";
 import { secureHeaders } from "hono/secure-headers";
 import { HTTPException } from "hono/http-exception";
+import Stripe from "stripe";
 
 export type Env = {
   Bindings: Schema;
@@ -15,6 +16,7 @@ export type Env = {
     user: schema.User;
     workspace: schema.Workspace;
     ai: AiSdkModels;
+    stripe: Stripe | null;
   };
 };
 
@@ -37,6 +39,7 @@ export const getUsecaseContext = (c: Context<Env>): Env["Variables"] => ({
   user: c.get("user"),
   workspace: c.get("workspace"),
   ai: c.get("ai"),
+  stripe: c.get("stripe"),
 });
 
 export const createHonoApp = () =>
@@ -52,6 +55,17 @@ export const createHonoApp = () =>
             },
           }),
         );
+
+        const { STRIPE_SECRET_KEY } = env(c);
+        c.set(
+          "stripe",
+          STRIPE_SECRET_KEY
+            ? new Stripe(STRIPE_SECRET_KEY, {
+                apiVersion: "2025-11-17.clover",
+              })
+            : null,
+        );
+
         await next();
       });
     },

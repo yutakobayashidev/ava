@@ -91,6 +91,7 @@ describe("createMcpServer", async () => {
           OPENAI_API_KEY: process.env.OPENAI_API_KEY,
         },
       }),
+      stripe: null,
     };
 
     // クライアントとサーバーを接続

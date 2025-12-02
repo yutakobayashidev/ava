@@ -20,6 +20,8 @@ const staticEnv = z.object({
   SLACK_APP_CLIENT_SECRET: z.string().min(1),
   SLACK_SIGNING_SECRET: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 const runtimeEnv = z.object({});
