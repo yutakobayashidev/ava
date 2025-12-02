@@ -8,3 +8,7 @@ project_name = "ava"
 # 本番環境では sk_live_ で始まるライブモードのAPIキーを使用してください
 # 例: export TF_VAR_stripe_api_key=sk_live_xxxxx
 # stripe_api_key = "sk_live_xxxxx"
+
+# Webhook のベース URL (本番環境のドメイン)
+# 例: webhook_base_url = "https://yourdomain.com"
+webhook_base_url = "https://yourdomain.com"
