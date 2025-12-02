@@ -204,7 +204,7 @@ describe("api/stripe", () => {
       `);
     });
 
-    it("should throw an error if user has no stripeId", async () => {
+    it("should throw an error if the user has no stripeId", async () => {
       const { user } = await createTestUserAndWorkspace();
       const sessionToken = generateSessionToken();
       await createSession(db, sessionToken, user.id);
@@ -224,7 +224,7 @@ describe("api/stripe", () => {
       `);
     });
 
-    it("should redirect to portal url", async () => {
+    it("should redirect to the billing portal", async () => {
       const { user } = await createTestUserAndWorkspace();
       const sessionToken = generateSessionToken();
       await createSession(db, sessionToken, user.id);
@@ -236,7 +236,7 @@ describe("api/stripe", () => {
         .where(eq(users.id, user.id));
 
       createPortalSession.mockResolvedValueOnce({
-        url: "https://billing.stripe.com/portal/test",
+        url: "https://billing.stripe.com/session/test_123",
       });
 
       const res = await app.request("/portal-session", {
@@ -258,8 +258,8 @@ describe("api/stripe", () => {
       `);
 
       expect(res.status).toBe(302);
-      expect(res.headers.get("Location")).toBe(
-        "https://billing.stripe.com/portal/test",
+      expect(res.headers.get("Location")).toMatchInlineSnapshot(
+        `"https://billing.stripe.com/session/test_123"`,
       );
     });
   });
