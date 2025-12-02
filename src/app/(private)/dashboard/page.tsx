@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Header } from "@/components/header";
 import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import { formatDate, formatDuration } from "@/utils/date";
 import { requireWorkspace } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
+import { buildSlackThreadUrl } from "@/utils/slack";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -114,35 +116,57 @@ export default async function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksWithDuration.map((task) => (
-                  <TableRow
-                    key={task.id}
-                    className="cursor-pointer hover:bg-slate-50"
-                  >
-                    <TableCell className="font-medium max-w-md">
-                      <Link href={`/tasks/${task.id}`} className="block">
-                        <div className="truncate hover:text-blue-600">
-                          {task.issueTitle}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate mt-1">
-                          {task.initialSummary}
-                        </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={task.status} />
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {formatDate(task.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-slate-600">
-                      {task.completedAt ? formatDate(task.completedAt) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-slate-900">
-                      {task.durationMs ? formatDuration(task.durationMs) : "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {tasksWithDuration.map((task) => {
+                  const slackThreadUrl = buildSlackThreadUrl({
+                    workspaceExternalId: workspace.externalId,
+                    workspaceDomain: workspace.domain,
+                    channelId: task.slackChannel,
+                    threadTs: task.slackThreadTs,
+                  });
+
+                  return (
+                    <TableRow
+                      key={task.id}
+                      className="cursor-pointer hover:bg-slate-50"
+                    >
+                      <TableCell className="font-medium max-w-md">
+                        <Link href={`/tasks/${task.id}`} className="block">
+                          <div className="truncate hover:text-blue-600">
+                            {task.issueTitle}
+                          </div>
+                          <div className="text-xs text-slate-500 truncate mt-1">
+                            {task.initialSummary}
+                          </div>
+                        </Link>
+                        {slackThreadUrl && (
+                          <Link
+                            href={slackThreadUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            Slackスレッド
+                          </Link>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={task.status} />
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {formatDate(task.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {task.completedAt ? formatDate(task.completedAt) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-slate-900">
+                        {task.durationMs
+                          ? formatDuration(task.durationMs)
+                          : "-"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
