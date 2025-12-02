@@ -3,7 +3,7 @@ import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
-export type UpdateTask = {
+type UpdateTask = {
   task_session_id: string;
   summary: string;
   raw_context?: Record<string, unknown>;

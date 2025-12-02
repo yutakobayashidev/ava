@@ -1,7 +1,7 @@
 import { Env } from "@/app/create-app";
 import { createTaskRepository } from "@/repos";
 
-export type ListTasks = {
+type ListTasks = {
   status?: "in_progress" | "blocked" | "paused" | "completed";
   limit?: number;
 };

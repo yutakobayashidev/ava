@@ -3,7 +3,7 @@ import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository, createSubscriptionRepository } from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 
-export type StartTask = {
+type StartTask = {
   issue: {
     provider: "github" | "manual";
     id?: string;

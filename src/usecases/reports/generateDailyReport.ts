@@ -29,7 +29,7 @@ type ActiveTaskDetail = {
   unresolvedBlocks: BlockReport[];
 };
 
-export type GenerateDailyReport = {
+type GenerateDailyReport = {
   slackTeamId: string;
   slackUserId: string;
 };
