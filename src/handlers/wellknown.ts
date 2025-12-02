@@ -9,7 +9,6 @@ wellknownHandler.get("/oauth-authorization-server", (c) => {
     authorization_endpoint: absoluteUrl("/oauth/authorize"),
     token_endpoint: absoluteUrl("/api/oauth/token"),
     registration_endpoint: absoluteUrl("/api/oauth/register"),
-    scopes_supported: ["api:read", "api:write"],
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     token_endpoint_auth_methods_supported: [
@@ -27,7 +26,6 @@ wellknownHandler.get("/oauth-protected-resource", (c) => {
   const metadata = {
     resource: absoluteUrl("/mcp"),
     authorization_servers: [absoluteUrl("")],
-    scopes_supported: ["api:read", "api:write"],
     bearer_methods_supported: ["header"],
     resource_documentation: absoluteUrl("/docs"),
   };
