@@ -1,7 +1,11 @@
 import "server-only";
 
-import { postMessage, addReaction } from "@/clients/slack";
-import type { TaskRepository } from "@/repos";
+import {
+  postMessage,
+  addReaction,
+  getWorkspaceBotToken,
+} from "@/clients/slack";
+import type { TaskRepository, WorkspaceRepository } from "@/repos";
 import type { Workspace } from "@/db/schema";
 
 /**
@@ -136,6 +140,7 @@ type NotificationService = {
 export const createNotificationService = (
   workspace: Workspace,
   taskRepository: TaskRepository,
+  workspaceRepository: WorkspaceRepository,
 ): NotificationService => {
   /**
    * Slack設定を取得
@@ -153,7 +158,7 @@ export const createNotificationService = (
   };
 
   /**
-   * Slack設定チェック + 実行
+   * Slack設定チェック + 実行（トークンローテーションを含む）
    */
   const withSlackConfig = async (
     fn: (config: SlackConfig) => Promise<NotificationResult>,
@@ -162,7 +167,29 @@ export const createNotificationService = (
     if (!slackConfig) {
       return { delivered: false, reason: "missing_config" };
     }
-    return fn(slackConfig);
+
+    try {
+      // トークンローテーションを実行（必要に応じて）
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
+      });
+
+      // 有効なトークンでconfigを更新
+      const configWithValidToken = {
+        ...slackConfig,
+        token: validToken,
+      };
+
+      return fn(configWithValidToken);
+    } catch (error) {
+      console.error("Failed to get valid bot token", error);
+      return {
+        delivered: false,
+        reason: "api_error",
+        error: error instanceof Error ? error.message : "token_error",
+      };
+    }
   };
 
   return {

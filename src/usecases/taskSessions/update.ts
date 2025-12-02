@@ -1,6 +1,6 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository } from "@/repos";
+import { createTaskRepository, createWorkspaceRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 type UpdateTask = {
@@ -19,9 +19,11 @@ export const updateTask = async (
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
+  const workspaceRepository = createWorkspaceRepository({ db });
   const notificationService = createNotificationService(
     workspace,
     taskRepository,
+    workspaceRepository,
   );
 
   // 現在のタスクセッションを取得して状態遷移を検証

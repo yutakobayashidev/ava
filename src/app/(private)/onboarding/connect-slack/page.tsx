@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { db } from "@/clients/drizzle";
-import { listChannels, type SlackChannel } from "@/clients/slack";
+import {
+  listChannels,
+  type SlackChannel,
+  getWorkspaceBotToken,
+} from "@/clients/slack";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -58,7 +62,11 @@ export default async function ConnectSlackPage({
 
   if (workspace?.botAccessToken) {
     try {
-      channels = await listChannels(workspace.botAccessToken);
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
+      });
+      channels = await listChannels(validToken);
     } catch (error) {
       channelError = error instanceof Error ? error.message : "unknown_error";
     }
@@ -85,7 +93,11 @@ export default async function ConnectSlackPage({
     let availableChannels: SlackChannel[] = [];
 
     try {
-      availableChannels = await listChannels(workspace.botAccessToken);
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
+      });
+      availableChannels = await listChannels(validToken);
     } catch (error) {
       console.error("Failed to load Slack channels", error);
       redirect("/onboarding/connect-slack?error=channel_fetch_failed");

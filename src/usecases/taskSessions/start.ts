@@ -1,6 +1,10 @@
 import { Env } from "@/app/create-app";
 import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository, createSubscriptionRepository } from "@/repos";
+import {
+  createTaskRepository,
+  createSubscriptionRepository,
+  createWorkspaceRepository,
+} from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 
 type StartTask = {
@@ -33,9 +37,11 @@ export const startTasks = async (
   }
 
   const taskRepository = createTaskRepository({ db });
+  const workspaceRepository = createWorkspaceRepository({ db });
   const notificationService = createNotificationService(
     workspace,
     taskRepository,
+    workspaceRepository,
   );
 
   const session = await taskRepository.createTaskSession({

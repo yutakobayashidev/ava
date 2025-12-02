@@ -43,7 +43,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
-      - run: npx prettier --check . && npx eslint .
+      - run: npx prettier --check . && npx eslint . && npx knip
     timeout-minutes: 5
 
   unit-test:
