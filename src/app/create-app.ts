@@ -73,7 +73,7 @@ export const createHonoApp = () =>
     .onError((error, c) => {
       if (error instanceof HTTPException) {
         console.error(error.cause);
-        return c.json({ error: error.message }, error.status);
+        return error.res ?? c.json({ error: error.message }, error.status);
       }
 
       return c.json({ error: "Internal Server Error" }, 500);
