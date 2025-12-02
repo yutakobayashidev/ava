@@ -91,31 +91,6 @@ Avaは **CIMD と DCR の両方** をサポートしているため、Claude Cod
 
 詳しくは [IETF Draft - OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/draft-ietf-oauth-client-id-metadata-document/) をご覧ください。
 
-#### DCR (Dynamic Client Registration) を使う場合
-
-プログラムから動的にクライアントを登録する場合は、以下のエンドポイントを使用します：
-
-```bash
-curl -X POST https://ava-dusky-gamma.vercel.app/api/oauth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "client_name": "My Application",
-    "redirect_uris": ["https://myapp.example.com/callback"]
-  }'
-```
-
-レスポンス:
-
-```json
-{
-  "client_id": "abc123...",
-  "client_secret": "xyz789...",
-  "redirect_uris": ["https://myapp.example.com/callback"]
-}
-```
-
-**注意:** DCR は主に自動化やプログラムからの利用を想定しています。Claude CodeなどのMCPクライアントは自動的にCIMDを使用するため、手動でのクライアント登録は不要です。
-
 ### Slack 統合
 
 **ユーザー認証:**
