@@ -5,6 +5,8 @@ import {
   generateSessionToken,
   createSession,
 } from "@/usecases/auth/loginWithSlack";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const { createCustomer, createCheckoutSession } = vi.hoisted(() => ({
   createCustomer: vi.fn(),
@@ -55,15 +57,7 @@ describe("api/stripe", () => {
       await createSession(db, sessionToken, user.id);
 
       // Update user to have no email
-      await db
-        .update((await import("@/db/schema")).users)
-        .set({ email: null })
-        .where(
-          (await import("drizzle-orm")).eq(
-            (await import("@/db/schema")).users.id,
-            user.id,
-          ),
-        );
+      await db.update(users).set({ email: null }).where(eq(users.id, user.id));
 
       const res = await app.request("/checkout", {
         method: "POST",
