@@ -747,14 +747,3 @@ export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
 };
 
 export type TaskRepository = ReturnType<typeof createTaskRepository>;
-export type {
-  CreateTaskSessionInput,
-  AddTaskUpdateInput,
-  ReportBlockInput,
-  PauseTaskInput,
-  ResumeTaskInput,
-  CompleteTaskInput,
-  ResolveBlockInput,
-  ListOptions,
-  ListTaskSessionsInput,
-};

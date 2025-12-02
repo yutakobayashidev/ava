@@ -4,7 +4,7 @@ import { WebClient } from "@slack/web-api";
 
 const DEFAULT_MINUTES_BEFORE_EXPIRATION = 120; // 2 hours
 
-export type RotatedTokens = {
+type RotatedTokens = {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;

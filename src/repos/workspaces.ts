@@ -203,9 +203,4 @@ export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
 };
 
 export type WorkspaceRepository = ReturnType<typeof createWorkspaceRepository>;
-export type {
-  CreateWorkspaceInput,
-  UpdateCredentialsInput,
-  FindByExternalIdInput,
-  UpdateNotificationChannelInput,
-};
+export type { CreateWorkspaceInput };

@@ -3,7 +3,7 @@ import { createNotificationService } from "@/services/notificationService";
 import { createTaskRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
-export type ResolveBlocked = {
+type ResolveBlocked = {
   task_session_id: string;
   block_report_id: string;
 };

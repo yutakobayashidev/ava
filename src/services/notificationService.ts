@@ -7,7 +7,7 @@ import type { Workspace } from "@/db/schema";
 /**
  * 通知の配信結果
  */
-export type NotificationResult = {
+type NotificationResult = {
   delivered: boolean;
   channel?: string;
   threadTs?: string;
@@ -88,7 +88,7 @@ const sendMessage = async (
 /**
  * NotificationService
  */
-export type NotificationService = {
+type NotificationService = {
   notifyTaskStarted: (params: {
     session: { id: string };
     issue: {

@@ -3,29 +3,6 @@ import { createMiddleware } from "hono/factory";
 import { env } from "hono/adapter";
 import { HTTPException } from "hono/http-exception";
 
-// Slack の Slash Command リクエストのペイロード
-export interface SlackSlashCommandPayload {
-  token: string;
-  team_id: string;
-  team_domain: string;
-  channel_id: string;
-  channel_name: string;
-  user_id: string;
-  user_name: string;
-  command: string;
-  text: string;
-  api_app_id: string;
-  is_enterprise_install: string;
-  response_url: string;
-  trigger_id: string;
-}
-
-// ミドルウェア内部で受け渡されるコンテキスト
-export interface SlackContext {
-  payload: SlackSlashCommandPayload;
-  verified: boolean;
-}
-
 /**
  * Slack リクエスト署名検証
  * 参考: https://api.slack.com/authentication/verifying-requests-from-slack

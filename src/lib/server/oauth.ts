@@ -41,7 +41,7 @@ export const authorizeRequestSchema = z
     },
   );
 
-export type ValidateAuthorizeRequestResult =
+type ValidateAuthorizeRequestResult =
   | {
       success: true;
       requestParams: z.infer<typeof authorizeRequestSchema>;

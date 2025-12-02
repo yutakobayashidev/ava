@@ -5,7 +5,7 @@ import { users } from "@/db/schema";
 
 type UserProvider = "slack";
 
-export type CreateUserInput = {
+type CreateUserInput = {
   provider: UserProvider;
   externalId: string;
   name: string;
@@ -14,8 +14,6 @@ export type CreateUserInput = {
   slackTeamId: string;
   image?: string;
 };
-
-export type UserRepository = ReturnType<typeof createUserRepository>;
 
 export const createUserRepository = ({ db }: { db: Database }) => ({
   async createUser(input: CreateUserInput) {

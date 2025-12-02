@@ -6,7 +6,7 @@ import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { createUserRepository } from "@/repos/users";
 
-export type LoginWithSlack = {
+type LoginWithSlack = {
   code: string;
 };
 

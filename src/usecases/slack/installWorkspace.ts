@@ -5,7 +5,7 @@ import { getTeamIcon } from "@/clients/slack";
 import * as schema from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export type InstallWorkspace = {
+type InstallWorkspace = {
   code: string;
   userId: string;
 };
