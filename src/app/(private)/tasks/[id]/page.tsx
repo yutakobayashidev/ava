@@ -5,9 +5,17 @@ import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft, Clock, Calendar, GitBranch } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock,
+  Calendar,
+  GitBranch,
+  MessageSquare,
+} from "lucide-react";
 import { formatDate, formatDuration } from "@/utils/date";
 import { requireWorkspace } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { buildSlackThreadUrl } from "@/utils/slack";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -101,6 +109,16 @@ export default async function TaskDetailPage({ params }: PageProps) {
     }
   }
 
+  const slackThreadUrl = buildSlackThreadUrl({
+    workspaceExternalId: workspace.externalId,
+    workspaceDomain: workspace.domain,
+    channelId: task.slackChannel,
+    threadTs: task.slackThreadTs,
+  });
+
+  const slackChannelLabel =
+    workspace.notificationChannelName ?? task.slackChannel ?? null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header user={user} className="bg-slate-50" />
@@ -186,6 +204,40 @@ export default async function TaskDetailPage({ params }: PageProps) {
             </Card>
           )}
         </div>
+
+        <Card className="mb-8">
+          <CardHeader className="flex items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Slackスレッド
+            </CardTitle>
+            {slackThreadUrl && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={slackThreadUrl} target="_blank" rel="noreferrer">
+                  Slackで開く
+                </Link>
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {slackThreadUrl ? (
+              <div className="space-y-2 text-sm text-slate-600">
+                {slackChannelLabel && (
+                  <p className="font-medium text-slate-900">
+                    投稿先: {slackChannelLabel}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500 break-all">
+                  スレッドTS: {task.slackThreadTs}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">
+                Slackへのスレッド情報がまだありません。Slack通知が有効になるとここにリンクが表示されます。
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {completionSummary && (
           <Card className="mb-8">
