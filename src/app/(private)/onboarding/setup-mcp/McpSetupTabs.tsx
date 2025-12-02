@@ -206,7 +206,7 @@ url = "${mcpUrl}"
         </ol>
 
         <div className="space-y-3">
-          <div className="relative rounded-lg bg-slate-900 p-4">
+          <div className="relative rounded-lg bg-slate-900 p-4 group">
             <CopyButton text={codexToml} />
             <pre className="overflow-x-auto text-sm text-slate-100">
               <code>{codexToml}</code>
