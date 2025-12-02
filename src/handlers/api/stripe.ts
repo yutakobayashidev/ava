@@ -114,10 +114,25 @@ const app = createHonoApp()
     const successUrl = absoluteUrl("/billing/success");
     const cancelUrl = absoluteUrl("/billing");
 
-    const customer = await stripe.customers.create({
-      email: me.email,
-      name: me.name ?? "-",
-    });
+    let stripeId = me.stripeId;
+
+    if (!stripeId) {
+      try {
+        const customer = await stripe.customers.create({
+          email: me.email,
+          name: me.name ?? "-",
+        });
+
+        stripeId = customer.id;
+
+        await db.update(users).set({ stripeId }).where(eq(users.id, me.id));
+      } catch (error) {
+        console.error("Failed to create stripe customer:", error);
+        throw new HTTPException(500, {
+          message: "Failed to create stripe customer",
+        });
+      }
+    }
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -130,7 +145,7 @@ const app = createHonoApp()
       automatic_tax: {
         enabled: true,
       },
-      customer: customer.id,
+      customer: stripeId,
       customer_update: {
         shipping: "auto",
       },
@@ -141,11 +156,6 @@ const app = createHonoApp()
       success_url: successUrl,
       cancel_url: cancelUrl,
     });
-
-    await db
-      .update(users)
-      .set({ stripeId: customer.id })
-      .where(eq(users.id, me.id));
 
     if (!checkoutSession.url) {
       throw new HTTPException(500, {
