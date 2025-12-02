@@ -581,6 +581,12 @@ export default async function LandingPage() {
               >
                 プライバシーポリシー
               </Link>
+              <Link
+                href="/docs/law"
+                className="hover:text-white transition-colors"
+              >
+                特定商取引法に基づく表記
+              </Link>
               <a
                 href="https://github.com/yutakobayashidev/ai-task"
                 target="_blank"

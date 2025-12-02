@@ -9,6 +9,10 @@ import { HTTPException } from "hono/http-exception";
 import { handleSubscriptionUpsert } from "@/usecases/stripe/handleSubscriptionUpsert";
 import type Stripe from "stripe";
 
+const STRIPE_LOOKUP_KEYS = {
+  BASIC_MONTHLY: "basic_monthly",
+} as const;
+
 const app = createHonoApp()
   .post("/webhook", async (ctx) => {
     const { STRIPE_WEBHOOK_SECRET } = env(ctx);
@@ -105,7 +109,7 @@ const app = createHonoApp()
 
     // Get price by lookup key
     const prices = await stripe.prices.list({
-      lookup_keys: ["basic_monthly"],
+      lookup_keys: [STRIPE_LOOKUP_KEYS.BASIC_MONTHLY],
       limit: 1,
     });
 
@@ -113,7 +117,7 @@ const app = createHonoApp()
 
     if (!price) {
       throw new HTTPException(500, {
-        message: "Price not found for lookup key: basic_monthly",
+        message: `Price not found for lookup key: ${STRIPE_LOOKUP_KEYS.BASIC_MONTHLY}`,
       });
     }
 
