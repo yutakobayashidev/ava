@@ -31,7 +31,7 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
 
 ## 設定方法
 
-<Tabs items={['Claude Code', 'Cursor']} persist groupId="coding-agent">
+<Tabs items={['Claude Code', 'Cursor', 'Codex']} persist groupId="coding-agent">
   <Tab value="Claude Code">
     ### 1. Claude Codeを起動
 
@@ -149,6 +149,40 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
 
     Avaのツール一覧が表示されれば成功です。
 
+  </Tab>
+
+  <Tab value="Codex">
+    ### 1. Codexの設定ファイルを開く
+
+    Codex CLI と IDE 拡張は同じ設定ファイル（`~/.codex/config.toml`）を共有します。
+
+    ### 2. RMCP クライアントを有効化（OAuth 用）
+
+    AvaのMCPサーバーはOAuth 2.1で認可を行います。`[features]` セクションに以下を追加し、RMCPクライアントを有効化してください。
+
+    ```toml
+    [features]
+    rmcp_client = true
+    ```
+
+    ### 3. Ava サーバーを登録
+
+    同じ `config.toml` に以下を追記します。
+
+    ```toml
+    [mcp_servers.ava]
+    url = "https://ava-dusky-gamma.vercel.app/mcp"
+    ```
+
+    CLI から設定する場合は `codex mcp --help` を参照してください。
+
+    ### 4. Codex を再起動して接続
+
+    Codex を再起動し、ターミナルで `codex mcp login ava` を実行してブラウザ認可を許可してください。
+
+    ### 5. 接続確認
+
+    `codex` のチャットで「利用可能な MCP ツールを教えて」と入力し、`start_task` などの Ava ツールが表示されれば完了です。
   </Tab>
 </Tabs>
 

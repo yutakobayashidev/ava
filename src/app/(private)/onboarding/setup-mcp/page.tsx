@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { absoluteUrl } from "@/lib/utils";
 import { db } from "@/clients/drizzle";
-import { CopyButton } from "./CopyButton";
 import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,16 +28,7 @@ export default async function SetupMcpPage() {
     redirect("/onboarding/connect-slack");
   }
 
-  const mcpConfig = {
-    mcpServers: {
-      ava: {
-        type: "http",
-        url: absoluteUrl("/mcp"),
-      },
-    },
-  };
-
-  const configJson = JSON.stringify(mcpConfig, null, 2);
+  const mcpUrl = absoluteUrl("/mcp");
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -57,20 +47,7 @@ export default async function SetupMcpPage() {
 
           <Card>
             <CardContent className="space-y-6">
-              <McpSetupTabs />
-
-              <div className="space-y-4">
-                <div className="relative rounded-lg bg-slate-900 p-4">
-                  <CopyButton text={configJson} />
-                  <pre className="overflow-x-auto text-sm text-slate-100">
-                    <code>{configJson}</code>
-                  </pre>
-                </div>
-
-                <p className="text-sm text-muted-foreground">
-                  上記の設定を、選択したエディタの指定された場所に配置してください。
-                </p>
-              </div>
+              <McpSetupTabs mcpUrl={mcpUrl} />
 
               <div className="flex justify-center">
                 <Button asChild size="lg">
