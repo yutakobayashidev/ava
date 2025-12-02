@@ -5,6 +5,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "hono/adapter";
 import { absoluteUrl } from "@/lib/utils";
+import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp()
   // TODO: Implement Stripe webhook endpoint
@@ -18,7 +19,7 @@ const app = createHonoApp()
       : { user: null };
 
     if (!user) {
-      return ctx.json({ success: false, message: "Unauthorized" }, 401);
+      throw new HTTPException(401, { message: "Unauthorized" });
     }
 
     const { db, stripe } = getUsecaseContext(ctx);
@@ -28,16 +29,15 @@ const app = createHonoApp()
     });
 
     if (!me?.email) {
-      return ctx.json({ success: false, message: "user not found" }, 404);
+      throw new HTTPException(404, { message: "user not found" });
     }
 
     const { STRIPE_PRICE_ID } = env(ctx);
 
     if (!STRIPE_PRICE_ID) {
-      return ctx.json(
-        { success: false, message: "Stripe price ID not configured" },
-        500,
-      );
+      throw new HTTPException(500, {
+        message: "Stripe price ID not configured",
+      });
     }
 
     const successUrl = absoluteUrl("/billing/success");
@@ -77,10 +77,9 @@ const app = createHonoApp()
       .where(eq(users.id, me.id));
 
     if (!checkoutSession.url) {
-      return ctx.json(
-        { success: false, message: "checkoutSession url not found" },
-        500,
-      );
+      throw new HTTPException(500, {
+        message: "checkoutSession url not found",
+      });
     }
 
     return ctx.redirect(checkoutSession.url);
