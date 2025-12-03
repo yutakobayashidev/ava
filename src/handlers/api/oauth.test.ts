@@ -1150,7 +1150,7 @@ describe("api/oauth", () => {
       // Update client to have no secret (public client)
       await db
         .update(schema.clients)
-        .set({ clientSecret: null })
+        .set({ clientSecret: null, tokenEndpointAuthMethod: "none" })
         .where(eq(schema.clients.id, testClient.id));
 
       const res = await app.request("/token", {
@@ -1174,7 +1174,7 @@ describe("api/oauth", () => {
       // Update client to have no secret (public client)
       await db
         .update(schema.clients)
-        .set({ clientSecret: null })
+        .set({ clientSecret: null, tokenEndpointAuthMethod: "none" })
         .where(eq(schema.clients.id, testClient.id));
 
       const res = await app.request("/token", {

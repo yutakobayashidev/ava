@@ -142,6 +142,10 @@ async function handleAuthorizationCodeGrant(
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
+    if (authCode.redirectUri !== redirectUri) {
+      throw new HTTPException(400, { message: "invalid_grant" });
+    }
+
     if (authCode.expiresAt < new Date()) {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
@@ -149,12 +153,13 @@ async function handleAuthorizationCodeGrant(
     // PKCE が使用されているかどうかを確認
     const isPkceEnabled = !!authCode.codeChallenge;
 
-    // OAuth 2.1では、PKCEが使用されていない場合はredirect_uriパラメータが必須
-    if (!redirectUri && !isPkceEnabled) {
+    // パブリッククライアントはPKCEが必須
+    const isPublicClient = client.tokenEndpointAuthMethod === "none";
+    if (isPublicClient && !isPkceEnabled) {
       throw new HTTPException(400, { message: "invalid_request" });
     }
 
-    if (redirectUri && !client.redirectUris.includes(redirectUri)) {
+    if (!client.redirectUris.includes(redirectUri)) {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
