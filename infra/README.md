@@ -11,3 +11,7 @@
 
 - Terraform の静的解析は `./infra/tflint.sh <command>` から実行してください。初回は自動的に `tflint --init` まで実行されます。
 - 例: `./infra/tflint.sh`（全体 lint）、`./infra/tflint.sh --module supabase`（モジュール単位の lint）。
+
+## Modules
+
+- `infra/modules/stripe-subscription` に Stripe のプロダクト・プライス・Webhook をまとめた共通モジュールがあります。環境ごとの設定は `enviroments/*/main.tf` からこのモジュールを呼び出してください。
