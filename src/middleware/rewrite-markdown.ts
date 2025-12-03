@@ -1,21 +1,21 @@
 import { aiBots } from "@hono/ua-blocker/ai-bots";
 import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
-import { MiddlewareHandler } from "hono";
-import { NextRequest, NextResponse } from "next/server";
+import { createMiddleware } from "hono/factory";
+import { NextResponse } from "next/server";
 
 const { rewrite: rewriteLLM } = rewritePath("/docs/*path", "/llms.mdx/*path");
 
-export const rewriteMarkdownMiddleware: MiddlewareHandler = async (c, next) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  const request = c.req.raw as NextRequest;
+export const rewriteMarkdownMiddleware = createMiddleware(async (c, next) => {
   const ua = c.req.header("User-Agent")?.toUpperCase();
 
-  if ((ua && aiBots.test(ua)) || isMarkdownPreferred(request)) {
-    const result = rewriteLLM(request.nextUrl.pathname);
+  const pathname = c.req.path;
+
+  if ((ua && aiBots.test(ua)) || isMarkdownPreferred(c.req.raw)) {
+    const result = rewriteLLM(pathname);
     if (result) {
-      return NextResponse.rewrite(new URL(result, request.nextUrl));
+      return NextResponse.rewrite(new URL(result, c.req.url));
     }
   }
 
   await next();
-};
+});

@@ -1,25 +1,23 @@
 import { getCurrentSession } from "@/lib/session";
-import { MiddlewareHandler } from "hono";
-import { NextRequest, NextResponse } from "next/server";
+import { createMiddleware } from "hono/factory";
+import { NextResponse } from "next/server";
 
-export const onboardingMiddleware: MiddlewareHandler = async (c, next) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  const request = c.req.raw as NextRequest;
-  const { pathname } = request.nextUrl;
+export const onboardingMiddleware = createMiddleware(async (c, next) => {
+  const path = c.req.path;
   const { user } = await getCurrentSession();
 
   if (!user) return next();
 
-  const isOnboardingPath = pathname.startsWith("/onboarding");
+  const isOnboardingPath = path.startsWith("/onboarding");
   const completed = !!user.onboardingCompletedAt;
 
   if (!completed && !isOnboardingPath) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
+    return NextResponse.redirect(new URL("/onboarding", c.req.url));
   }
 
   if (completed && isOnboardingPath) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/dashboard", c.req.url));
   }
 
   return next();
-};
+});

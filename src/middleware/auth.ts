@@ -1,34 +1,24 @@
 import { getCurrentSession } from "@/lib/session";
-import { MiddlewareHandler } from "hono";
-import { NextRequest, NextResponse } from "next/server";
+import { createMiddleware } from "hono/factory";
 
-const SKIP_PATHS = [
-  "/login",
-  "/oauth",
-  "/slack/install",
-  "/api",
-  "/mcp",
-  "/.well-known",
-];
+const SKIP_PATHS = ["/login", "/oauth", "/api", "/mcp", "/.well-known"];
 
-export const authMiddleware: MiddlewareHandler = async (c, next) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-  const request = c.req.raw as NextRequest;
-  const { pathname } = request.nextUrl;
+export const authMiddleware = createMiddleware(async (c, next) => {
+  const path = c.req.path;
 
-  if (SKIP_PATHS.some((p) => pathname.startsWith(p))) {
+  // スキップ対象
+  if (SKIP_PATHS.some((p) => path.startsWith(p))) {
     return next();
   }
 
   const { user } = await getCurrentSession();
 
-  // 未ログイン時のオンボーディングアクセスは強制ログイン
-  if (!user && pathname.startsWith("/onboarding")) {
-    const login = new URL("/login", request.url);
-    login.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(login);
+  // 未ログインユーザーのオンボーディング → /login へ
+  if (!user && path.startsWith("/onboarding")) {
+    const loginUrl = new URL("/login", c.req.url);
+    loginUrl.searchParams.set("callbackUrl", path);
+    return c.redirect(loginUrl.toString());
   }
 
-  // 未ログインなら通してページ側のSSRに任せる
   return next();
-};
+});
