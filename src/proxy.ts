@@ -1,61 +1,25 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getCurrentSession } from "@/lib/session";
-import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
+import { authMiddleware } from "@/middleware/auth";
+import { onboardingMiddleware } from "@/middleware/onboarding";
+import { rewriteMarkdownMiddleware } from "@/middleware/rewrite-markdown";
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+import { NextRequest, NextResponse } from "next/server";
 
-const { rewrite: rewriteLLM } = rewritePath("/docs/*path", "/llms.mdx/*path");
+const app = new Hono();
 
-export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+app.use("*", rewriteMarkdownMiddleware);
+app.use("*", authMiddleware);
+app.use("*", onboardingMiddleware);
 
-  if (isMarkdownPreferred(request)) {
-    const result = rewriteLLM(request.nextUrl.pathname);
-    if (result) {
-      return NextResponse.rewrite(new URL(result, request.nextUrl));
-    }
-  }
+app.all("*", (ctx) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const req = ctx.req.raw as NextRequest;
+  return NextResponse.next({
+    request: req,
+  });
+});
 
-  // ログインページとOAuthフロー、APIルートはスキップ
-  if (
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/oauth") ||
-    pathname.startsWith("/slack/install") ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/mcp") ||
-    pathname.startsWith("/.well-known")
-  ) {
-    return NextResponse.next();
-  }
-
-  const { user } = await getCurrentSession();
-
-  // 未認証の場合
-  if (!user) {
-    // オンボーディングページへのアクセスはログインへ
-    if (pathname.startsWith("/onboarding")) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    return NextResponse.next();
-  }
-
-  // 認証済みの場合のオンボーディングチェック
-  const isOnboardingPath = pathname.startsWith("/onboarding");
-  const hasCompletedOnboarding = !!user.onboardingCompletedAt;
-
-  // オンボーディング未完了でオンボーディング以外のページにアクセス
-  if (!hasCompletedOnboarding && !isOnboardingPath) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
-  }
-
-  // オンボーディング完了済みでオンボーディングページにアクセス
-  if (hasCompletedOnboarding && isOnboardingPath) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  return NextResponse.next();
-}
+export const proxy = handle(app);
 
 export const config = {
   matcher: [
