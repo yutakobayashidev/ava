@@ -65,7 +65,7 @@ export default async function SettingsPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-slate-600">
-                コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。
+                コーディングエージェントにAvaを追加して、進捗を記録・共有するツールとして利用できます。
               </p>
 
               <McpSetupTabs mcpUrl={mcpUrl} />

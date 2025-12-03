@@ -14,7 +14,7 @@ import { createWorkspaceRepository } from "@/repos";
 export const metadata: Metadata = {
   title: "MCPサーバーを接続",
   description:
-    "コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。",
+    "コーディングエージェントにAvaを追加して、進捗管理ツールとしての連携を有効にします。",
 };
 
 export default async function SetupMcpPage() {
@@ -41,7 +41,7 @@ export default async function SetupMcpPage() {
               MCPサーバーを接続
             </h1>
             <p className="mt-3 text-slate-600">
-              コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。
+              コーディングエージェントにAvaを追加して、開発の進捗を記録・共有できるようにします。
             </p>
           </div>
 
