@@ -13,7 +13,7 @@ type StartTask = {
     id?: string;
     title: string;
   };
-  initial_summary: string;
+  initialSummary: string;
 };
 
 export const startTasks = async (
@@ -22,7 +22,7 @@ export const startTasks = async (
 ): Promise<
   { success: true; data: string } | { success: false; error: string }
 > => {
-  const { issue, initial_summary } = params;
+  const { issue, initialSummary } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
 
@@ -50,7 +50,7 @@ export const startTasks = async (
     issueProvider: issue.provider,
     issueId: issue.id ?? null,
     issueTitle: issue.title,
-    initialSummary: initial_summary,
+    initialSummary: initialSummary,
   });
 
   if (!session) {
@@ -67,7 +67,7 @@ export const startTasks = async (
       provider: issue.provider,
       id: issue.id ?? null,
     },
-    initialSummary: initial_summary,
+    initialSummary: initialSummary,
     user: {
       id: user.id,
       name: user.name,

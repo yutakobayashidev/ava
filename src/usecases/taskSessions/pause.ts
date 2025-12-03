@@ -4,9 +4,9 @@ import { createTaskRepository, createWorkspaceRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 type PauseTask = {
-  task_session_id: string;
+  taskSessionId: string;
   reason: string;
-  raw_context?: Record<string, unknown>;
+  rawContext?: Record<string, unknown>;
 };
 
 export const pauseTask = async (
@@ -15,7 +15,7 @@ export const pauseTask = async (
 ): Promise<
   { success: true; data: string } | { success: false; error: string }
 > => {
-  const { task_session_id, reason, raw_context } = params;
+  const { taskSessionId, reason, rawContext } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
@@ -28,7 +28,7 @@ export const pauseTask = async (
 
   // 現在のタスクセッションを取得して状態遷移を検証
   const currentSession = await taskRepository.findTaskSessionById(
-    task_session_id,
+    taskSessionId,
     workspace.id,
     user.id,
   );
@@ -49,11 +49,11 @@ export const pauseTask = async (
   }
 
   const { session, pauseReport } = await taskRepository.pauseTask({
-    taskSessionId: task_session_id,
+    taskSessionId: taskSessionId,
     workspaceId: workspace.id,
     userId: user.id,
     reason,
-    rawContext: raw_context ?? {},
+    rawContext: rawContext ?? {},
   });
 
   if (!session || !pauseReport) {

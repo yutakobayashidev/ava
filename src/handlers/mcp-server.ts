@@ -1,35 +1,27 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v3";
+import camelcaseKeys from "camelcase-keys";
 import type { Env } from "@/app/create-app";
 import * as taskSessionUsecases from "@/usecases/taskSessions";
+
+const rawContextSchema = z
+  .record(z.string(), z.unknown())
+  .default({})
+  .describe("Slackへ共有可能な抽象的メタデータ");
+
+const issueSchema = z.object({
+  provider: z.enum(["github", "manual"]).describe("課題の取得元"),
+  id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
+  title: z
+    .string()
+    .min(1, "タイトルは必須です")
+    .describe("タスクの簡潔なタイトル"),
+});
 
 export function createMcpServer(ctx: Env["Variables"]) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
-  });
-
-  const toTextResponse = (text: string) => ({
-    content: [
-      {
-        type: "text" as const,
-        text,
-      },
-    ],
-  });
-
-  const rawContextSchema = z
-    .record(z.string(), z.unknown())
-    .default({})
-    .describe("Slackへ共有可能な抽象的メタデータ");
-
-  const issueSchema = z.object({
-    provider: z.enum(["github", "manual"]).describe("課題の取得元"),
-    id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
-    title: z
-      .string()
-      .min(1, "タイトルは必須です")
-      .describe("タスクの簡潔なタイトル"),
   });
 
   server.registerTool(
@@ -45,12 +37,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
           .describe("着手時点の抽象的な状況や方針"),
       }),
     },
-    async ({ issue, initial_summary }) => {
-      const result = await taskSessionUsecases.startTasks(
-        { issue, initial_summary },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.startTasks(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -71,12 +68,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
         raw_context: rawContextSchema,
       }),
     },
-    async ({ task_session_id, summary, raw_context }) => {
-      const result = await taskSessionUsecases.updateTask(
-        { task_session_id, summary, raw_context },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.updateTask(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -97,12 +99,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
         raw_context: rawContextSchema,
       }),
     },
-    async ({ task_session_id, reason, raw_context }) => {
-      const result = await taskSessionUsecases.reportBlocked(
-        { task_session_id, reason, raw_context },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.reportBlocked(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -123,12 +130,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
         raw_context: rawContextSchema,
       }),
     },
-    async ({ task_session_id, reason, raw_context }) => {
-      const result = await taskSessionUsecases.pauseTask(
-        { task_session_id, reason, raw_context },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.pauseTask(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -149,12 +161,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
         raw_context: rawContextSchema,
       }),
     },
-    async ({ task_session_id, summary, raw_context }) => {
-      const result = await taskSessionUsecases.resumeTask(
-        { task_session_id, summary, raw_context },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.resumeTask(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -174,12 +191,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
           .describe("完了内容の抽象的サマリ"),
       }),
     },
-    async ({ task_session_id, summary }) => {
-      const result = await taskSessionUsecases.completeTask(
-        { task_session_id, summary },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.completeTask(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -201,12 +223,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
           ),
       }),
     },
-    async ({ task_session_id, block_report_id }) => {
-      const result = await taskSessionUsecases.resolveBlocked(
-        { task_session_id, block_report_id },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.resolveBlocked(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
@@ -228,12 +255,17 @@ export function createMcpServer(ctx: Env["Variables"]) {
           .describe("取得する最大件数（デフォルト: 50）"),
       }),
     },
-    async ({ status, limit }) => {
-      const result = await taskSessionUsecases.listTasks(
-        { status, limit },
-        ctx,
-      );
-      return toTextResponse(result.success ? result.data : result.error);
+    async (args) => {
+      const camelArgs = camelcaseKeys(args, { deep: true });
+      const result = await taskSessionUsecases.listTasks(camelArgs, ctx);
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success ? result.data : result.error,
+          },
+        ],
+      };
     },
   );
 
