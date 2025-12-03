@@ -344,6 +344,10 @@ export const userRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
   subscriptions: many(subscriptions),
   taskSessions: many(taskSessions),
+  googleDriveConnection: one(googleDriveConnections, {
+    fields: [users.id],
+    references: [googleDriveConnections.userId],
+  }),
   workspace: one(workspaces, {
     fields: [users.workspaceId],
     references: [workspaces.id],
@@ -423,6 +427,49 @@ export const clientRelations = relations(clients, ({ many }) => ({
   refreshTokens: many(refreshTokens),
 }));
 
+// Google Drive Connections
+export const googleDriveConnections = pgTable(
+  "google_drive_connections",
+  {
+    id: text("id").primaryKey().notNull(),
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    email: text("email").notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    folderId: text("folder_id"), // デフォルトのエクスポート先フォルダ
+    folderName: text("folder_name"),
+    connectedAt: timestamp("connected_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => ({
+    userIdUnique: uniqueIndex("google_drive_connections_user_id_unique").on(
+      table.userId,
+    ),
+    userIdx: index("google_drive_connections_user_idx").on(table.userId),
+  }),
+);
+
+export const googleDriveConnectionRelations = relations(
+  googleDriveConnections,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [googleDriveConnections.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
 // workspaceMemberRelations は削除 - workspace_members テーブルが不要になったため
 
 export type TaskSession = typeof taskSessions.$inferSelect;
@@ -445,3 +492,6 @@ export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
+export type GoogleDriveConnection = typeof googleDriveConnections.$inferSelect;
+export type NewGoogleDriveConnection =
+  typeof googleDriveConnections.$inferInsert;

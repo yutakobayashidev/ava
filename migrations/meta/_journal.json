@@ -15,6 +15,13 @@
       "when": 1764695190484,
       "tag": "0001_lean_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764781068017,
+      "tag": "0002_thankful_brood",
+      "breakpoints": true
     }
   ]
 }
