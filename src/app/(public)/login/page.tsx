@@ -5,18 +5,18 @@ import { ArrowRight, Slack } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-type LoginPageProps = {
-  searchParams?: { callbackUrl?: string };
-};
-
-export default async function Page({ searchParams }: LoginPageProps) {
+export default async function Page({ searchParams }: PageProps<"/login">) {
   const { user } = await getCurrentSession();
   if (user !== null) {
     return redirect("/onboarding");
   }
 
-  const loginHref = searchParams?.callbackUrl
-    ? `/api/auth/slack?callbackUrl=${encodeURIComponent(searchParams.callbackUrl)}`
+  const sp = await searchParams;
+  const callbackUrl =
+    typeof sp.callbackUrl === "string" ? sp.callbackUrl : undefined;
+
+  const loginHref = callbackUrl
+    ? `/api/auth/slack?callbackUrl=${encodeURIComponent(callbackUrl)}`
     : "/api/auth/slack";
 
   return (
