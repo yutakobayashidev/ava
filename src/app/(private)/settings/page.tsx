@@ -1,18 +1,18 @@
+import { db } from "@/clients/drizzle";
+import { Header } from "@/components/header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth";
+import { slackConfig } from "@/lib/slackInstall";
+import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
+import { absoluteUrl } from "@/lib/utils";
+import { createWorkspaceRepository } from "@/repos";
+import { Settings, Slack, Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Settings, Slack, Terminal } from "lucide-react";
-import { db } from "@/clients/drizzle";
-import { requireAuth } from "@/lib/auth";
-import { createWorkspaceRepository } from "@/repos";
-import { Header } from "@/components/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { McpSetupTabs } from "../onboarding/setup-mcp/McpSetupTabs";
-import { absoluteUrl } from "@/lib/utils";
-import { getSlackInstallConfig } from "@/lib/slackInstall";
-import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 
 export const metadata: Metadata = {
   title: "設定",
@@ -26,7 +26,6 @@ export default async function SettingsPage({
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository({ db });
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
-  const slackConfig = getSlackInstallConfig();
 
   const statusMessage = getSlackStatusMessage(params);
   const isSuccess = isSuccessMessage(params);
@@ -65,7 +64,7 @@ export default async function SettingsPage({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-slate-600">
-                コーディングエージェントにAvaを追加して、自動タスク管理を有効化します。
+                コーディングエージェントにAvaを追加して、進捗を記録・共有するツールとして利用できます。
               </p>
 
               <McpSetupTabs mcpUrl={mcpUrl} />

@@ -69,6 +69,19 @@ describe("api/auth", () => {
       expect(setCookieHeader).toContain("Path=/");
       expect(setCookieHeader).toContain("Max-Age=600"); // 10 minutes
     });
+
+    it("should store callbackUrl in cookie when provided", async () => {
+      const res = await app.request("/slack?callbackUrl=/dashboard", {
+        method: "GET",
+      });
+
+      expect(res.status).toBe(302);
+
+      // Check callback cookie is set (URL encoded)
+      const setCookieHeader = res.headers.get("set-cookie");
+      expect(setCookieHeader).toContain("slack_oauth_callback=");
+      expect(setCookieHeader).toContain("HttpOnly");
+    });
   });
 
   describe("GET /slack/callback", () => {
@@ -182,6 +195,252 @@ describe("api/auth", () => {
 
       expect(res.status).toBe(400);
       expect(await res.text()).toBe("Please restart the process.");
+    });
+
+    describe("callbackUrl security", () => {
+      it("should redirect to valid same-origin callback URL", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state; slack_oauth_callback=/dashboard",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+        const location = res.headers.get("Location");
+        // The implementation returns a full URL for same-origin redirects
+        expect(location).toContain("/dashboard");
+        expect(location).toContain("localhost"); // Should be same origin
+      });
+
+      it("should block protocol-relative URL redirect (//evil.com)", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state; slack_oauth_callback=//evil.com",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+        const location = res.headers.get("Location");
+        // Should redirect to home instead
+        expect(location).toBe("/");
+      });
+
+      it("should block external origin redirect", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state; slack_oauth_callback=https://evil.com/phishing",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+        const location = res.headers.get("Location");
+        // Should redirect to home instead
+        expect(location).toBe("/");
+      });
+
+      it("should handle malformed callback URL gracefully", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state; slack_oauth_callback=javascript:alert(1)",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+        const location = res.headers.get("Location");
+        // Should redirect to home on invalid URL
+        expect(location).toBe("/");
+      });
+
+      it("should clear callback cookie after redirect", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state; slack_oauth_callback=/dashboard",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+
+        // Check callback cookie is cleared
+        const setCookieHeader = res.headers.get("set-cookie");
+        expect(setCookieHeader).toContain("slack_oauth_callback=");
+        expect(setCookieHeader).toContain("Max-Age=0");
+      });
+
+      it("should redirect to home when no callbackUrl cookie is set", async () => {
+        // Mock successful login
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token",
+          session: {
+            id: "test-session-id",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res = await app.request(
+          "/slack/callback?code=test-code&state=valid-state",
+          {
+            method: "GET",
+            headers: {
+              Cookie: "slack_oauth_state=valid-state",
+            },
+          },
+        );
+
+        expect(res.status).toBe(302);
+        const location = res.headers.get("Location");
+        // Should redirect to home
+        expect(location).toBe("/");
+
+        // Should still set the clear cookie header
+        const setCookieHeader = res.headers.get("set-cookie");
+        expect(setCookieHeader).toContain("slack_oauth_callback=");
+        expect(setCookieHeader).toContain("Max-Age=0");
+      });
+
+      it("should not reuse cleared callback cookie on subsequent requests", async () => {
+        // First request: login with callbackUrl
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token-1",
+          session: {
+            id: "test-session-id-1",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res1 = await app.request(
+          "/slack/callback?code=test-code-1&state=valid-state-1",
+          {
+            method: "GET",
+            headers: {
+              Cookie:
+                "slack_oauth_state=valid-state-1; slack_oauth_callback=/dashboard",
+            },
+          },
+        );
+
+        expect(res1.status).toBe(302);
+        const location1 = res1.headers.get("Location");
+        expect(location1).toContain("/dashboard");
+
+        // Second request: login without callbackUrl (simulating cleared cookie)
+        mockLoginWithSlack.mockResolvedValueOnce({
+          success: true,
+          sessionToken: "test-session-token-2",
+          session: {
+            id: "test-session-id-2",
+            userId: "test-user-id",
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+          },
+        });
+
+        const res2 = await app.request(
+          "/slack/callback?code=test-code-2&state=valid-state-2",
+          {
+            method: "GET",
+            headers: {
+              Cookie: "slack_oauth_state=valid-state-2",
+              // No slack_oauth_callback cookie - simulating it was cleared
+            },
+          },
+        );
+
+        expect(res2.status).toBe(302);
+        const location2 = res2.headers.get("Location");
+        // Should redirect to home, not to /dashboard
+        expect(location2).toBe("/");
+      });
     });
   });
 

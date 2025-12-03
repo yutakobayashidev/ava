@@ -1,15 +1,23 @@
+import { Button } from "@/components/ui/button";
+import { siteConfig } from "@/config/site";
+import { getCurrentSession } from "@/lib/session";
+import { ArrowRight, Slack } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Slack } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { getCurrentSession } from "@/lib/session";
-import { siteConfig } from "@/config/site";
 
-export default async function Page() {
+export default async function Page({ searchParams }: PageProps<"/login">) {
   const { user } = await getCurrentSession();
   if (user !== null) {
     return redirect("/onboarding");
   }
+
+  const sp = await searchParams;
+  const callbackUrl =
+    typeof sp.callbackUrl === "string" ? sp.callbackUrl : undefined;
+
+  const loginHref = callbackUrl
+    ? `/api/auth/slack?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/api/auth/slack";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
@@ -26,11 +34,11 @@ export default async function Page() {
 
         <Button asChild size="lg" className="h-11 w-full">
           <Link
-            href="/api/auth/slack"
+            href={loginHref}
             className="flex items-center justify-center gap-2"
           >
             <Slack className="h-4 w-4" />
-            Slackでサインイン
+            Slackでログイン
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>

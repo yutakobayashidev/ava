@@ -15,47 +15,30 @@ const DEFAULT_SCOPES = [
   "team:read",
 ];
 
-type SlackInstallConfig = {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  scopes: string[];
-};
-
-export const getSlackInstallConfig = (): SlackInstallConfig => {
-  const clientId = process.env.SLACK_APP_CLIENT_ID!;
-  const clientSecret = process.env.SLACK_APP_CLIENT_SECRET!;
-  const redirectUri = absoluteUrl("/api/slack/install/callback");
-
-  return {
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: DEFAULT_SCOPES,
-  };
-};
+export const slackConfig = {
+  clientId: process.env.SLACK_APP_CLIENT_ID,
+  clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+  redirectUri: absoluteUrl("/api/slack/install/callback"),
+  scopes: DEFAULT_SCOPES,
+} as const;
 
 export const buildSlackInstallUrl = (state: string): string => {
-  const config = getSlackInstallConfig();
-
   const url = new URL(SLACK_OAUTH_ENDPOINT);
-  url.searchParams.set("client_id", config.clientId);
-  url.searchParams.set("redirect_uri", config.redirectUri);
-  url.searchParams.set("scope", config.scopes.join(","));
+  url.searchParams.set("client_id", slackConfig.clientId);
+  url.searchParams.set("redirect_uri", slackConfig.redirectUri);
+  url.searchParams.set("scope", slackConfig.scopes.join(","));
   url.searchParams.set("state", state);
-
   return url.toString();
 };
 
 export const exchangeSlackInstallCode = async (code: string) => {
-  const config = getSlackInstallConfig();
   const client = new WebClient();
 
   const response = await client.oauth.v2.access({
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
+    client_id: slackConfig.clientId,
+    client_secret: slackConfig.clientSecret,
     code,
-    redirect_uri: config.redirectUri,
+    redirect_uri: slackConfig.redirectUri,
   });
 
   if (!response.ok) {
