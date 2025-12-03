@@ -390,73 +390,6 @@ async function handleRefreshTokenGrant(
   });
 }
 
-app.post(
-  "/register",
-  zValidator(
-    "json",
-    z.object({
-      client_name: z.string().min(1),
-      redirect_uris: z.array(z.url()).min(1),
-      token_endpoint_auth_method: z
-        .enum(["client_secret_basic", "client_secret_post", "none"])
-        .optional()
-        .default("client_secret_basic"),
-    }),
-  ),
-  async (c) => {
-    const { client_name, redirect_uris, token_endpoint_auth_method } =
-      c.req.valid("json");
-
-    // Determine if this is a public client
-    const isPublicClient = token_endpoint_auth_method === "none";
-
-    // Generate client secret only for confidential clients
-    let clientSecret: string | undefined;
-    let clientSecretHash: string | null = null;
-
-    if (!isPublicClient) {
-      clientSecret = randomBytes(32).toString("hex");
-      clientSecretHash = encodeHexLowerCase(
-        sha256(new TextEncoder().encode(clientSecret)),
-      );
-    }
-
-    const generatedClientId = randomBytes(16).toString("hex");
-    const db = c.get("db");
-
-    const [newClient] = await db
-      .insert(schema.clients)
-      .values({
-        id: uuidv7(),
-        clientId: generatedClientId,
-        clientSecret: clientSecretHash,
-        name: client_name,
-        redirectUris: redirect_uris,
-        grantTypes: ["authorization_code", "refresh_token"],
-        responseTypes: ["code"],
-        tokenEndpointAuthMethod: token_endpoint_auth_method,
-      })
-      .returning();
-
-    // Return response based on client type
-    const response: {
-      client_id: string;
-      client_secret?: string;
-      redirect_uris: string[];
-    } = {
-      client_id: newClient.clientId,
-      redirect_uris,
-    };
-
-    // Only include client_secret for confidential clients
-    if (clientSecret) {
-      response.client_secret = clientSecret;
-    }
-
-    return c.json(response);
-  },
-);
-
 // Schema for OAuth2.0 authorization code exchange
 const authCodeExchangeSchema = z.object({
   grant_type: z.literal("authorization_code"),
@@ -486,26 +419,181 @@ const tokenGrantSchema = z.discriminatedUnion(
   },
 );
 
-app.post("/token", zValidator("form", tokenGrantSchema), async (ctx) => {
-  const body = ctx.req.valid("form");
-  const db = ctx.get("db");
-  const authHeader = ctx.req.header("Authorization");
-  const contentType = ctx.req.header("Content-Type") || "";
+/**
+ * リダイレクトURIが危険なスキーム（疑似スキーム）を使っていないか検証するための関数。
+ * URIの前後の空白を取り除き、大文字小文字を区別せずスキームを判定することでバイパス攻撃を防ぎます。
+ * RFC 3986に従い、制御文字（コントロールキャラクタ）がURI内に含まれていた場合は除去せずエラーとして拒否します。
+ * @param redirectUri - 検証対象のリダイレクトURI
+ * @throws 危険なスキームまたは制御文字が含まれていた場合はエラーを投げます
+ */
+function validateRedirectUriScheme(redirectUri: string): void {
+  // List of dangerous pseudo-schemes that should not be allowed
+  const dangerousSchemes = [
+    "javascript:",
+    "data:",
+    "vbscript:",
+    "file:",
+    "mailto:",
+    "blob:",
+  ];
 
-  const { client } = await parseAndAuthenticateRequest(
-    db,
-    authHeader,
-    contentType,
-    body,
-  );
+  // 1. Trim leading and trailing whitespace (allowed per RFC 3986 preprocessing)
+  const normalized = redirectUri.trim();
 
-  if (body.grant_type === "authorization_code") {
-    return handleAuthorizationCodeGrant(body, client, ctx);
-  } else if (body.grant_type === "refresh_token") {
-    return handleRefreshTokenGrant(body, client, ctx);
+  // 2. Reject URIs containing control characters (RFC 3986 compliance)
+  // Control characters (0x00-0x1F, 0x7F-0x9F) are explicitly disallowed in URIs
+  // and their presence indicates a malformed or potentially malicious URI
+  for (let i = 0; i < normalized.length; i++) {
+    const code = normalized.charCodeAt(i);
+    if ((code >= 0x00 && code <= 0x1f) || (code >= 0x7f && code <= 0x9f)) {
+      throw new Error("Invalid redirect URI");
+    }
   }
 
-  throw new HTTPException(400, { message: "unsupported_grant_type" });
-});
+  // 3. Extract the scheme by finding everything before the first ':'
+  const colonIndex = normalized.indexOf(":");
+  if (colonIndex === -1) {
+    // No scheme present - reject relative URIs
+    throw new Error("Invalid redirect URI");
+  }
+
+  // Get the scheme and convert to lowercase for case-insensitive comparison
+  const scheme = normalized.substring(0, colonIndex + 1).toLowerCase();
+
+  // Check against blacklist
+  for (const dangerousScheme of dangerousSchemes) {
+    if (scheme === dangerousScheme) {
+      throw new Error("Invalid redirect URI");
+    }
+  }
+}
+
+app
+  .post(
+    "/register",
+    zValidator(
+      "json",
+      z.object({
+        client_name: z.string().min(1),
+        redirect_uris: z.array(z.url()).min(1),
+        token_endpoint_auth_method: z
+          .enum(["client_secret_basic", "client_secret_post", "none"])
+          .optional()
+          .default("client_secret_basic"),
+        grant_types: z
+          .array(z.string())
+          .optional()
+          .default(["authorization_code", "refresh_token"]),
+        response_types: z.array(z.string()).optional().default(["code"]),
+      }),
+    ),
+    async (c) => {
+      // Content-Lengthが1MiBを超えていないか確認する
+      const contentLength = parseInt(c.req.header("Content-Length") || "0", 10);
+
+      if (contentLength > 1048576) {
+        // 1 MiB = 1048576 bytes
+        throw new HTTPException(413, { message: "invalid_request" });
+      }
+
+      let text: string;
+      try {
+        text = await c.req.raw.clone().text();
+      } catch {
+        throw new HTTPException(400, { message: "invalid_request" });
+      }
+
+      // クライアントメタデータをサイズ制限付きでパースする
+      if (text.length > 1048576) {
+        // 1MiB超は拒否
+        throw new HTTPException(413, { message: "invalid_request" });
+      }
+
+      const {
+        client_name,
+        redirect_uris,
+        grant_types,
+        response_types,
+        token_endpoint_auth_method,
+      } = c.req.valid("json");
+
+      // パブリッククライアントかどうか判定する
+      const isPublicClient = token_endpoint_auth_method === "none";
+
+      // Generate client secret only for confidential clients
+      let clientSecret: string | undefined;
+      let clientSecretHash: string | null = null;
+
+      if (!isPublicClient) {
+        clientSecret = randomBytes(32).toString("hex");
+        clientSecretHash = encodeHexLowerCase(
+          sha256(new TextEncoder().encode(clientSecret)),
+        );
+      }
+
+      for (const uri of redirect_uris) {
+        validateRedirectUriScheme(uri);
+      }
+
+      const generatedClientId = randomBytes(16).toString("hex");
+      const db = c.get("db");
+
+      const [newClient] = await db
+        .insert(schema.clients)
+        .values({
+          id: uuidv7(),
+          clientId: generatedClientId,
+          clientSecret: clientSecretHash,
+          name: client_name,
+          redirectUris: redirect_uris,
+          grantTypes: grant_types,
+          responseTypes: response_types,
+          tokenEndpointAuthMethod: token_endpoint_auth_method,
+        })
+        .returning();
+
+      // Return response based on client type
+      const response: {
+        client_id: string;
+        client_secret?: string;
+        redirect_uris: string[];
+        response_types: string[];
+        grant_types: string[];
+      } = {
+        client_id: newClient.clientId,
+        redirect_uris,
+        grant_types,
+        response_types,
+      };
+
+      // Only include client_secret for confidential clients
+      if (clientSecret) {
+        response.client_secret = clientSecret;
+      }
+
+      return c.json(response);
+    },
+  )
+  .post("/token", zValidator("form", tokenGrantSchema), async (ctx) => {
+    const body = ctx.req.valid("form");
+    const db = ctx.get("db");
+    const authHeader = ctx.req.header("Authorization");
+    const contentType = ctx.req.header("Content-Type") || "";
+
+    const { client } = await parseAndAuthenticateRequest(
+      db,
+      authHeader,
+      contentType,
+      body,
+    );
+
+    if (body.grant_type === "authorization_code") {
+      return handleAuthorizationCodeGrant(body, client, ctx);
+    } else if (body.grant_type === "refresh_token") {
+      return handleRefreshTokenGrant(body, client, ctx);
+    }
+
+    throw new HTTPException(400, { message: "unsupported_grant_type" });
+  });
 
 export default app;
