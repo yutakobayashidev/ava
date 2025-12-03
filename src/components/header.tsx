@@ -19,7 +19,7 @@ import { getInitials } from "@/lib/utils";
 type User = {
   name?: string | null;
   email?: string | null;
-  imageUrl?: string | null;
+  image?: string | null;
 };
 
 type HeaderProps = {
@@ -56,7 +56,7 @@ export function Header({ user, className = "bg-white" }: HeaderProps) {
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage
-                      src={user.imageUrl ?? undefined}
+                      src={user.image ?? undefined}
                       alt={user.name ?? ""}
                     />
                     <AvatarFallback>
