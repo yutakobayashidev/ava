@@ -1,19 +1,19 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  CheckCircle,
-  MessageSquare,
-  GitPullRequest,
-  AlertCircle,
-  Zap,
-} from "lucide-react";
-import { getCurrentSession } from "@/lib/session";
-import { Button } from "@/components/ui/button";
+import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
-import { Header } from "@/components/header";
+import { getCurrentSession } from "@/lib/session";
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  GitPullRequest,
+  MessageSquare,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function LandingPage() {
   const { user } = await getCurrentSession();
@@ -22,6 +22,81 @@ export default async function LandingPage() {
   if (user?.onboardingCompletedAt) {
     redirect("/dashboard");
   }
+
+  type ThreadMessage = {
+    name: string;
+    avatar: string;
+    avatarBg: string;
+    time: string;
+    text: string;
+    variant: string;
+    status?: string;
+    details?: { label: string; value: string }[];
+    highlight?: string;
+  };
+
+  const threadMessages: ThreadMessage[] = [
+    {
+      name: "Ava (Agent)",
+      avatar: "AI",
+      avatarBg: "bg-slate-800",
+      time: "10:12",
+      status: "Task started",
+      text: "タスクカードにチェックボックスを付け、完了状態を保存します。",
+      variant: "start",
+      details: [
+        { label: "Started by", value: "@John Doe" },
+        {
+          label: "Summary",
+          value:
+            "チェックボックスで完了トグルを保存。PATCH /api/tasks/:id で completed と completed_at を扱えるようにする。",
+        },
+      ],
+    },
+    {
+      name: "Ava (Agent)",
+      avatar: "AI",
+      avatarBg: "bg-slate-800",
+      time: "10:54",
+      status: "Update",
+      text: "UIにチェックボックスを追加し、PATCH /api/tasks/:id で completed を更新。完了時はローカルで即反映するようにしました。",
+      variant: "success",
+    },
+    {
+      name: "Ava (Agent)",
+      avatar: "AI",
+      avatarBg: "bg-slate-800",
+      time: "11:04",
+      status: "BLOCKER",
+      text: "完了時に completed_at を保存するか確認したいです。現状APIにはタイムスタンプのフィールドがありません。",
+      variant: "blocker",
+    },
+    {
+      name: "PM",
+      avatar: "PM",
+      avatarBg: "bg-blue-600",
+      time: "11:20",
+      status: "PM",
+      text: "completed_atを追加で保存OKです。APIにもフィールドを追加して大丈夫です。",
+      variant: "pm",
+    },
+    {
+      name: "Ava (Agent)",
+      avatar: "AI",
+      avatarBg: "bg-slate-800",
+      time: "12:10",
+      status: "PR ready",
+      text: "完了トグルと保存のPR作成。completed_atも保存する実装にしました。PR: https://github.com/example/repo/pull/301",
+      variant: "success",
+    },
+  ];
+
+  const badgeStyles: Record<string, string> = {
+    start: "bg-slate-100 text-slate-800 border border-slate-200",
+    blocker: "bg-amber-50 text-amber-800 border border-amber-100",
+    success: "bg-slate-100 text-slate-800 border border-slate-200",
+    pm: "bg-blue-50 text-blue-800 border border-blue-100",
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -44,22 +119,13 @@ export default async function LandingPage() {
             コンテキストスイッチを減らし、報告文をひねり出す痛みから解放。コーディングエージェントが静かにSlackスレッドへ進捗をまとめ、人が必要ならすぐ手を差し伸べられます。
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              asChild
-              size="lg"
-              className="px-8 py-4 shadow-lg hover:shadow-xl rounded-xl h-auto"
-            >
-              <Link href="/login">
+            <Button asChild size="lg">
+              <Link href="/api/auth/slack">
                 Slackでログイン
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="px-8 py-4 border-2 rounded-xl h-auto"
-            >
+            <Button asChild variant="outline" size="lg">
               <Link href="/docs">ドキュメントを見る</Link>
             </Button>
           </div>
@@ -157,78 +223,87 @@ export default async function LandingPage() {
             </div>
             <div className="relative">
               <div
-                className="absolute inset-0 blur-3xl bg-gradient-to-br from-accent/30 via-background to-accent/30 rounded-3xl"
+                className="absolute inset-0 blur-3xl bg-slate-100/60 rounded-3xl"
                 aria-hidden
               />
-              <div className="relative bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-semibold">
-                      AI
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500">Slack Thread</p>
-                      <p className="font-semibold text-slate-900">
-                        #dev-updates
-                      </p>
-                    </div>
+              <div className="relative overflow-hidden rounded-3xl border border-slate-200 shadow-md bg-white">
+                <div className="flex items-center px-6 py-4 border-b bg-white">
+                  <div className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold">
+                    #
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">
+                      Slack Thread
+                    </p>
+                    <p className="font-medium text-slate-900">#dev-updates</p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  {[
-                    {
-                      title: "APIエンドポイント統合作業",
-                      desc: "進捗まとめと懸念をスレッドに記録しました。",
-                      time: "10:12",
-                      tone: "bg-accent text-accent-foreground",
-                    },
-                    {
-                      title: "ブロッカー: テスト用認証ヘッダー",
-                      desc: "ベンチトークンがエラー。サンプルを共有いただけると助かります。",
-                      time: "11:04",
-                      tone: "bg-destructive/10 text-destructive",
-                    },
-                    {
-                      title: "PR ready for review",
-                      desc: "Slack通知→GitHub自動連携。レビュー依頼のみ人が介入。",
-                      time: "12:48",
-                      tone: "bg-accent text-accent-foreground",
-                    },
-                  ].map((item) => (
-                    <Card
-                      key={item.title}
-                      className="rounded-2xl p-4 bg-slate-50/80 gap-2"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-slate-900">
-                          {item.title}
-                        </p>
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs font-semibold px-2.5 py-1 border-transparent ${item.tone}`}
+                <div className="bg-slate-50 px-6 py-3 text-[12px] uppercase tracking-[0.08em] text-slate-500 border-b border-slate-200/70">
+                  Today
+                </div>
+                <div className="relative px-6 py-5">
+                  <div
+                    className="absolute left-11 top-9 bottom-9 w-px bg-slate-200/30"
+                    aria-hidden
+                  />
+                  <div className="space-y-5">
+                    {threadMessages.map((message) => (
+                      <div
+                        key={`${message.name}-${message.time}`}
+                        className="relative flex items-start gap-3"
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-md text-white font-semibold flex items-center justify-center ${message.avatarBg}`}
                         >
-                          {item.time}
-                        </Badge>
+                          {message.avatar}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-slate-900">
+                              {message.name}
+                            </p>
+                            {message.status && (
+                              <Badge
+                                variant="secondary"
+                                className={`text-[11px] font-medium border-0 ${badgeStyles[message.variant]}`}
+                              >
+                                {message.status}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-slate-500">
+                              {message.time}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-3 text-sm leading-relaxed text-slate-800">
+                            <p className="font-medium">{message.text}</p>
+                            {message.details && (
+                              <div className="space-y-1.5 text-xs text-slate-600">
+                                {message.details.map((detail) => (
+                                  <div
+                                    key={`${detail.label}-${detail.value}`}
+                                    className="flex gap-2"
+                                  >
+                                    <span className="font-medium text-slate-700 shrink-0">
+                                      {detail.label}:
+                                    </span>
+                                    <span className="text-slate-700">
+                                      {detail.value}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {message.highlight && (
+                              <p className="text-slate-800 font-medium">
+                                {message.highlight}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-slate-600 leading-relaxed">
-                        {item.desc}
-                      </p>
-                    </Card>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                <Card className="rounded-2xl bg-slate-50 p-4 flex-row items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold">
-                    PM
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      マネージャー
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      スレッド見ました。サンプルヘッダー送ります、他に必要な情報あれば教えてください。
-                    </p>
-                  </div>
-                </Card>
               </div>
             </div>
           </div>
@@ -534,17 +609,12 @@ export default async function LandingPage() {
                 size="lg"
                 className="px-8 py-4 shadow-lg hover:shadow-xl rounded-xl h-auto"
               >
-                <Link href="/login">
+                <Link href="/api/auth/slack">
                   無料で始める
                   <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button
-                asChild
-                variant="secondary"
-                size="lg"
-                className="px-8 py-4 rounded-xl h-auto"
-              >
+              <Button asChild variant="secondary" size="lg">
                 <Link href="/docs">ドキュメントを見る</Link>
               </Button>
             </div>
@@ -555,11 +625,11 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="text-sm">
               &copy; 2025 {siteConfig.name}. Built for deep work.
             </div>
-            <div className="flex gap-6 text-sm">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm">
               <Link href="/docs" className="hover:text-white transition-colors">
                 ドキュメント
               </Link>
