@@ -1,17 +1,17 @@
 import { generateState } from "arctic";
-import { getCookie, deleteCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
 import { validateSessionToken } from "@/lib/session";
+import { buildSlackInstallUrl } from "@/lib/slackInstall";
+import { installWorkspace } from "@/usecases/slack/installWorkspace";
+import { buildRedirectUrl } from "@/utils/urls";
+import { env } from "hono/adapter";
 import { verifySlackSignature } from "@/middleware/slack";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
-import { env } from "hono/adapter";
-import { installWorkspace } from "@/usecases/slack/installWorkspace";
-import { buildRedirectUrl } from "@/utils/urls";
-import { buildSlackInstallUrl } from "@/lib/slackInstall";
 
 const app = createHonoApp();
 
@@ -24,11 +24,7 @@ app.get("/install/start", async (ctx) => {
     ? await validateSessionToken(sessionToken)
     : { user: null };
   if (!user) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/login", {
-        callbackUrl: "/settings",
-      }),
-    );
+    return ctx.json({ error: "Unauthorized" }, 401);
   }
 
   const state = generateState();
@@ -53,11 +49,7 @@ app.get("/install/callback", async (ctx) => {
     ? await validateSessionToken(sessionToken)
     : { user: null };
   if (!user) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/login", {
-        callbackUrl: "/settings",
-      }),
-    );
+    return ctx.json({ error: "Unauthorized" }, 401);
   }
 
   const code = ctx.req.query("code");
@@ -103,7 +95,7 @@ app.get("/install/callback", async (ctx) => {
   // 結果に応じてリダイレクト
   if (result.success) {
     return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, "/onboarding/connect-slack", {
+      buildRedirectUrl(ctx.req.raw, fallbackPath, {
         installed: "1",
         team: result.teamName,
       }),
