@@ -82,6 +82,7 @@
     "fumadocs-core": "16.1.0",
     "fumadocs-mdx": "14.0.3",
     "fumadocs-ui": "16.1.0",
+    "googleapis": "166.0.0",
     "hono": "4.10.7",
     "input-otp": "1.4.2",
     "knip": "5.70.2",
