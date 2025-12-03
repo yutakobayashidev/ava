@@ -19,5 +19,5 @@ export const onboardingMiddleware = createMiddleware(async (c, next) => {
     return NextResponse.redirect(new URL("/dashboard", c.req.url));
   }
 
-  return next();
+  await next();
 });

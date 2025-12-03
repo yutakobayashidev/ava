@@ -20,5 +20,5 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     return c.redirect(loginUrl.toString());
   }
 
-  return next();
+  await next();
 });
