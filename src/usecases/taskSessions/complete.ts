@@ -4,7 +4,7 @@ import { createTaskRepository, createWorkspaceRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 type CompleteTask = {
-  task_session_id: string;
+  taskSessionId: string;
   summary: string;
 };
 
@@ -14,7 +14,7 @@ export const completeTask = async (
 ): Promise<
   { success: true; data: string } | { success: false; error: string }
 > => {
-  const { task_session_id, summary } = params;
+  const { taskSessionId, summary } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
@@ -27,7 +27,7 @@ export const completeTask = async (
 
   // 現在のタスクセッションを取得して状態遷移を検証
   const currentSession = await taskRepository.findTaskSessionById(
-    task_session_id,
+    taskSessionId,
     workspace.id,
     user.id,
   );
@@ -49,7 +49,7 @@ export const completeTask = async (
 
   const { session, completedEvent, unresolvedBlocks } =
     await taskRepository.completeTask({
-      taskSessionId: task_session_id,
+      taskSessionId: taskSessionId,
       workspaceId: workspace.id,
       userId: user.id,
       summary,

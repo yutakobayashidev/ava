@@ -4,8 +4,8 @@ import { createTaskRepository, createWorkspaceRepository } from "@/repos";
 import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
 
 type ResolveBlocked = {
-  task_session_id: string;
-  block_report_id: string;
+  taskSessionId: string;
+  blockReportId: string;
 };
 
 export const resolveBlocked = async (
@@ -14,7 +14,7 @@ export const resolveBlocked = async (
 ): Promise<
   { success: true; data: string } | { success: false; error: string }
 > => {
-  const { task_session_id, block_report_id } = params;
+  const { taskSessionId, blockReportId } = params;
 
   const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
   const taskRepository = createTaskRepository({ db });
@@ -27,7 +27,7 @@ export const resolveBlocked = async (
 
   // 現在のタスクセッションを取得して状態遷移を検証
   const currentSession = await taskRepository.findTaskSessionById(
-    task_session_id,
+    taskSessionId,
     workspace.id,
     user.id,
   );
@@ -48,10 +48,10 @@ export const resolveBlocked = async (
   }
 
   const { session, blockReport } = await taskRepository.resolveBlockReport({
-    taskSessionId: task_session_id,
+    taskSessionId: taskSessionId,
     workspaceId: workspace.id,
     userId: user.id,
-    blockReportId: block_report_id,
+    blockReportId: blockReportId,
   });
 
   if (!session || !blockReport) {
