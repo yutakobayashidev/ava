@@ -8,6 +8,7 @@ import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { randomBytes } from "crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import type { Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { uuidv7 } from "uuidv7";
 import { z } from "zod";
@@ -26,7 +27,7 @@ async function parseAndAuthenticateRequest(
   db: Context<Env>["var"]["db"],
   authHeader: string | undefined,
   contentType: string,
-  formData: Record<string, string | File>,
+  body: Record<string, string | File>,
 ) {
   // OAuth 2.0 RFC 6749/7009 に従い、リクエストは application/x-www-form-urlencodedである必要がある
   if (!contentType.includes("application/x-www-form-urlencoded")) {
@@ -45,14 +46,14 @@ async function parseAndAuthenticateRequest(
     clientSecret = decodeURIComponent(secret || "");
   } else {
     // Form parameters
-    clientId = typeof formData.client_id === "string" ? formData.client_id : "";
+    clientId = typeof body.client_id === "string" ? body.client_id : "";
     clientSecret =
-      typeof formData.client_secret === "string" ? formData.client_secret : "";
+      typeof body.client_secret === "string" ? body.client_secret : "";
   }
 
   if (!clientId) {
     throw new HTTPException(401, {
-      message: "invalid_client: Client ID is required",
+      message: "invalid_client",
     });
   }
 
@@ -64,7 +65,7 @@ async function parseAndAuthenticateRequest(
 
   if (!client) {
     throw new HTTPException(401, {
-      message: "invalid_client: Client not found",
+      message: "invalid_client",
     });
   }
 
@@ -74,8 +75,7 @@ async function parseAndAuthenticateRequest(
   if (!isPublicClient) {
     if (!clientSecret) {
       throw new HTTPException(401, {
-        message:
-          "invalid_client: Client authentication failed - missing client_secret",
+        message: "invalid_client",
       });
     }
 
@@ -89,8 +89,7 @@ async function parseAndAuthenticateRequest(
       !timingSafeCompare(client.clientSecret, clientSecretHash)
     ) {
       throw new HTTPException(401, {
-        message:
-          "invalid_client: Client authentication failed - invalid client_secret",
+        message: "invalid_client",
       });
     }
   }
@@ -98,7 +97,7 @@ async function parseAndAuthenticateRequest(
   return {
     client,
     isPublicClient,
-    formData,
+    body,
   };
 }
 
@@ -150,6 +149,7 @@ async function handleAuthorizationCodeGrant(
     // PKCE が使用されているかどうかを確認
     const isPkceEnabled = !!authCode.codeChallenge;
 
+    // OAuth 2.1では、PKCEが使用されていない場合はredirect_uriパラメータが必須
     if (!redirectUri && !isPkceEnabled) {
       throw new HTTPException(400, { message: "invalid_request" });
     }
@@ -315,7 +315,7 @@ async function handleRefreshTokenGrant(
     // Verify the client matches the refresh token's client
     if (storedRefreshToken.clientId !== client.id) {
       throw new HTTPException(401, {
-        message: "invalid_client: Client mismatch",
+        message: "invalid_client",
       });
     }
 
@@ -426,7 +426,7 @@ const tokenGrantSchema = z.discriminatedUnion(
  * @param redirectUri - 検証対象のリダイレクトURI
  * @throws 危険なスキームまたは制御文字が含まれていた場合はエラーを投げます
  */
-function validateRedirectUriScheme(redirectUri: string): void {
+export function validateRedirectUriScheme(redirectUri: string): void {
   // List of dangerous pseudo-schemes that should not be allowed
   const dangerousSchemes = [
     "javascript:",
@@ -471,6 +471,12 @@ function validateRedirectUriScheme(redirectUri: string): void {
 app
   .post(
     "/register",
+    bodyLimit({
+      maxSize: 1048576, // 1 MiB
+      onError: () => {
+        throw new HTTPException(413, { message: "invalid_request" });
+      },
+    }),
     zValidator(
       "json",
       z.object({
@@ -488,27 +494,6 @@ app
       }),
     ),
     async (c) => {
-      // Content-Lengthが1MiBを超えていないか確認する
-      const contentLength = parseInt(c.req.header("Content-Length") || "0", 10);
-
-      if (contentLength > 1048576) {
-        // 1 MiB = 1048576 bytes
-        throw new HTTPException(413, { message: "invalid_request" });
-      }
-
-      let text: string;
-      try {
-        text = await c.req.raw.clone().text();
-      } catch {
-        throw new HTTPException(400, { message: "invalid_request" });
-      }
-
-      // クライアントメタデータをサイズ制限付きでパースする
-      if (text.length > 1048576) {
-        // 1MiB超は拒否
-        throw new HTTPException(413, { message: "invalid_request" });
-      }
-
       const {
         client_name,
         redirect_uris,

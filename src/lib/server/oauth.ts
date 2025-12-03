@@ -1,9 +1,10 @@
-import { z } from "zod";
-import * as schema from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { db } from "@/clients/drizzle";
+import * as schema from "@/db/schema";
+import { validateRedirectUriScheme } from "@/handlers/api/oauth";
 import { absoluteUrl } from "@/lib/utils";
 import { serializeSearchParams } from "@/utils/urls";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 export const authorizeRequestSchema = z
   .object({
@@ -79,6 +80,16 @@ export const validateAuthorizeRequest = async (
       success: false,
       error: "invalid_client",
       errorDescription: "不正なクライアントです。",
+    };
+  }
+
+  try {
+    validateRedirectUriScheme(redirectUri);
+  } catch {
+    return {
+      success: false,
+      error: "invalid_request",
+      errorDescription: "リダイレクトURIが不正です。",
     };
   }
 
