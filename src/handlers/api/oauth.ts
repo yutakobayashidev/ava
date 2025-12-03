@@ -103,14 +103,17 @@ async function parseAndAuthenticateRequest(
 }
 
 async function handleAuthorizationCodeGrant(
-  c: Context<Env>,
+  body: z.infer<typeof authCodeExchangeSchema>,
   client: typeof schema.clients.$inferSelect,
-  formData: z.infer<typeof authCodeExchangeSchema>,
+  c: Context<Env>,
 ) {
-  const { code, redirect_uri, code_verifier } = formData;
+  const code = body.code;
+  const redirectUri = body.redirect_uri;
+  const codeVerifier = body.code_verifier;
+
   const db = c.get("db");
 
-  // Generate tokens outside transaction to minimize transaction time
+  // トランザクション時間を最小化するため、トークン生成は先に行う
   const accessToken = randomBytes(32).toString("hex");
   const accessTokenHash = encodeHexLowerCase(
     sha256(new TextEncoder().encode(accessToken)),
@@ -123,21 +126,20 @@ async function handleAuthorizationCodeGrant(
   );
   const refreshTokenExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
 
-  // Transaction: Acquire lock, validate, consume code, and issue tokens atomically
-  // This prevents race conditions from concurrent authorization code exchange requests
+  // トランザクション: ロックを取得し、バリデーション・認可コードの消費・トークン発行をアトミックに実行する
+  // これにより、同時に認可コード交換リクエストが発生した際の競合・レースコンディションを防ぐ
   await db.transaction(async (tx) => {
-    // SELECT FOR UPDATE acquires a row-level lock, preventing concurrent access
     const [authCode] = await tx
       .select()
       .from(schema.authCodes)
       .where(eq(schema.authCodes.code, code))
       .for("update");
 
-    if (
-      !authCode ||
-      authCode.clientId !== client.id ||
-      authCode.redirectUri !== redirect_uri
-    ) {
+    if (!authCode) {
+      throw new HTTPException(400, { message: "invalid_grant" });
+    }
+
+    if (authCode.clientId !== client.id) {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
@@ -145,43 +147,39 @@ async function handleAuthorizationCodeGrant(
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
+    // PKCE が使用されているかどうかを確認
     const isPkceEnabled = !!authCode.codeChallenge;
-    if (!redirect_uri && !isPkceEnabled) {
+
+    if (!redirectUri && !isPkceEnabled) {
       throw new HTTPException(400, { message: "invalid_request" });
     }
 
-    if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+    if (redirectUri && !client.redirectUris.includes(redirectUri)) {
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
     // 認可時にPKCEが使われなかった場合、code_verifierが送られてきたら拒否する
-    if (!isPkceEnabled && code_verifier) {
+    if (!isPkceEnabled && codeVerifier) {
       throw new HTTPException(400, { message: "invalid_request" });
     }
 
-    // Step 1: Validate PKCE if it was used
+    // ステップ1: PKCE が利用された場合は検証を行う
     if (isPkceEnabled) {
-      if (!code_verifier || !authCode.codeChallenge) {
+      if (!codeVerifier || !authCode.codeChallenge) {
         throw new HTTPException(400, { message: "invalid_request" });
       }
 
-      let pkceValid = false;
+      let calculatedChallenge: string;
       if (authCode.codeChallengeMethod === "S256") {
         const codeChallengeBytes = sha256(
-          new TextEncoder().encode(code_verifier),
+          new TextEncoder().encode(codeVerifier),
         );
-        const computedChallenge = encodeBase64urlNoPadding(codeChallengeBytes);
-        // Use timing-safe comparison to prevent timing attacks
-        pkceValid = timingSafeCompare(
-          computedChallenge,
-          authCode.codeChallenge,
-        );
+        calculatedChallenge = encodeBase64urlNoPadding(codeChallengeBytes);
       } else {
-        // Use timing-safe comparison for plain method as well
-        pkceValid = timingSafeCompare(code_verifier, authCode.codeChallenge);
+        calculatedChallenge = codeVerifier;
       }
 
-      if (!pkceValid) {
+      if (calculatedChallenge !== authCode.codeChallenge) {
         throw new HTTPException(400, { message: "invalid_grant" });
       }
     }
@@ -255,16 +253,16 @@ async function handleAuthorizationCodeGrant(
 }
 
 async function handleRefreshTokenGrant(
-  c: Context<Env>,
+  body: z.infer<typeof refreshTokenSchema>,
   client: typeof schema.clients.$inferSelect,
-  formData: z.infer<typeof refreshTokenSchema>,
+  c: Context<Env>,
 ) {
-  const { refresh_token } = formData;
+  const refreshToken = body.refresh_token;
   const db = c.get("db");
 
   // Hash the provided refresh token to compare with stored hash
   const refreshTokenHash = encodeHexLowerCase(
-    sha256(new TextEncoder().encode(refresh_token)),
+    sha256(new TextEncoder().encode(refreshToken)),
   );
 
   // Generate new tokens outside transaction to minimize transaction time
@@ -488,11 +486,11 @@ const tokenGrantSchema = z.discriminatedUnion(
   },
 );
 
-app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
-  const body = c.req.valid("form");
-  const db = c.get("db");
-  const authHeader = c.req.header("Authorization");
-  const contentType = c.req.header("Content-Type") || "";
+app.post("/token", zValidator("form", tokenGrantSchema), async (ctx) => {
+  const body = ctx.req.valid("form");
+  const db = ctx.get("db");
+  const authHeader = ctx.req.header("Authorization");
+  const contentType = ctx.req.header("Content-Type") || "";
 
   const { client } = await parseAndAuthenticateRequest(
     db,
@@ -502,9 +500,9 @@ app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
   );
 
   if (body.grant_type === "authorization_code") {
-    return handleAuthorizationCodeGrant(c, client, body);
+    return handleAuthorizationCodeGrant(body, client, ctx);
   } else if (body.grant_type === "refresh_token") {
-    return handleRefreshTokenGrant(c, client, body);
+    return handleRefreshTokenGrant(body, client, ctx);
   }
 
   throw new HTTPException(400, { message: "unsupported_grant_type" });
