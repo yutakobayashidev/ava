@@ -19,13 +19,19 @@ const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const app = createHonoApp();
 
 /**
- * Common authentication and request parsing for OAuth endpoints
- * Handles client authentication and form parsing
+ * OAuthエンドポイント共通の認証およびリクエスト解析処理
+ * クライアント認証とフォームパースを行う
  */
-async function parseAndAuthenticateRequest(c: Context<Env>) {
-  const db = c.get("db");
-  const authHeader = c.req.header("Authorization");
-  const formData = await c.req.parseBody();
+async function parseAndAuthenticateRequest(
+  db: Context<Env>["var"]["db"],
+  authHeader: string | undefined,
+  contentType: string,
+  formData: Record<string, string | File>,
+) {
+  // OAuth 2.0 RFC 6749/7009 に従い、リクエストは application/x-www-form-urlencodedである必要がある
+  if (!contentType.includes("application/x-www-form-urlencoded")) {
+    throw new HTTPException(400, { message: "invalid_request" });
+  }
 
   // Extract client credentials from Authorization header or form body
   let clientId = "";
@@ -456,7 +462,7 @@ app.post(
 // Schema for OAuth2.0 authorization code exchange
 const authCodeExchangeSchema = z.object({
   grant_type: z.literal("authorization_code"),
-  client_id: z.string().min(1).optional(), // Optional because it can come from Authorization header
+  client_id: z.string().min(1).optional(),
   client_secret: z.string().optional(),
   code: z.string().min(1, "Missing code"),
   redirect_uri: z.url({ message: "redirect_uri must be a valid URL" }),
@@ -483,44 +489,22 @@ const tokenGrantSchema = z.discriminatedUnion(
 );
 
 app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
-  // Parse and authenticate the request
-  const { client, formData } = await parseAndAuthenticateRequest(c);
+  const body = c.req.valid("form");
+  const db = c.get("db");
+  const authHeader = c.req.header("Authorization");
+  const contentType = c.req.header("Content-Type") || "";
 
-  // Type narrowing based on grant_type
-  const grantType =
-    typeof formData.grant_type === "string" ? formData.grant_type : "";
+  const { client } = await parseAndAuthenticateRequest(
+    db,
+    authHeader,
+    contentType,
+    body,
+  );
 
-  if (grantType === "authorization_code") {
-    return handleAuthorizationCodeGrant(c, client, {
-      grant_type: "authorization_code",
-      code: typeof formData.code === "string" ? formData.code : "",
-      redirect_uri:
-        typeof formData.redirect_uri === "string" ? formData.redirect_uri : "",
-      client_id:
-        typeof formData.client_id === "string" ? formData.client_id : undefined,
-      client_secret:
-        typeof formData.client_secret === "string"
-          ? formData.client_secret
-          : undefined,
-      code_verifier:
-        typeof formData.code_verifier === "string"
-          ? formData.code_verifier
-          : undefined,
-    });
-  } else if (grantType === "refresh_token") {
-    return handleRefreshTokenGrant(c, client, {
-      grant_type: "refresh_token",
-      refresh_token:
-        typeof formData.refresh_token === "string"
-          ? formData.refresh_token
-          : "",
-      client_id:
-        typeof formData.client_id === "string" ? formData.client_id : undefined,
-      client_secret:
-        typeof formData.client_secret === "string"
-          ? formData.client_secret
-          : undefined,
-    });
+  if (body.grant_type === "authorization_code") {
+    return handleAuthorizationCodeGrant(c, client, body);
+  } else if (body.grant_type === "refresh_token") {
+    return handleRefreshTokenGrant(c, client, body);
   }
 
   throw new HTTPException(400, { message: "unsupported_grant_type" });
