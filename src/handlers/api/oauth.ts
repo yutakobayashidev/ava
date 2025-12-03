@@ -1,17 +1,16 @@
-import { randomBytes } from "crypto";
-import { uuidv7 } from "uuidv7";
-import * as schema from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import type { Env } from "@/app/create-app";
 import { createHonoApp } from "@/app/create-app";
+import * as schema from "@/db/schema";
+import { timingSafeCompare } from "@/lib/timing-safe";
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
-import { HTTPException } from "hono/http-exception";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
-import { extractClientCredentials } from "@/lib/oauth-credentials";
-import { timingSafeCompare } from "@/lib/timing-safe";
+import { randomBytes } from "crypto";
+import { and, eq, isNull } from "drizzle-orm";
 import type { Context } from "hono";
-import type { Env } from "@/app/create-app";
+import { HTTPException } from "hono/http-exception";
+import { uuidv7 } from "uuidv7";
+import { z } from "zod";
 
 // Token expiration times
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
@@ -19,32 +18,91 @@ const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const app = createHonoApp();
 
+/**
+ * Common authentication and request parsing for OAuth endpoints
+ * Handles client authentication and form parsing
+ */
+async function parseAndAuthenticateRequest(c: Context<Env>) {
+  const db = c.get("db");
+  const authHeader = c.req.header("Authorization");
+  const formData = await c.req.parseBody();
+
+  // Extract client credentials from Authorization header or form body
+  let clientId = "";
+  let clientSecret = "";
+
+  if (authHeader && authHeader.startsWith("Basic ")) {
+    // Basic auth
+    const credentials = atob(authHeader.substring(6));
+    const [id, secret] = credentials.split(":", 2);
+    clientId = decodeURIComponent(id);
+    clientSecret = decodeURIComponent(secret || "");
+  } else {
+    // Form parameters
+    clientId = typeof formData.client_id === "string" ? formData.client_id : "";
+    clientSecret =
+      typeof formData.client_secret === "string" ? formData.client_secret : "";
+  }
+
+  if (!clientId) {
+    throw new HTTPException(401, {
+      message: "invalid_client: Client ID is required",
+    });
+  }
+
+  // Fetch client from database
+  const [client] = await db
+    .select()
+    .from(schema.clients)
+    .where(eq(schema.clients.clientId, clientId));
+
+  if (!client) {
+    throw new HTTPException(401, {
+      message: "invalid_client: Client not found",
+    });
+  }
+
+  const isPublicClient = client.tokenEndpointAuthMethod === "none";
+
+  // For confidential clients, validate the secret
+  if (!isPublicClient) {
+    if (!clientSecret) {
+      throw new HTTPException(401, {
+        message:
+          "invalid_client: Client authentication failed - missing client_secret",
+      });
+    }
+
+    // Hash the provided client_secret and use timing-safe comparison
+    const clientSecretHash = encodeHexLowerCase(
+      sha256(new TextEncoder().encode(clientSecret)),
+    );
+
+    if (
+      !client.clientSecret ||
+      !timingSafeCompare(client.clientSecret, clientSecretHash)
+    ) {
+      throw new HTTPException(401, {
+        message:
+          "invalid_client: Client authentication failed - invalid client_secret",
+      });
+    }
+  }
+
+  return {
+    client,
+    isPublicClient,
+    formData,
+  };
+}
+
 async function handleAuthorizationCodeGrant(
   c: Context<Env>,
+  client: typeof schema.clients.$inferSelect,
   formData: z.infer<typeof authCodeExchangeSchema>,
 ) {
   const { code, redirect_uri, code_verifier } = formData;
   const db = c.get("db");
-
-  // Extract client credentials from Authorization header or form body
-  const authHeader = c.req.header("Authorization");
-  const { client_id, client_secret } = extractClientCredentials(
-    authHeader,
-    formData.client_id,
-    formData.client_secret,
-  );
-
-  if (!client_id) {
-    throw new HTTPException(400, { message: "invalid_request" });
-  }
-
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.clientId, client_id));
-  if (!client) {
-    throw new HTTPException(401, { message: "invalid_client" });
-  }
 
   // Generate tokens outside transaction to minimize transaction time
   const accessToken = randomBytes(32).toString("hex");
@@ -81,9 +139,23 @@ async function handleAuthorizationCodeGrant(
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
+    const isPkceEnabled = !!authCode.codeChallenge;
+    if (!redirect_uri && !isPkceEnabled) {
+      throw new HTTPException(400, { message: "invalid_request" });
+    }
+
+    if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+      throw new HTTPException(400, { message: "invalid_grant" });
+    }
+
+    // 認可時にPKCEが使われなかった場合、code_verifierが送られてきたら拒否する
+    if (!isPkceEnabled && code_verifier) {
+      throw new HTTPException(400, { message: "invalid_request" });
+    }
+
     // Step 1: Validate PKCE if it was used
-    if (authCode.codeChallenge) {
-      if (!code_verifier) {
+    if (isPkceEnabled) {
+      if (!code_verifier || !authCode.codeChallenge) {
         throw new HTTPException(400, { message: "invalid_request" });
       }
 
@@ -105,26 +177,6 @@ async function handleAuthorizationCodeGrant(
 
       if (!pkceValid) {
         throw new HTTPException(400, { message: "invalid_grant" });
-      }
-    }
-
-    // Step 2: Validate client authentication based on client type
-    if (client.clientSecret) {
-      // Confidential client: client_secret authentication is required
-      if (!client_secret) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-      // Hash the provided client_secret and use timing-safe comparison to prevent timing attacks
-      const clientSecretHash = encodeHexLowerCase(
-        sha256(new TextEncoder().encode(client_secret)),
-      );
-      if (!timingSafeCompare(client.clientSecret, clientSecretHash)) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-    } else {
-      // Public client: PKCE is required
-      if (!authCode.codeChallenge) {
-        throw new HTTPException(400, { message: "invalid_request" });
       }
     }
 
@@ -198,19 +250,11 @@ async function handleAuthorizationCodeGrant(
 
 async function handleRefreshTokenGrant(
   c: Context<Env>,
+  client: typeof schema.clients.$inferSelect,
   formData: z.infer<typeof refreshTokenSchema>,
 ) {
   const { refresh_token } = formData;
-
   const db = c.get("db");
-
-  // Extract client credentials from Authorization header or form body
-  const authHeader = c.req.header("Authorization");
-  const { client_id, client_secret } = extractClientCredentials(
-    authHeader,
-    formData.client_id,
-    formData.client_secret,
-  );
 
   // Hash the provided refresh token to compare with stored hash
   const refreshTokenHash = encodeHexLowerCase(
@@ -264,45 +308,11 @@ async function handleRefreshTokenGrant(
       throw new HTTPException(400, { message: "invalid_grant" });
     }
 
-    // Always fetch client information from the stored refresh token
-    const [client] = await tx
-      .select()
-      .from(schema.clients)
-      .where(eq(schema.clients.id, storedRefreshToken.clientId));
-
-    if (!client) {
-      throw new HTTPException(401, { message: "invalid_client" });
-    }
-
-    // Client authentication based on client type
-    if (client.clientSecret) {
-      // Confidential client: Both client_id and client_secret are required
-      if (!client_id || !client_secret) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-
-      // Verify client_id matches the token's client
-      if (client.clientId !== client_id) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-
-      // Hash the provided client_secret and use timing-safe comparison to prevent timing attacks
-      const clientSecretHash = encodeHexLowerCase(
-        sha256(new TextEncoder().encode(client_secret)),
-      );
-      if (!timingSafeCompare(client.clientSecret, clientSecretHash)) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-    } else {
-      // Public client: client_id is required for identification (no client_secret)
-      if (!client_id) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
-
-      // Verify client_id matches the token's client
-      if (client.clientId !== client_id) {
-        throw new HTTPException(401, { message: "invalid_client" });
-      }
+    // Verify the client matches the refresh token's client
+    if (storedRefreshToken.clientId !== client.id) {
+      throw new HTTPException(401, {
+        message: "invalid_client: Client mismatch",
+      });
     }
 
     // Mark the old refresh token as used with atomic UPDATE
@@ -383,14 +393,30 @@ app.post(
     z.object({
       client_name: z.string().min(1),
       redirect_uris: z.array(z.url()).min(1),
+      token_endpoint_auth_method: z
+        .enum(["client_secret_basic", "client_secret_post", "none"])
+        .optional()
+        .default("client_secret_basic"),
     }),
   ),
   async (c) => {
-    const { client_name, redirect_uris } = await c.req.valid("json");
-    const clientSecret = randomBytes(32).toString("hex");
-    const clientSecretHash = encodeHexLowerCase(
-      sha256(new TextEncoder().encode(clientSecret)),
-    );
+    const { client_name, redirect_uris, token_endpoint_auth_method } =
+      c.req.valid("json");
+
+    // Determine if this is a public client
+    const isPublicClient = token_endpoint_auth_method === "none";
+
+    // Generate client secret only for confidential clients
+    let clientSecret: string | undefined;
+    let clientSecretHash: string | null = null;
+
+    if (!isPublicClient) {
+      clientSecret = randomBytes(32).toString("hex");
+      clientSecretHash = encodeHexLowerCase(
+        sha256(new TextEncoder().encode(clientSecret)),
+      );
+    }
+
     const generatedClientId = randomBytes(16).toString("hex");
     const db = c.get("db");
 
@@ -402,14 +428,28 @@ app.post(
         clientSecret: clientSecretHash,
         name: client_name,
         redirectUris: redirect_uris,
+        grantTypes: ["authorization_code", "refresh_token"],
+        responseTypes: ["code"],
+        tokenEndpointAuthMethod: token_endpoint_auth_method,
       })
       .returning();
 
-    return c.json({
+    // Return response based on client type
+    const response: {
+      client_id: string;
+      client_secret?: string;
+      redirect_uris: string[];
+    } = {
       client_id: newClient.clientId,
-      client_secret: clientSecret,
       redirect_uris,
-    });
+    };
+
+    // Only include client_secret for confidential clients
+    if (clientSecret) {
+      response.client_secret = clientSecret;
+    }
+
+    return c.json(response);
   },
 );
 
@@ -443,13 +483,44 @@ const tokenGrantSchema = z.discriminatedUnion(
 );
 
 app.post("/token", zValidator("form", tokenGrantSchema), async (c) => {
-  const formData = await c.req.valid("form");
-  const { grant_type } = formData;
+  // Parse and authenticate the request
+  const { client, formData } = await parseAndAuthenticateRequest(c);
 
-  if (grant_type === "authorization_code") {
-    return handleAuthorizationCodeGrant(c, formData);
-  } else if (grant_type === "refresh_token") {
-    return handleRefreshTokenGrant(c, formData);
+  // Type narrowing based on grant_type
+  const grantType =
+    typeof formData.grant_type === "string" ? formData.grant_type : "";
+
+  if (grantType === "authorization_code") {
+    return handleAuthorizationCodeGrant(c, client, {
+      grant_type: "authorization_code",
+      code: typeof formData.code === "string" ? formData.code : "",
+      redirect_uri:
+        typeof formData.redirect_uri === "string" ? formData.redirect_uri : "",
+      client_id:
+        typeof formData.client_id === "string" ? formData.client_id : undefined,
+      client_secret:
+        typeof formData.client_secret === "string"
+          ? formData.client_secret
+          : undefined,
+      code_verifier:
+        typeof formData.code_verifier === "string"
+          ? formData.code_verifier
+          : undefined,
+    });
+  } else if (grantType === "refresh_token") {
+    return handleRefreshTokenGrant(c, client, {
+      grant_type: "refresh_token",
+      refresh_token:
+        typeof formData.refresh_token === "string"
+          ? formData.refresh_token
+          : "",
+      client_id:
+        typeof formData.client_id === "string" ? formData.client_id : undefined,
+      client_secret:
+        typeof formData.client_secret === "string"
+          ? formData.client_secret
+          : undefined,
+    });
   }
 
   throw new HTTPException(400, { message: "unsupported_grant_type" });

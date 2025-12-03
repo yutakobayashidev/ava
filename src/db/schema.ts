@@ -70,9 +70,12 @@ export const clients = pgTable(
   {
     id: text("id").primaryKey().notNull(),
     clientId: text("client_id").notNull(),
-    clientSecret: text("client_secret"),
+    clientSecret: text("client_secret"), // Optional for public clients
     name: text("name").notNull(),
     redirectUris: text("redirect_uris").array().notNull(),
+    grantTypes: text("grant_types").array().notNull(),
+    responseTypes: text("response_types").array().notNull(),
+    tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

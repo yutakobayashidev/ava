@@ -128,6 +128,9 @@ describe("lib/server/oauth", () => {
           clientId: "test-client-id",
           name: "Test Client",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "client_secret_basic",
         })
         .returning();
 

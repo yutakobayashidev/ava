@@ -100,6 +100,9 @@ describe("oauthMiddleware", () => {
         clientId: "test-client",
         name: "Test Client",
         redirectUris: ["https://example.com/callback"],
+        grantTypes: ["authorization_code", "refresh_token"],
+        responseTypes: ["code"],
+        tokenEndpointAuthMethod: "client_secret_basic",
       })
       .returning();
 
@@ -172,6 +175,9 @@ describe("oauthMiddleware", () => {
         clientId: "test-client-2",
         name: "Test Client 2",
         redirectUris: ["https://example.com/callback"],
+        grantTypes: ["authorization_code", "refresh_token"],
+        responseTypes: ["code"],
+        tokenEndpointAuthMethod: "client_secret_basic",
       })
       .returning();
 
@@ -246,6 +252,9 @@ describe("oauthMiddleware", () => {
         clientId: "test-client-3",
         name: "Test Client 3",
         redirectUris: ["https://example.com/callback"],
+        grantTypes: ["authorization_code", "refresh_token"],
+        responseTypes: ["code"],
+        tokenEndpointAuthMethod: "client_secret_basic",
       })
       .returning();
 

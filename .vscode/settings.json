@@ -29,7 +29,6 @@
   },
   "tailwindCSS.classFunctions": ["cva", "cn"],
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.experimental.useTsgo": true,
   "files.insertFinalNewline": true,
   "workbench.editorAssociations": {
     "*.svg": "default"
