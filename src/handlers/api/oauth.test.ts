@@ -166,6 +166,9 @@ describe("api/oauth", () => {
           clientSecret: clientSecretHash,
           name: "Test Client",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "client_secret_basic",
         })
         .returning();
       testClient = client;
@@ -242,6 +245,9 @@ describe("api/oauth", () => {
           clientSecret: null,
           name: "Public Client with PKCE",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "none",
         })
         .returning();
 
@@ -404,6 +410,7 @@ describe("api/oauth", () => {
           code: authCode,
           redirect_uri: "https://example.com/callback",
           client_id: testClient.clientId,
+          client_secret: "test-client-secret",
           code_verifier: "wrong-verifier",
         }).toString(),
       });
@@ -693,6 +700,9 @@ describe("api/oauth", () => {
           clientSecret: null,
           name: "Public Client",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "none",
         })
         .returning();
 
@@ -866,6 +876,9 @@ describe("api/oauth", () => {
           clientSecret: otherClientSecretHash,
           name: "Other Client",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "client_secret_basic",
         })
         .returning();
 
@@ -1029,6 +1042,9 @@ describe("api/oauth", () => {
           clientSecret: clientSecretHash,
           name: "Test Client",
           redirectUris: ["https://example.com/callback"],
+          grantTypes: ["authorization_code", "refresh_token"],
+          responseTypes: ["code"],
+          tokenEndpointAuthMethod: "client_secret_basic",
         })
         .returning();
       testClient = client;
@@ -1134,7 +1150,7 @@ describe("api/oauth", () => {
       // Update client to have no secret (public client)
       await db
         .update(schema.clients)
-        .set({ clientSecret: null })
+        .set({ clientSecret: null, tokenEndpointAuthMethod: "none" })
         .where(eq(schema.clients.id, testClient.id));
 
       const res = await app.request("/token", {
@@ -1158,7 +1174,7 @@ describe("api/oauth", () => {
       // Update client to have no secret (public client)
       await db
         .update(schema.clients)
-        .set({ clientSecret: null })
+        .set({ clientSecret: null, tokenEndpointAuthMethod: "none" })
         .where(eq(schema.clients.id, testClient.id));
 
       const res = await app.request("/token", {
