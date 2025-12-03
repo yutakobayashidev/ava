@@ -1,13 +1,13 @@
-import { createMiddleware } from "hono/factory";
-import { eq } from "drizzle-orm";
-import * as schema from "../db/schema";
-import type { Context } from "hono";
 import type { Env } from "@/app/create-app";
-import { HTTPException } from "hono/http-exception";
 import type { Database } from "@/clients/drizzle";
+import { absoluteUrl } from "@/lib/utils";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
-import { absoluteUrl } from "@/lib/utils";
+import { eq } from "drizzle-orm";
+import type { Context } from "hono";
+import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
+import * as schema from "../db/schema";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
@@ -77,5 +77,5 @@ export const oauthMiddleware = createMiddleware<Env>(async (c, next) => {
 
   c.set("user", auth.user);
   c.set("workspace", auth.workspace);
-  return next();
+  await next();
 });

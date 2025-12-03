@@ -1,7 +1,7 @@
+import withBundleAnalyzer from "@next/bundle-analyzer";
+import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
 import { config } from "./env";
-import { createMDX } from "fumadocs-mdx/next";
-import withBundleAnalyzer from "@next/bundle-analyzer";
 
 config();
 
@@ -51,6 +51,10 @@ let nextConfig: NextConfig = {
     return [
       {
         source: "/docs/:path*.mdx",
+        destination: "/llms.mdx/:path*",
+      },
+      {
+        source: "/docs/:path*.md",
         destination: "/llms.mdx/:path*",
       },
     ];

@@ -17,6 +17,9 @@ importers:
       '@hono/mcp':
         specifier: 0.2.0
         version: 0.2.0(@modelcontextprotocol/sdk@1.23.0(zod@4.1.13))(hono-rate-limiter@0.4.2(hono@4.10.7))(hono@4.10.7)
+      '@hono/ua-blocker':
+        specifier: 0.1.20
+        version: 0.1.20(hono@4.10.7)
       '@hono/zod-validator':
         specifier: 0.7.5
         version: 0.7.5(hono@4.10.7)(zod@4.1.13)
@@ -1031,6 +1034,11 @@ packages:
       '@modelcontextprotocol/sdk': ^1.17.3
       hono: '*'
       hono-rate-limiter: ^0.4.2
+
+  '@hono/ua-blocker@0.1.20':
+    resolution: {integrity: sha512-QZLTlYpKRRnOym4daLCIfIA87rWBSvd9O0WZc9uOgU15PKVmCzKT9J52uvpMaIoJNzaVFbRtmW2H1v+0nC4teA==}
+    peerDependencies:
+      hono: '>=4.0.0'
 
   '@hono/zod-validator@0.7.5':
     resolution: {integrity: sha512-n4l4hutkfYU07PzRUHBOVzUEn38VSfrh+UVE5d0w4lyfWDOEhzxIupqo5iakRiJL44c3vTuFJBvcmUl8b9agIA==}
@@ -6655,6 +6663,10 @@ snapshots:
       hono: 4.10.7
       hono-rate-limiter: 0.4.2(hono@4.10.7)
       pkce-challenge: 5.0.1
+
+  '@hono/ua-blocker@0.1.20(hono@4.10.7)':
+    dependencies:
+      hono: 4.10.7
 
   '@hono/zod-validator@0.7.5(hono@4.10.7)(zod@4.1.13)':
     dependencies:
