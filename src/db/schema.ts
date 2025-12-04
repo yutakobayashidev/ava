@@ -76,6 +76,9 @@ export const clients = pgTable(
     grantTypes: text("grant_types").array().notNull(),
     responseTypes: text("response_types").array().notNull(),
     tokenEndpointAuthMethod: text("token_endpoint_auth_method").notNull(),
+    // CIMD (Client Identity Metadata Document) fields
+    isCimd: boolean("is_cimd").default(false).notNull(),
+    cimdCachedUntil: timestamp("cimd_cached_until", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
