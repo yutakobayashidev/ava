@@ -24,7 +24,7 @@ const app = createHonoApp();
 /**
  * データベースからクライアントIDでクライアントを取得する
  */
-export async function getClientFromDB(db: Database, clientId: string) {
+async function getClientFromDB(db: Database, clientId: string) {
   const [client] = await db
     .select()
     .from(schema.clients)

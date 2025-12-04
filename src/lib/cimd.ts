@@ -21,13 +21,13 @@ export const CIMD_MAX_CACHE_TTL = 24 * 60 * 60;
  * Request timeout for CIMD metadata fetches (10 seconds)
  * Prevents slow-loris style attacks
  */
-export const CIMD_FETCH_TIMEOUT_MS = 10_000;
+const CIMD_FETCH_TIMEOUT_MS = 10_000;
 
 /**
  * Prohibited authentication methods for CIMD clients (per IETF spec)
  * CIMD clients cannot use symmetric secrets since there's no pre-shared secret
  */
-export const CIMD_PROHIBITED_AUTH_METHODS = [
+const CIMD_PROHIBITED_AUTH_METHODS = [
   "client_secret_post",
   "client_secret_basic",
 ] as const;
