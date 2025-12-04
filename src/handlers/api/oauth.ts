@@ -1,5 +1,6 @@
 import type { Env } from "@/app/create-app";
 import { createHonoApp } from "@/app/create-app";
+import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
 import { timingSafeCompare } from "@/lib/timing-safe";
 import { zValidator } from "@hono/zod-validator";
@@ -18,6 +19,31 @@ const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const app = createHonoApp();
+
+/**
+ * クライアントIDが有効なCIMD URL（Client Identity Metadata Document URL）かどうかをチェックする
+ * HTTPSプロトコルで、パスがルート以外である必要がある
+ */
+export function isClientMetadataUrl(clientId: string): boolean {
+  try {
+    const url = new URL(clientId);
+    return url.protocol === "https:" && url.pathname !== "/";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * クライアントIDからクライアントを取得する
+ */
+export async function getClient(db: Database, clientId: string) {
+  const [client] = await db
+    .select()
+    .from(schema.clients)
+    .where(eq(schema.clients.clientId, clientId));
+
+  return client;
+}
 
 /**
  * OAuthエンドポイント共通の認証およびリクエスト解析処理
@@ -58,10 +84,7 @@ async function parseAndAuthenticateRequest(
   }
 
   // Fetch client from database
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.clientId, clientId));
+  const client = await getClient(db, clientId);
 
   if (!client) {
     throw new HTTPException(401, {

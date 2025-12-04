@@ -1,9 +1,8 @@
 import { db } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
-import { validateRedirectUriScheme } from "@/handlers/api/oauth";
+import { getClient, validateRedirectUriScheme } from "@/handlers/api/oauth";
 import { absoluteUrl } from "@/lib/utils";
 import { serializeSearchParams } from "@/utils/urls";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 export const authorizeRequestSchema = z
@@ -70,10 +69,7 @@ export const validateAuthorizeRequest = async (
 
   const { client_id: clientId, redirect_uri: redirectUri } = request.data;
 
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.clientId, clientId));
+  const client = await getClient(db, clientId);
 
   if (!client) {
     return {
