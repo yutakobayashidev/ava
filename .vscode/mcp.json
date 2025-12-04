@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "ava": {
+      "url": "https://ava-dusky-gamma.vercel.app/mcp",
+      "type": "http"
+    }
+  },
+  "inputs": []
+}

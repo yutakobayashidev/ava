@@ -8,6 +8,9 @@ export const onboardingMiddleware = createMiddleware(async (c, next) => {
 
   if (!user) return next();
 
+  // APIエンドポイントはオンボーディングチェックから除外
+  if (path.startsWith("/api/")) return next();
+
   const isOnboardingPath = path.startsWith("/onboarding");
   const completed = !!user.onboardingCompletedAt;
 

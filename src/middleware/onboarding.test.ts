@@ -160,4 +160,72 @@ describe("onboardingMiddleware", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true });
   });
+
+  it("should allow incomplete onboarding user to access API endpoints", async () => {
+    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+      session: {
+        id: "session-1",
+        userId: "user-1",
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+        createdAt: new Date(),
+      },
+      user: {
+        id: "user-1",
+        name: null,
+        email: null,
+        slackId: "U123",
+        slackTeamId: "T123",
+        workspaceId: "workspace-1",
+        image: null,
+        stripeId: null,
+        onboardingCompletedAt: null, // Not completed
+        createdAt: new Date(),
+      },
+    });
+
+    const app = new Hono();
+    app.get("/api/slack/install/start", onboardingMiddleware, (c) =>
+      c.json({ success: true }),
+    );
+
+    const res = await app.request("/api/slack/install/start", {
+      method: "GET",
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
+
+  it("should allow incomplete onboarding user to access all API paths", async () => {
+    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+      session: {
+        id: "session-1",
+        userId: "user-1",
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+        createdAt: new Date(),
+      },
+      user: {
+        id: "user-1",
+        name: null,
+        email: null,
+        slackId: "U123",
+        slackTeamId: "T123",
+        workspaceId: "workspace-1",
+        image: null,
+        stripeId: null,
+        onboardingCompletedAt: null, // Not completed
+        createdAt: new Date(),
+      },
+    });
+
+    const app = new Hono();
+    app.get("/api/health", onboardingMiddleware, (c) =>
+      c.json({ success: true }),
+    );
+
+    const res = await app.request("/api/health", { method: "GET" });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
 });
