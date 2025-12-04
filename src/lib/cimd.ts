@@ -228,7 +228,10 @@ export async function fetchClientMetadataDocument(
           set: {
             name: metadata.client_name || metadata.client_id,
             redirectUris: metadata.redirect_uris,
-            grantTypes: metadata.grant_types || ["authorization_code"],
+            grantTypes: metadata.grant_types || [
+              "authorization_code",
+              "refresh_token",
+            ],
             responseTypes: metadata.response_types || ["code"],
             tokenEndpointAuthMethod:
               metadata.token_endpoint_auth_method || "none",
