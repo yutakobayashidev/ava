@@ -105,8 +105,8 @@ async function parseAndAuthenticateRequest(
     });
   }
 
-  // Fetch client from database
-  const client = await getClientFromDB(db, clientId);
+  // Fetch client from database (with CIMD support)
+  const client = await getClient(db, clientId);
 
   if (!client) {
     throw new HTTPException(401, {
