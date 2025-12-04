@@ -31,7 +31,7 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
 
 ## 設定方法
 
-<Tabs items={['Claude Code', 'Cursor', 'Codex']} persist groupId="coding-agent">
+<Tabs items={['Codex', 'Claude Code', 'Cursor', 'VSCode']} persist groupId="coding-agent">
   <Tab value="Claude Code">
     ### 1. Claude Codeを起動
 
@@ -148,6 +148,64 @@ Claude Code、Cursorなどのコーディングエージェントは、AI技術�
     ```
 
     Avaのツール一覧が表示されれば成功です。
+
+  </Tab>
+
+  <Tab value="VSCode">
+    ### 1. VSCodeを起動
+
+    VSCodeエディタを開きます。
+
+    ### 2. MCP サーバーを設定
+
+    ワークスペースのルートに `.vscode/mcp.json` ファイルを作成し、以下を追加：
+
+    ```json
+    {
+      "servers": {
+        "ava": {
+          "type": "http",
+          "url": "https://ava-dusky-gamma.vercel.app/mcp"
+        }
+      }
+    }
+    ```
+
+    **設定ファイルの場所:**
+    - ワークスペース固有: `.vscode/mcp.json`（ワークスペースルート）
+
+    **または、コマンドパレットから設定:**
+
+    1. `Cmd/Ctrl + Shift + P` でコマンドパレットを開く
+    2. `MCP: Add Server` を選択
+    3. サーバータイプとして `http` を選択
+    4. サーバー情報を入力
+
+    ### 3. IntelliSenseサポート
+
+    VSCodeでは MCP 設定ファイルに IntelliSense が提供されているため、設定の入力補完が利用できます。エディタ内の「Add Server」ボタンをクリックして、新しいサーバーのテンプレートを追加することもできます。
+
+    ### 4. 初回接続と認証
+
+    1. VSCodeでプロジェクトを開く
+    2. MCP サーバーに初めて接続すると、ブラウザが開いて認証画面が表示されます
+    3. ブラウザで「許可」をクリック
+    4. 認証が完了すると自動的にVSCodeに戻ります
+
+    ### 5. 接続の確認
+
+    VSCodeのチャットで以下のように尋ねてみてください：
+
+    ```
+    利用可能なMCPツールを教えて
+    ```
+
+    以下のツールが表示されれば成功です：
+    - `start_task` - タスクを開始
+    - `update_task` - 進捗を更新
+    - `report_blocked` - 詰まりを報告
+    - `complete_task` - タスクを完了
+    - `list_tasks` - タスク一覧を表示
 
   </Tab>
 

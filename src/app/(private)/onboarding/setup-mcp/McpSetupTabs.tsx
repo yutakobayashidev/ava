@@ -25,9 +25,21 @@ url = "${mcpUrl}"
     null,
     2,
   );
+  const vscodeJson = JSON.stringify(
+    {
+      servers: {
+        ava: {
+          type: "http",
+          url: mcpUrl,
+        },
+      },
+    },
+    null,
+    2,
+  );
 
   return (
-    <Tabs defaultValue="claude-code" className="space-y-6">
+    <Tabs defaultValue="codex" className="space-y-6">
       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-900 mb-2">
@@ -44,6 +56,10 @@ url = "${mcpUrl}"
             セットアップ手順
           </h2>
           <TabsList>
+            <TabsTrigger value="codex" className="gap-2">
+              <Icons.codex className="h-4 w-4 text-slate-900" />
+              Codex
+            </TabsTrigger>
             <TabsTrigger value="claude-code" className="gap-2">
               <Icons.claude className="h-4 w-4 text-[#D97757]" />
               Claude Code
@@ -52,9 +68,9 @@ url = "${mcpUrl}"
               <Icons.cursor className="h-4 w-4" />
               Cursor
             </TabsTrigger>
-            <TabsTrigger value="codex" className="gap-2">
-              <Icons.codex className="h-4 w-4 text-slate-900" />
-              Codex
+            <TabsTrigger value="vscode" className="gap-2">
+              <Icons.vscode className="h-4 w-4 text-[#007ACC]" />
+              VSCode
             </TabsTrigger>
           </TabsList>
         </div>
@@ -173,6 +189,76 @@ url = "${mcpUrl}"
               ~/.cursor/mcp.json
             </code>{" "}
             に貼り付けて保存してください。
+          </p>
+        </div>
+
+        <Alert>
+          <AlertCircle />
+          <AlertTitle>初回接続について</AlertTitle>
+          <AlertDescription>
+            初回接続時にブラウザで認証が求められます。「Allow」をクリックしてアクセスを許可してください。
+          </AlertDescription>
+        </Alert>
+      </TabsContent>
+
+      <TabsContent value="vscode" className="space-y-4">
+        <ol className="space-y-3 text-slate-600">
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+              1
+            </span>
+            <span>下記の設定をコピー</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+              2
+            </span>
+            <span>
+              ワークスペースのルートに{" "}
+              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+                .vscode/mcp.json
+              </code>{" "}
+              ファイルを作成して貼り付け
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+              3
+            </span>
+            <span>
+              または、コマンドパレット（
+              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+                Cmd/Ctrl + Shift + P
+              </code>
+              ）から{" "}
+              <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+                MCP: Add Server
+              </code>{" "}
+              を実行して設定を追加
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+              4
+            </span>
+            <span>初回接続時に認証を承認</span>
+          </li>
+        </ol>
+
+        <div className="space-y-3">
+          <div className="relative rounded-lg bg-slate-900 p-4 group">
+            <CopyButton text={vscodeJson} />
+            <pre className="overflow-x-auto text-sm text-slate-100">
+              <code>{vscodeJson}</code>
+            </pre>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            ワークスペースルートの{" "}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+              .vscode/mcp.json
+            </code>{" "}
+            に貼り付けて保存してください。VSCodeでは IntelliSense
+            がサポートされているため、設定の入力補完が利用できます。
           </p>
         </div>
 
