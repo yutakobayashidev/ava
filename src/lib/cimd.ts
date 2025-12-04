@@ -30,6 +30,7 @@ const CIMD_FETCH_TIMEOUT_MS = 10_000;
 const CIMD_PROHIBITED_AUTH_METHODS = [
   "client_secret_post",
   "client_secret_basic",
+  "client_secret_jwt",
 ] as const;
 
 export function isClientMetadataUrl(clientId: string): boolean {
