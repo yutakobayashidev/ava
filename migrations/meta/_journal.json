@@ -15,6 +15,13 @@
       "when": 1764695190484,
       "tag": "0001_lean_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764821127032,
+      "tag": "0002_rich_molly_hayes",
+      "breakpoints": true
     }
   ]
 }

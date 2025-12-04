@@ -1,6 +1,8 @@
 import type { Env } from "@/app/create-app";
 import { createHonoApp } from "@/app/create-app";
+import type { Database } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
+import { fetchClientMetadataDocument, isClientMetadataUrl } from "@/lib/cimd";
 import { timingSafeCompare } from "@/lib/timing-safe";
 import { zValidator } from "@hono/zod-validator";
 import { sha256 } from "@oslojs/crypto/sha2";
@@ -18,6 +20,52 @@ const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const app = createHonoApp();
+
+/**
+ * データベースからクライアントIDでクライアントを取得する
+ */
+async function getClientFromDB(db: Database, clientId: string) {
+  const [client] = await db
+    .select()
+    .from(schema.clients)
+    .where(eq(schema.clients.clientId, clientId));
+
+  return client;
+}
+
+/**
+ * クライアントIDからクライアント情報を取得する
+ * CIMD URL の場合はキャッシュをチェックして期限切れなら再取得し、
+ * そうでない場合は通常のDBクライアントを取得する
+ */
+export async function getClient(
+  db: Database,
+  clientId: string,
+): Promise<typeof schema.clients.$inferSelect | null> {
+  // Check if this is a CIMD (Client ID Metadata Document) URL
+  if (isClientMetadataUrl(clientId)) {
+    // DBから既存のキャッシュを探す
+    const cachedClient = await getClientFromDB(db, clientId);
+
+    // キャッシュが有効ならそれを使う
+    if (
+      cachedClient?.isCimd &&
+      cachedClient.cimdCachedUntil &&
+      cachedClient.cimdCachedUntil > new Date()
+    ) {
+      return cachedClient;
+    }
+
+    // キャッシュ無効または未存在：fetchして更新
+    const metadata = await fetchClientMetadataDocument(db, clientId);
+    if (!metadata) return null;
+
+    return metadata;
+  }
+
+  // 通常のクライアント
+  return await getClientFromDB(db, clientId);
+}
 
 /**
  * OAuthエンドポイント共通の認証およびリクエスト解析処理
@@ -57,11 +105,8 @@ async function parseAndAuthenticateRequest(
     });
   }
 
-  // Fetch client from database
-  const [client] = await db
-    .select()
-    .from(schema.clients)
-    .where(eq(schema.clients.clientId, clientId));
+  // Fetch client from database (with CIMD support)
+  const client = await getClient(db, clientId);
 
   if (!client) {
     throw new HTTPException(401, {

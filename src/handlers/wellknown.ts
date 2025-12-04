@@ -20,6 +20,7 @@ wellknownHandler.get("/oauth-authorization-server", (c) => {
       "client_secret_basic",
     ],
     code_challenge_methods_supported: ["plain", "S256"],
+    client_id_metadata_document_supported: true,
   };
 
   return c.json(metadata);
