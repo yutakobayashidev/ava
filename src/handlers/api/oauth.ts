@@ -18,6 +18,36 @@ import { z } from "zod";
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 const REFRESH_TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+/**
+ * Maximum size for CIMD metadata documents (5KB per IETF spec recommendation)
+ */
+const CIMD_MAX_SIZE_BYTES = 5 * 1024;
+
+/**
+ * Default cache TTL for CIMD metadata (1 hour in seconds)
+ */
+const CIMD_DEFAULT_CACHE_TTL = 3600;
+
+/**
+ * Maximum cache TTL for CIMD metadata (24 hours in seconds, per spec recommendation)
+ */
+const CIMD_MAX_CACHE_TTL = 24 * 60 * 60;
+
+/**
+ * Request timeout for CIMD metadata fetches (10 seconds)
+ * Prevents slow-loris style attacks
+ */
+const CIMD_FETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Prohibited authentication methods for CIMD clients (per IETF spec)
+ * CIMD clients cannot use symmetric secrets since there's no pre-shared secret
+ */
+const CIMD_PROHIBITED_AUTH_METHODS = [
+  "client_secret_post",
+  "client_secret_basic",
+] as const;
+
 const app = createHonoApp();
 
 /**
