@@ -51,6 +51,24 @@ const CIMD_PROHIBITED_AUTH_METHODS = [
 const app = createHonoApp();
 
 /**
+ * Client Identity Metadata Document から取得するクライアント情報
+ */
+export type ClientInfo = {
+  clientId: string;
+  clientName?: string;
+  clientUri?: string;
+  logoUri?: string;
+  redirectUris: string[];
+  grantTypes: string[];
+  responseTypes: string[];
+  tokenEndpointAuthMethod: string;
+  contacts?: string[];
+  policyUri?: string;
+  tosUri?: string;
+  jwksUri?: string;
+};
+
+/**
  * クライアントIDが有効なCIMD URL（Client Identity Metadata Document URL）かどうかをチェックする
  * HTTPSプロトコルで、パスがルート以外である必要がある
  */
@@ -64,15 +82,269 @@ export function isClientMetadataUrl(clientId: string): boolean {
 }
 
 /**
- * クライアントIDからクライアントを取得する
+ * データベースからクライアントIDでクライアントを取得する
  */
-export async function getClient(db: Database, clientId: string) {
+export async function getClientFromDB(db: Database, clientId: string) {
   const [client] = await db
     .select()
     .from(schema.clients)
     .where(eq(schema.clients.clientId, clientId));
 
   return client;
+}
+
+/**
+ * クライアントIDからクライアント情報を取得する
+ * CIMD URL の場合はメタデータドキュメントを取得し、
+ * そうでない場合はKVから取得する
+ */
+export async function getClient(
+  env: any,
+  clientId: string,
+): Promise<ClientInfo | null> {
+  // Check if this is a CIMD (Client ID Metadata Document) URL
+  if (isClientMetadataUrl(clientId)) {
+    return fetchClientMetadataDocument(env, clientId);
+  }
+
+  // Standard KV lookup
+  const clientKey = `client:${clientId}`;
+  return env.OAUTH_KV.get(clientKey, { type: "json" });
+}
+
+/**
+ * Cache-Controlヘッダからmax-age値を抽出してTTLを返す関数。
+ * 許可された範囲内でTTL（秒）を返す。
+ *
+ * @param cacheControl - Cache-Controlヘッダの値
+ * @param defaultTtl - max-ageが見つからない場合のデフォルトTTL
+ * @param maxTtl - 許容される最大TTL
+ * @returns TTL（秒単位）
+ */
+export function parseCacheControlMaxAge(
+  cacheControl: string | null,
+  defaultTtl: number,
+  maxTtl: number,
+): number {
+  if (!cacheControl) {
+    return defaultTtl;
+  }
+
+  const maxAgeMatch = cacheControl.match(/max-age\s*=\s*(\d+)/i);
+  if (!maxAgeMatch) {
+    return defaultTtl;
+  }
+
+  const maxAge = parseInt(maxAgeMatch[1], 10);
+  if (isNaN(maxAge) || maxAge <= 0) {
+    return defaultTtl;
+  }
+
+  return Math.min(maxAge, maxTtl);
+}
+
+/**
+ * Reads JSON from a response with a size limit to prevent DoS attacks.
+ * Streams the response body and aborts if it exceeds the limit.
+ *
+ * @param response - The fetch response
+ * @param maxBytes - Maximum allowed size in bytes
+ * @returns Parsed JSON object or null if size exceeded or parse failed
+ */
+export async function readJsonWithSizeLimit(
+  response: Response,
+  maxBytes: number,
+): Promise<Record<string, unknown> | null> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    console.error("CIMD fetch failed: Response body is null");
+    return null;
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalSize = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      if (value) {
+        totalSize += value.length;
+
+        if (totalSize > maxBytes) {
+          await reader.cancel();
+          console.error(
+            `CIMD fetch failed: Response exceeded size limit of ${maxBytes} bytes`,
+          );
+          return null;
+        }
+
+        chunks.push(value);
+      }
+    }
+
+    const allChunks = new Uint8Array(totalSize);
+    let position = 0;
+    for (const chunk of chunks) {
+      allChunks.set(chunk, position);
+      position += chunk.length;
+    }
+
+    const text = new TextDecoder().decode(allChunks);
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("CIMD fetch failed: Error reading response body:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetches and validates a Client ID Metadata Document from the given URL
+ * Per the MCP spec, the client_id in the document must match the URL exactly
+ *
+ * Features:
+ * - KV caching with TTL (respects Cache-Control, max 24h)
+ * - Response size limit (5KB per IETF spec)
+ * - Does NOT cache errors or invalid documents
+ *
+ * @param env - Cloudflare Worker environment variables (for KV access)
+ * @param metadataUrl - The HTTPS URL to fetch metadata from
+ * @returns The client information, or null if not found/invalid
+ */
+export async function fetchClientMetadataDocument(
+  env: any,
+  metadataUrl: string,
+): Promise<ClientInfo | null> {
+  const cacheKey = `cimd:${metadataUrl}`;
+
+  try {
+    const cached = await env.OAUTH_KV.get(cacheKey, { type: "json" });
+    if (cached) {
+      return cached as ClientInfo;
+    }
+  } catch {
+    // Cache miss or error, continue to fetch
+  }
+
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(
+    () => abortController.abort(),
+    CIMD_FETCH_TIMEOUT_MS,
+  );
+
+  try {
+    const response = await fetch(metadataUrl, {
+      headers: {
+        Accept: "application/json",
+      },
+      signal: abortController.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(
+        `CIMD fetch failed: HTTP ${response.status} from ${metadataUrl}`,
+      );
+      return null;
+    }
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > CIMD_MAX_SIZE_BYTES) {
+      console.error(
+        `CIMD fetch failed: Content-Length ${contentLength} exceeds limit of ${CIMD_MAX_SIZE_BYTES} bytes`,
+      );
+      return null;
+    }
+
+    const rawMetadata = await readJsonWithSizeLimit(
+      response,
+      CIMD_MAX_SIZE_BYTES,
+    );
+
+    if (!rawMetadata) {
+      return null;
+    }
+
+    const metadata = rawMetadata as {
+      client_id?: string;
+      client_name?: string;
+      client_uri?: string;
+      logo_uri?: string;
+      redirect_uris?: string[];
+      grant_types?: string[];
+      response_types?: string[];
+      token_endpoint_auth_method?: string;
+      contacts?: string[];
+      policy_uri?: string;
+      tos_uri?: string;
+      jwks_uri?: string;
+    };
+
+    // Validate that client_id matches the URL (required by spec)
+    if (metadata.client_id !== metadataUrl) {
+      console.error(
+        `CIMD validation failed: client_id "${metadata.client_id}" does not match URL "${metadataUrl}"`,
+      );
+      return null;
+    }
+
+    if (!metadata.redirect_uris || metadata.redirect_uris.length === 0) {
+      console.error(`CIMD validation failed: redirect_uris is required`);
+      return null;
+    }
+
+    if (
+      metadata.token_endpoint_auth_method &&
+      (CIMD_PROHIBITED_AUTH_METHODS as readonly string[]).includes(
+        metadata.token_endpoint_auth_method,
+      )
+    ) {
+      console.error(
+        `CIMD validation failed: token_endpoint_auth_method "${metadata.token_endpoint_auth_method}" is not allowed for CIMD clients`,
+      );
+      return null;
+    }
+
+    const clientInfo: ClientInfo = {
+      clientId: metadata.client_id,
+      clientName: metadata.client_name,
+      clientUri: metadata.client_uri,
+      logoUri: metadata.logo_uri,
+      redirectUris: metadata.redirect_uris,
+      grantTypes: metadata.grant_types || ["authorization_code"],
+      responseTypes: metadata.response_types || ["code"],
+      tokenEndpointAuthMethod: metadata.token_endpoint_auth_method || "none",
+      contacts: metadata.contacts,
+      policyUri: metadata.policy_uri,
+      tosUri: metadata.tos_uri,
+      jwksUri: metadata.jwks_uri,
+    };
+
+    const cacheTtl = parseCacheControlMaxAge(
+      response.headers.get("cache-control"),
+      CIMD_DEFAULT_CACHE_TTL,
+      CIMD_MAX_CACHE_TTL,
+    );
+
+    try {
+      await env.OAUTH_KV.put(cacheKey, JSON.stringify(clientInfo), {
+        expirationTtl: cacheTtl,
+      });
+    } catch (cacheError) {
+      console.error(`CIMD cache write failed for ${metadataUrl}:`, cacheError);
+    }
+
+    return clientInfo;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error(`CIMD fetch error for ${metadataUrl}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -114,7 +386,7 @@ async function parseAndAuthenticateRequest(
   }
 
   // Fetch client from database
-  const client = await getClient(db, clientId);
+  const client = await getClientFromDB(db, clientId);
 
   if (!client) {
     throw new HTTPException(401, {

@@ -1,6 +1,9 @@
 import { db } from "@/clients/drizzle";
 import * as schema from "@/db/schema";
-import { getClient, validateRedirectUriScheme } from "@/handlers/api/oauth";
+import {
+  getClientFromDB,
+  validateRedirectUriScheme,
+} from "@/handlers/api/oauth";
 import { absoluteUrl } from "@/lib/utils";
 import { serializeSearchParams } from "@/utils/urls";
 import { z } from "zod";
@@ -69,7 +72,7 @@ export const validateAuthorizeRequest = async (
 
   const { client_id: clientId, redirect_uri: redirectUri } = request.data;
 
-  const client = await getClient(db, clientId);
+  const client = await getClientFromDB(db, clientId);
 
   if (!client) {
     return {
