@@ -13,13 +13,7 @@ import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { openModal, getWorkspaceBotToken } from "@/clients/slack";
-import {
-  createCompleteTaskModal,
-  createReportBlockedModal,
-  createPauseTaskModal,
-  createResumeTaskModal,
-  createResolveBlockedModal,
-} from "@/lib/slackModals";
+import * as slackModals from "@/lib/slackModals";
 import { createWorkspaceRepository } from "@/repos/workspaces";
 import { createUserRepository } from "@/repos/users";
 import * as taskSessionUsecases from "@/usecases/taskSessions";
@@ -190,19 +184,19 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     let view;
     switch (actionId) {
       case "complete_task":
-        view = createCompleteTaskModal(taskSessionId);
+        view = slackModals.createCompleteTaskModal(taskSessionId);
         break;
       case "report_blocked":
-        view = createReportBlockedModal(taskSessionId);
+        view = slackModals.createReportBlockedModal(taskSessionId);
         break;
       case "pause_task":
-        view = createPauseTaskModal(taskSessionId);
+        view = slackModals.createPauseTaskModal(taskSessionId);
         break;
       case "resume_task":
-        view = createResumeTaskModal(taskSessionId);
+        view = slackModals.createResumeTaskModal(taskSessionId);
         break;
       case "resolve_blocked":
-        view = createResolveBlockedModal(taskSessionId);
+        view = slackModals.createResolveBlockedModal(taskSessionId);
         break;
       default:
         return ctx.json({ error: "Unknown action" }, 400);
