@@ -240,6 +240,10 @@ Web UI でタスクの可視化：
     }
   },
   "settings": {
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://<YOUR_BASE_URL>/api/slack/interactions"
+    },
     "org_deploy_enabled": false,
     "socket_mode_enabled": false,
     "token_rotation_enabled": true
