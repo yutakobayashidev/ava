@@ -3,13 +3,14 @@ import "server-only";
 import type { Workspace } from "@/db/schema";
 import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { WorkspaceRepository } from "@/repos/workspaces";
-import { WebClient } from "@slack/web-api";
+import { WebClient, type Block } from "@slack/web-api";
 
 type PostMessageParams = {
   token: string;
   channel: string;
   text: string;
   threadTs?: string;
+  blocks?: Block[];
 };
 
 type AddReactionParams = {
@@ -59,6 +60,7 @@ export const postMessage = async ({
   channel,
   text,
   threadTs,
+  blocks,
 }: PostMessageParams) => {
   const client = new WebClient(token);
 
@@ -66,6 +68,7 @@ export const postMessage = async ({
     channel,
     text,
     thread_ts: threadTs,
+    blocks,
   });
 
   if (!result.ok) {

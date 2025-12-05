@@ -7,6 +7,7 @@ import {
 } from "@/clients/slack";
 import type { TaskRepository, WorkspaceRepository } from "@/repos";
 import type { Workspace } from "@/db/schema";
+import type { Block } from "@slack/web-api";
 
 /**
  * 通知の配信結果
@@ -63,6 +64,7 @@ const sendMessage = async (
   channel: string,
   text: string,
   threadTs?: string,
+  blocks?: Block[],
 ): Promise<NotificationResult> => {
   try {
     const result = await postMessage({
@@ -70,6 +72,7 @@ const sendMessage = async (
       channel,
       text,
       threadTs,
+      blocks,
     });
 
     return {
@@ -212,7 +215,57 @@ export const createNotificationService = (
           `Summary: ${initialSummary}`,
         ].join("\n");
 
-        const result = await sendMessage(config, config.channel, text);
+        const blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "✅ 完了",
+                },
+                style: "primary",
+                value: session.id,
+                action_id: "complete_task",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⚠️ 詰まり報告",
+                },
+                style: "danger",
+                value: session.id,
+                action_id: "report_blocked",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⏸️ 休止",
+                },
+                value: session.id,
+                action_id: "pause_task",
+              },
+            ],
+          },
+        ];
+
+        const result = await sendMessage(
+          config,
+          config.channel,
+          text,
+          undefined,
+          blocks,
+        );
 
         // スレッド情報を保存
         if (result.delivered && result.threadTs && result.channel) {
@@ -240,11 +293,56 @@ export const createNotificationService = (
           `Summary: ${summary}`,
         ].join("\n");
 
+        const blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "✅ 完了",
+                },
+                style: "primary",
+                value: session.id,
+                action_id: "complete_task",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⚠️ 詰まり報告",
+                },
+                style: "danger",
+                value: session.id,
+                action_id: "report_blocked",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⏸️ 休止",
+                },
+                value: session.id,
+                action_id: "pause_task",
+              },
+            ],
+          },
+        ];
+
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
+          blocks,
         );
       }),
 
@@ -257,11 +355,37 @@ export const createNotificationService = (
 
         const text = [":warning: Task blocked", `Reason: ${reason}`].join("\n");
 
+        const blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "✅ 解決",
+                },
+                style: "primary",
+                value: session.id,
+                action_id: "resolve_blocked",
+              },
+            ],
+          },
+        ];
+
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
+          blocks,
         );
       }),
 
@@ -296,11 +420,37 @@ export const createNotificationService = (
           "\n",
         );
 
+        const blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "▶️ 再開",
+                },
+                style: "primary",
+                value: session.id,
+                action_id: "resume_task",
+              },
+            ],
+          },
+        ];
+
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
+          blocks,
         );
       }),
 
@@ -316,11 +466,56 @@ export const createNotificationService = (
           `Summary: ${summary}`,
         ].join("\n");
 
+        const blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "✅ 完了",
+                },
+                style: "primary",
+                value: session.id,
+                action_id: "complete_task",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⚠️ 詰まり報告",
+                },
+                style: "danger",
+                value: session.id,
+                action_id: "report_blocked",
+              },
+              {
+                type: "button",
+                text: {
+                  type: "plain_text",
+                  text: "⏸️ 休止",
+                },
+                value: session.id,
+                action_id: "pause_task",
+              },
+            ],
+          },
+        ];
+
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
+          blocks,
         );
       }),
 
