@@ -47,7 +47,7 @@ const config: KnipConfig = {
     "postcss",
     "sonner",
   ],
-  ignoreBinaries: ["only-allow", "claude", "stripe"],
+  ignoreBinaries: ["only-allow", "claude", "stripe", "tunnelto"],
 };
 
 export default config;
