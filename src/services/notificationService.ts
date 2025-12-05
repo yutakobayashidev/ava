@@ -293,56 +293,11 @@ export const createNotificationService = (
           `Summary: ${summary}`,
         ].join("\n");
 
-        const blocks = [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text,
-            },
-          },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "✅ 完了",
-                },
-                style: "primary",
-                value: session.id,
-                action_id: "complete_task",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "⚠️ 詰まり報告",
-                },
-                style: "danger",
-                value: session.id,
-                action_id: "report_blocked",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "⏸️ 休止",
-                },
-                value: session.id,
-                action_id: "pause_task",
-              },
-            ],
-          },
-        ];
-
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
-          blocks,
         );
       }),
 
@@ -466,56 +421,11 @@ export const createNotificationService = (
           `Summary: ${summary}`,
         ].join("\n");
 
-        const blocks = [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text,
-            },
-          },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "✅ 完了",
-                },
-                style: "primary",
-                value: session.id,
-                action_id: "complete_task",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "⚠️ 詰まり報告",
-                },
-                style: "danger",
-                value: session.id,
-                action_id: "report_blocked",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "⏸️ 休止",
-                },
-                value: session.id,
-                action_id: "pause_task",
-              },
-            ],
-          },
-        ];
-
         return sendMessage(
           config,
           session.slackChannel!,
           text,
           session.slackThreadTs!,
-          blocks,
         );
       }),
 
