@@ -3,7 +3,7 @@ import "server-only";
 import type { Workspace } from "@/db/schema";
 import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { WorkspaceRepository } from "@/repos/workspaces";
-import { WebClient, type Block } from "@slack/web-api";
+import { WebClient, type Block, type ModalView } from "@slack/web-api";
 
 type PostMessageParams = {
   token: string;
@@ -177,4 +177,29 @@ export const getTeamIcon = async (token: string): Promise<string | null> => {
     console.warn("Failed to fetch team icon:", error);
     return null;
   }
+};
+
+type OpenModalParams = {
+  token: string;
+  triggerId: string;
+  view: ModalView;
+};
+
+export const openModal = async ({
+  token,
+  triggerId,
+  view,
+}: OpenModalParams) => {
+  const client = new WebClient(token);
+
+  const result = await client.views.open({
+    trigger_id: triggerId,
+    view,
+  });
+
+  if (!result.ok) {
+    throw new Error(`Slack API error: ${result.error || "Unknown error"}`);
+  }
+
+  return { success: true };
 };
