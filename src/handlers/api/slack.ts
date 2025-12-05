@@ -226,8 +226,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     const teamId = payload.team.id;
     const userId = payload.user.id;
 
-    const usecaseContext = getUsecaseContext(ctx);
-    const { db, ai, stripe } = usecaseContext;
+    const baseContext = getUsecaseContext(ctx);
+    const { db } = baseContext;
     const workspaceRepository = createWorkspaceRepository({ db });
     const userRepository = createUserRepository({ db });
 
@@ -248,6 +248,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
       return ctx.json({ error: "User not found" }, 400);
     }
 
+    const usecaseContext = { ...baseContext, workspace, user };
+
     try {
       switch (callbackId) {
         case "complete_task_modal": {
@@ -255,7 +257,7 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
             values.summary_block.summary_input.value || "完了しました";
           await taskSessionUsecases.completeTask(
             { taskSessionId, summary },
-            { db, workspace, user, ai, stripe },
+            usecaseContext,
           );
           break;
         }
@@ -264,7 +266,7 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
             values.reason_block.reason_input.value || "詰まっています";
           await taskSessionUsecases.reportBlocked(
             { taskSessionId, reason },
-            { db, workspace, user, ai, stripe },
+            usecaseContext,
           );
           break;
         }
@@ -272,7 +274,7 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           const reason = values.reason_block.reason_input.value || "休止します";
           await taskSessionUsecases.pauseTask(
             { taskSessionId, reason },
-            { db, workspace, user, ai, stripe },
+            usecaseContext,
           );
           break;
         }
@@ -281,7 +283,7 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
             values.summary_block.summary_input.value || "再開しました";
           await taskSessionUsecases.resumeTask(
             { taskSessionId, summary },
-            { db, workspace, user, ai, stripe },
+            usecaseContext,
           );
           break;
         }
