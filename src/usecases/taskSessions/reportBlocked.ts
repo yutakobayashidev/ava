@@ -79,7 +79,7 @@ export const reportBlocked = async (
     status: session.status,
     reason: blockReport.reason,
     slack_notification: slackNotification,
-    message: "詰まり情報を登録しました。",
+    message: "ブロッキング情報を登録しました。",
   };
 
   return {

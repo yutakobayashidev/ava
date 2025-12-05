@@ -340,7 +340,7 @@ export default async function LandingPage() {
                 icon={<AlertCircle className="h-5 w-5 text-primary" />}
                 title="ブロック報告"
                 dotClass="bg-primary"
-                description="詰まりは同じスレッドに即通知。気まずいお願いなしで、メンバーがそのままフォロー。"
+                description="ブロッキングは同じスレッドに即通知。気まずいお願いなしで、メンバーがそのままフォロー。"
               />
               <FlowCard
                 icon={<GitPullRequest className="h-5 w-5 text-primary" />}
@@ -505,7 +505,7 @@ export default async function LandingPage() {
                   <div className="flex items-start gap-3 text-slate-700">
                     <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                     <span className="text-base">
-                      詰まり・休止の理由も概要のみ
+                      ブロッキング・休止の理由も概要のみ
                     </span>
                   </div>
                 </div>

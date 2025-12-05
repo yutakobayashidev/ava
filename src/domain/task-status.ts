@@ -4,8 +4,8 @@ export type TaskStatus = TaskSession["status"];
 
 /**
  * 許可される状態遷移のマップ
- * - in_progress: 作業中 → 詰まり/休止/完了/中止へ遷移可能
- * - blocked: 詰まり → 作業再開/休止/中止へ遷移可能
+ * - in_progress: 作業中 → ブロッキング/休止/完了/中止へ遷移可能
+ * - blocked: ブロッキング → 作業再開/休止/中止へ遷移可能
  * - paused: 休止 → 作業再開/中止へ遷移可能
  * - completed: 完了 (終端状態、遷移不可)
  * - cancelled: 中止 (終端状態、遷移不可)
