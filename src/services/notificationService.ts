@@ -241,7 +241,7 @@ export const createNotificationService = (
                 type: "button",
                 text: {
                   type: "plain_text",
-                  text: "⚠️ 詰まり報告",
+                  text: "⚠️ ブロッキング報告",
                 },
                 style: "danger",
                 value: session.id,

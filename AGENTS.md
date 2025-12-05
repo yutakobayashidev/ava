@@ -55,10 +55,10 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
   - 動作: `task_sessions` を作成。Slack 設定済みなら新規スレッドに開始報告を投稿し、スレッド情報を保存。
 - `update_task`
   - 入力: `task_session_id`, `summary`, `raw_context?`
-  - 動作: ステータスを `in_progress` に戻し、未解決の詰まり・休止を解消。`task_updates` に保存し、Slack スレッドへ進捗を投稿。
+  - 動作: ステータスを `in_progress` に戻し、未解決のブロッキング・休止を解消。`task_updates` に保存し、Slack スレッドへ進捗を投稿。
 - `report_blocked`
   - 入力: `task_session_id`, `reason`, `raw_context?`
-  - 動作: ステータスを `blocked` に更新し、`task_block_reports` に保存。Slack スレッドへ詰まりを通知。
+  - 動作: ステータスを `blocked` に更新し、`task_block_reports` に保存。Slack スレッドへブロッキングを通知。
 - `pause_task`
   - 入力: `task_session_id`, `reason`, `raw_context?`
   - 動作: ステータスを `paused` に更新し、`task_pause_reports` に保存。Slack スレッドへ休止を通知（⏸️）。
@@ -91,21 +91,21 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
 **通知:**
 
 - 通知先チャンネル: 初回は `/onboarding/connect-slack`、変更は `/settings/channel` で設定し、`workspaces.notification_channel_id` に保存
-- 投稿内容: 開始/進捗/詰まり/休止/再開/完了をチャンネルの同一スレッドに投稿
+- 投稿内容: 開始/進捗/ブロッキング/休止/再開/完了をチャンネルの同一スレッドに投稿
 - セキュリティ: コード断片や機密情報は投稿せず、抽象的なサマリのみを送信
 
 ---
 
 ## データとセキュリティ
 
-- 保持するデータ: ワークスペース資格情報 (`workspaces`)、タスクセッション/更新/詰まり/休止/完了 (`task_*`)、OAuth クライアント・トークン (`clients`, `auth_codes`, `access_tokens`)、ユーザーセッション (`sessions`)。
+- 保持するデータ: ワークスペース資格情報 (`workspaces`)、タスクセッション/更新/ブロッキング/休止/完了 (`task_*`)、OAuth クライアント・トークン (`clients`, `auth_codes`, `access_tokens`)、ユーザーセッション (`sessions`)。
 - クラウドや Slack へ送信 **禁止**:
   - コード全文 / リポジトリの機密
   - 秘密鍵・トークン・環境変数の値
   - 生のエラーログ
 - 送信 **許可 / 推奨**:
   - 抽象的な進捗サマリ
-  - 詰まり・休止の要約
+  - ブロッキング・休止の要約
   - 完了サマリと PR URL
 
 ---

@@ -86,7 +86,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     "report_blocked",
     {
       title: "report_blocked",
-      description: "詰まり情報を共有するための入力仕様。",
+      description: "ブロッキング情報を共有するための入力仕様。",
       inputSchema: z.object({
         task_session_id: z
           .string()

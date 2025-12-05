@@ -42,7 +42,7 @@ export const createReportBlockedModal = (taskSessionId: string): ModalView => ({
   callback_id: "report_blocked_modal",
   title: {
     type: "plain_text",
-    text: "詰まりを報告",
+    text: "ブロッキングを報告",
   },
   submit: {
     type: "plain_text",
@@ -62,12 +62,12 @@ export const createReportBlockedModal = (taskSessionId: string): ModalView => ({
         multiline: true,
         placeholder: {
           type: "plain_text",
-          text: "詰まっている理由を入力してください",
+          text: "ブロッキングの理由を入力してください",
         },
       },
       label: {
         type: "plain_text",
-        text: "詰まりの理由",
+        text: "ブロッキングの理由",
       },
     },
   ],
@@ -156,7 +156,7 @@ export const createResolveBlockedModal = (
   callback_id: "resolve_blocked_modal",
   title: {
     type: "plain_text",
-    text: "詰まりを解決",
+    text: "ブロッキングを解決",
   },
   submit: {
     type: "plain_text",
@@ -171,7 +171,7 @@ export const createResolveBlockedModal = (
       type: "section",
       text: {
         type: "mrkdwn",
-        text: "詰まりが解決されたことを報告します。",
+        text: "ブロッキングが解決されたことを報告します。",
       },
     },
   ],

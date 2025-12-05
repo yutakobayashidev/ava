@@ -233,7 +233,7 @@ describe("createMcpServer", async () => {
   });
 
   describe("report_blocked", () => {
-    it("タスクの詰まりを報告できる", async () => {
+    it("タスクのブロッキングを報告できる", async () => {
       const startResult = (await client.callTool({
         name: "start_task",
         arguments: {
@@ -256,7 +256,7 @@ describe("createMcpServer", async () => {
       const responseData = JSON.parse((result.content[0] as TextContent).text);
       expect(responseData).toMatchObject({
         status: "blocked",
-        message: "詰まり情報を登録しました。",
+        message: "ブロッキング情報を登録しました。",
       });
       expect(notifyTaskBlocked).toHaveBeenCalledOnce();
     });
@@ -266,7 +266,7 @@ describe("createMcpServer", async () => {
         name: "report_blocked",
         arguments: {
           task_session_id: "non-existent-id",
-          reason: "詰まりました",
+          reason: "ブロッキングが発生しました",
         },
       })) as CallToolResult;
 
