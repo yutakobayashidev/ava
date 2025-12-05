@@ -118,6 +118,7 @@ type NotificationService = {
   notifyTaskBlocked: (params: {
     session: TaskSessionInfo;
     reason: string;
+    blockReportId: string;
   }) => Promise<NotificationResult>;
   notifyBlockResolved: (params: {
     session: TaskSessionInfo;
@@ -303,7 +304,7 @@ export const createNotificationService = (
 
     notifyTaskBlocked: (params) =>
       withSlackConfig(async (config) => {
-        const { session, reason } = params;
+        const { session, reason, blockReportId } = params;
 
         const validationError = validateThreadInfo(session);
         if (validationError) return validationError;
@@ -328,7 +329,10 @@ export const createNotificationService = (
                   text: "✅ 解決",
                 },
                 style: "primary",
-                value: session.id,
+                value: JSON.stringify({
+                  taskSessionId: session.id,
+                  blockReportId,
+                }),
                 action_id: "resolve_blocked",
               },
             ],

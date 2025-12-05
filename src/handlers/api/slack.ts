@@ -157,7 +157,7 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
   if (payload.type === "block_actions") {
     const action = payload.actions[0];
     const actionId = action.action_id;
-    const taskSessionId = action.value;
+    const actionValue = action.value;
     const triggerId = payload.trigger_id;
     const teamId = payload.team.id;
 
@@ -184,20 +184,26 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     let view;
     switch (actionId) {
       case "complete_task":
-        view = slackModals.createCompleteTaskModal(taskSessionId);
+        view = slackModals.createCompleteTaskModal(actionValue);
         break;
       case "report_blocked":
-        view = slackModals.createReportBlockedModal(taskSessionId);
+        view = slackModals.createReportBlockedModal(actionValue);
         break;
       case "pause_task":
-        view = slackModals.createPauseTaskModal(taskSessionId);
+        view = slackModals.createPauseTaskModal(actionValue);
         break;
       case "resume_task":
-        view = slackModals.createResumeTaskModal(taskSessionId);
+        view = slackModals.createResumeTaskModal(actionValue);
         break;
-      case "resolve_blocked":
-        view = slackModals.createResolveBlockedModal(taskSessionId);
+      case "resolve_blocked": {
+        // JSONをパースしてtaskSessionIdとblockReportIdを取得
+        const parsed = JSON.parse(actionValue);
+        view = slackModals.createResolveBlockedModal(
+          parsed.taskSessionId,
+          parsed.blockReportId,
+        );
         break;
+      }
       default:
         return ctx.json({ error: "Unknown action" }, 400);
     }
@@ -282,9 +288,15 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           break;
         }
         case "resolve_blocked_modal": {
-          // TODO: blockReportIdを取得する必要がある
-          // 現時点では最新のブロックレポートを解決する
-          return ctx.json({ error: "Not implemented yet" }, 501);
+          const metadata = JSON.parse(taskSessionId);
+          await taskSessionUsecases.resolveBlocked(
+            {
+              taskSessionId: metadata.taskSessionId,
+              blockReportId: metadata.blockReportId,
+            },
+            usecaseContext,
+          );
+          break;
         }
         default:
           return ctx.json({ error: "Unknown modal" }, 400);

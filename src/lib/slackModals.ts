@@ -150,6 +150,7 @@ export const createResumeTaskModal = (taskSessionId: string): ModalView => ({
 
 export const createResolveBlockedModal = (
   taskSessionId: string,
+  blockReportId: string,
 ): ModalView => ({
   type: "modal",
   callback_id: "resolve_blocked_modal",
@@ -174,5 +175,5 @@ export const createResolveBlockedModal = (
       },
     },
   ],
-  private_metadata: taskSessionId,
+  private_metadata: JSON.stringify({ taskSessionId, blockReportId }),
 });

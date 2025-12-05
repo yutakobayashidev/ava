@@ -70,6 +70,7 @@ export const reportBlocked = async (
       slackChannel: session.slackChannel,
     },
     reason,
+    blockReportId: blockReport.id,
   });
 
   const result = {
