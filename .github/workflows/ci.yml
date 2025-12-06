@@ -21,8 +21,8 @@ on:
     paths:
       - .github/workflows/**
       - package.json
-      - src/**
-      - e2e/**
+      - apps/www/src/**
+      - apps/www/e2e/**
   push:
     branches:
       - main
@@ -30,8 +30,8 @@ on:
     paths:
       - .github/workflows/**
       - package.json
-      - src/**
-      - e2e/**
+      - apps/www/src/**
+      - apps/www/e2e/**
 
 jobs:
   code-quality:
@@ -43,7 +43,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
-      - run: npx prettier --check . && npx eslint . && npx knip
+      - run: cd apps/www && pnpm exec prettier --check . && pnpm exec eslint . && pnpm exec knip
     timeout-minutes: 5
 
   unit-test:
@@ -55,7 +55,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
-      - run: pnpm test
+      - run: pnpm --filter www test
     timeout-minutes: 5
 
   e2e-test:
@@ -67,14 +67,14 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
-      - run: pnpm exec playwright install chromium
-      - run: pnpm build
-      - run: pnpm test:e2e
+      - run: pnpm --filter www exec playwright install chromium
+      - run: pnpm --filter www build
+      - run: pnpm --filter www test:e2e
       - name: Upload Playwright report
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         if: always()
         with:
           name: playwright-report
-          path: playwright-report/
+          path: apps/www/playwright-report/
           retention-days: 30
     timeout-minutes: 10
