@@ -2,41 +2,14 @@ import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
-import { HonoEnv } from "@/types";
 import { buildTaskPausedMessage } from "./slackMessages";
-
-type PauseTaskParams = {
-  taskSessionId: string;
-  reason: string;
-  rawContext?: Record<string, unknown>;
-};
-
-export type PauseTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: PauseTaskParams;
-};
-
-type PauseTaskSuccess = {
-  taskSessionId: string;
-  pauseReportId: string;
-  status: string;
-  pausedAt: Date;
-  slackNotification: {
-    delivered: boolean;
-    reason?: string;
-  };
-};
-
-type PauseTaskResult =
-  | { success: true; data: PauseTaskSuccess }
-  | { success: false; error: string };
+import type { PauseTaskInput, PauseTaskOutput } from "./interface";
 
 export const createPauseTask = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {
-  return async (input: PauseTaskInput): Promise<PauseTaskResult> => {
+  return async (input: PauseTaskInput): Promise<PauseTaskOutput> => {
     const { workspace, user, params } = input;
     const { taskSessionId, reason, rawContext } = params;
 
@@ -77,37 +50,39 @@ export const createPauseTask = (
       };
     }
 
-    // Slackスレッド情報の取得
+    // Slack通知
+    let slackNotification: { delivered: boolean; reason?: string };
+
     const slackThread = createSlackThreadInfo({
       channel: session.slackChannel,
       threadTs: session.slackThreadTs,
     });
 
-    if (!slackThread) {
-      return {
-        success: false,
-        error: "Slack thread not configured for this task session",
+    if (slackThread) {
+      // メッセージ組み立て（ユースケース層の責務）
+      const message = buildTaskPausedMessage({
+        session: { id: session.id },
+        reason,
+      });
+
+      // Slack通知（インフラ層への委譲）
+      const notification = await slackNotificationService.postMessage({
+        workspace,
+        channel: slackThread.channel,
+        message,
+        threadTs: slackThread.threadTs,
+      });
+
+      slackNotification = {
+        delivered: notification.delivered,
+        reason: notification.error,
+      };
+    } else {
+      slackNotification = {
+        delivered: false,
+        reason: "Slack thread not configured",
       };
     }
-
-    // メッセージ組み立て（ユースケース層の責務）
-    const message = buildTaskPausedMessage({
-      session: { id: session.id },
-      reason,
-    });
-
-    // Slack通知（インフラ層への委譲）
-    const notification = await slackNotificationService.postMessage({
-      workspace,
-      channel: slackThread.channel,
-      message,
-      threadTs: slackThread.threadTs,
-    });
-
-    const slackNotification = {
-      delivered: notification.delivered,
-      reason: notification.error,
-    };
 
     return {
       success: true,

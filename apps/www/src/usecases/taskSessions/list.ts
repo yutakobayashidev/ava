@@ -1,16 +1,5 @@
 import type { TaskRepository } from "@/repos";
-import { HonoEnv } from "@/types";
-
-type ListTasksParams = {
-  status?: "inProgress" | "blocked" | "paused" | "completed";
-  limit?: number;
-};
-
-export type ListTasksInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ListTasksParams;
-};
+import type { ListTasksInput, ListTasksOutput } from "./interface";
 
 // ステータスをDBの形式に変換
 function convertStatusToDb(
@@ -22,27 +11,8 @@ function convertStatusToDb(
   return undefined;
 }
 
-type TaskSummary = {
-  taskSessionId: string;
-  issueProvider: string;
-  issueId: string | null;
-  issueTitle: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type ListTasksSuccess = {
-  total: number;
-  tasks: TaskSummary[];
-};
-
-type ListTasksResult =
-  | { success: true; data: ListTasksSuccess }
-  | { success: false; error: string };
-
 export const createListTasks = (taskRepository: TaskRepository) => {
-  return async (input: ListTasksInput): Promise<ListTasksResult> => {
+  return async (input: ListTasksInput): Promise<ListTasksOutput> => {
     const { workspace, user, params } = input;
     const { status, limit } = params;
 

@@ -2,44 +2,15 @@ import type { TaskRepository } from "@/repos";
 import { createSubscriptionRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
-import { HonoEnv } from "@/types";
 import { buildTaskStartedMessage } from "./slackMessages";
-
-type StartTaskParams = {
-  issue: {
-    provider: "github" | "manual";
-    id?: string;
-    title: string;
-  };
-  initialSummary: string;
-};
-
-export type StartTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: StartTaskParams;
-};
-
-type StartTaskSuccess = {
-  taskSessionId: string;
-  status: string;
-  issuedAt: Date;
-  slackNotification: {
-    delivered: boolean;
-    reason?: string;
-  };
-};
-
-type StartTaskResult =
-  | { success: true; data: StartTaskSuccess }
-  | { success: false; error: string };
+import type { StartTaskInput, StartTaskOutput } from "./interface";
 
 export const createStartTask = (
   taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
   slackNotificationService: SlackNotificationService,
 ) => {
-  return async (input: StartTaskInput): Promise<StartTaskResult> => {
+  return async (input: StartTaskInput): Promise<StartTaskOutput> => {
     const { workspace, user, params } = input;
     const { issue, initialSummary } = params;
 
