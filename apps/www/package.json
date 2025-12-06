@@ -23,7 +23,6 @@
     "db:reset": "tsx ./reset.ts",
     "db:studio": "drizzle-kit studio",
     "typecheck": "next typegen && pnpm tsc --noEmit",
-    "fmt": "prettier -w .",
     "lint": "eslint --fix && knip",
     "lint:i": "eslint --inspect-config",
     "lint:claude": "claude -p 'あなたはリンターです。mainブランチとの変更を確認し、タイポに関する問題を報告してください。ファイル名と行番号を1行目に、問題の説明を2行目に報告してください。他のテキストは返さないでください。'"

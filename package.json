@@ -5,10 +5,12 @@
   "scripts": {
     "setup": "corepack enable pnpm",
     "preinstall": "npx only-allow pnpm",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "fmt": "prettier -w ."
   },
   "devDependencies": {
     "lefthook": "2.0.4",
-    "prettier": "3.7.4"
+    "prettier": "3.7.4",
+    "knip": "5.70.2"
   }
 }

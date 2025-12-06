@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      knip:
+        specifier: 5.70.2
+        version: 5.70.2(@types/node@22.19.1)(typescript@5.9.3)
       lefthook:
         specifier: 2.0.4
         version: 2.0.4
@@ -10251,6 +10254,23 @@ snapshots:
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       '@types/node': 20.19.25
+      fast-glob: 3.3.3
+      formatly: 0.3.0
+      jiti: 2.6.1
+      js-yaml: 4.1.1
+      minimist: 1.2.8
+      oxc-resolver: 11.14.0
+      picocolors: 1.1.1
+      picomatch: 4.0.3
+      smol-toml: 1.5.2
+      strip-json-comments: 5.0.3
+      typescript: 5.9.3
+      zod: 4.1.13
+
+  knip@5.70.2(@types/node@22.19.1)(typescript@5.9.3):
+    dependencies:
+      '@nodelib/fs.walk': 1.2.8
+      '@types/node': 22.19.1
       fast-glob: 3.3.3
       formatly: 0.3.0
       jiti: 2.6.1
