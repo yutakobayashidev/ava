@@ -31,8 +31,9 @@ export async function setupDB({ port }: { port: "random" | number }) {
     port: mappedPort,
   });
 
+  // Use drizzle-kit from packages/database via pnpm
   await execAsync(
-    `DATABASE_URL=${url} pnpm --filter @ava/database drizzle-kit push`,
+    `cd ../../packages/database && DATABASE_URL=${url} pnpm drizzle-kit push`,
   );
 
   const pool = postgres(url, { prepare: false });

@@ -11,13 +11,5 @@ export function createDBUrl({
   port?: number;
   db?: string;
 }) {
-  const baseUrl = `postgresql://${user}:${password}@${host}:${port}/${db}`;
-  // productionとpreviewでは?pgbouncer=trueを付与
-  if (
-    process.env.VERCEL_ENV === "production" ||
-    process.env.VERCEL_ENV === "preview"
-  ) {
-    return `${baseUrl}?pgbouncer=true`;
-  }
-  return baseUrl;
+  return `postgresql://${user}:${password}@${host}:${port}/${db}`;
 }
