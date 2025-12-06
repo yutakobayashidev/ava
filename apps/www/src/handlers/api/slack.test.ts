@@ -50,7 +50,7 @@ vi.mock("@/usecases/slack/installWorkspace", () => ({
   installWorkspace,
 }));
 
-vi.mock("@/lib/session", () => ({
+vi.mock("@/lib/server/session", () => ({
   validateSessionToken,
 }));
 
