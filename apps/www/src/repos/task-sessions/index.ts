@@ -3,78 +3,21 @@ import { uuidv7 } from "uuidv7";
 
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
+import type {
+  AddTaskUpdateRequest,
+  CompleteTaskRequest,
+  CreateTaskSessionRequest,
+  ListOptions,
+  ListTaskSessionsRequest,
+  PauseTaskRequest,
+  ReportBlockRequest,
+  ResolveBlockRequest,
+  ResumeTaskRequest,
+  TaskRepository,
+  TaskStatus,
+} from "./interface";
 
-type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
-
-type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
-
-type CreateTaskSessionInput = {
-  userId: string;
-  workspaceId: string;
-  issueProvider: IssueProvider;
-  issueId?: string | null;
-  issueTitle: string;
-  initialSummary: string;
-};
-
-type AddTaskUpdateInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  summary: string;
-  rawContext?: Record<string, unknown>;
-};
-
-type ReportBlockInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  reason: string;
-  rawContext?: Record<string, unknown>;
-};
-
-type CompleteTaskInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  summary: string;
-};
-
-type ResolveBlockInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  blockReportId: string;
-};
-
-type PauseTaskInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  reason: string;
-  rawContext?: Record<string, unknown>;
-};
-
-type ResumeTaskInput = {
-  taskSessionId: string;
-  workspaceId: string;
-  userId: string;
-  summary: string;
-  rawContext?: Record<string, unknown>;
-};
-
-type ListOptions = {
-  limit?: number;
-};
-
-type ListTaskSessionsInput = {
-  userId: string;
-  workspaceId: string;
-  status?: TaskStatus;
-  limit?: number;
-  updatedAfter?: Date;
-  updatedBefore?: Date;
-};
+export type { TaskRepository } from "./interface";
 
 const STATUS: Record<
   "inProgress" | "blocked" | "paused" | "completed" | "cancelled",
@@ -87,8 +30,9 @@ const STATUS: Record<
   cancelled: "cancelled",
 };
 
-export const createTaskRepository = (db: Database) => {
-  const createTaskSession = async (params: CreateTaskSessionInput) => {
+// 高階関数として定義
+export const createTaskSession =
+  (db: Database) => async (params: CreateTaskSessionRequest) => {
     return db.transaction(async (tx) => {
       const sessionId = uuidv7();
       const [session] = await tx
@@ -117,11 +61,9 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const findTaskSessionById = async (
-    taskSessionId: string,
-    workspaceId: string,
-    userId: string,
-  ) => {
+export const findTaskSessionById =
+  (db: Database) =>
+  async (taskSessionId: string, workspaceId: string, userId: string) => {
     const [session] = await db
       .select()
       .from(schema.taskSessions)
@@ -136,7 +78,8 @@ export const createTaskRepository = (db: Database) => {
     return session ?? null;
   };
 
-  const addTaskUpdate = async (params: AddTaskUpdateInput) => {
+export const addTaskUpdate =
+  (db: Database) => async (params: AddTaskUpdateRequest) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
@@ -174,7 +117,8 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const reportBlock = async (params: ReportBlockInput) => {
+export const reportBlock =
+  (db: Database) => async (params: ReportBlockRequest) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
@@ -211,7 +155,8 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const completeTask = async (params: CompleteTaskInput) => {
+export const completeTask =
+  (db: Database) => async (params: CompleteTaskRequest) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
@@ -285,10 +230,9 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const listBlockReports = async (
-    taskSessionId: string,
-    options: ListOptions = {},
-  ) => {
+export const listBlockReports =
+  (db: Database) =>
+  async (taskSessionId: string, options: ListOptions = {}) => {
     const limit = options.limit ?? 50;
     return db
       .select()
@@ -303,7 +247,8 @@ export const createTaskRepository = (db: Database) => {
       .limit(limit);
   };
 
-  const getUnresolvedBlockReports = async (taskSessionId: string) => {
+export const getUnresolvedBlockReports =
+  (db: Database) => async (taskSessionId: string) => {
     // ブロックイベントを取得
     const blockedEvents = await db
       .select()
@@ -338,7 +283,8 @@ export const createTaskRepository = (db: Database) => {
     return blockedEvents.filter((block) => !resolvedBlockIds.has(block.id));
   };
 
-  const getBulkUnresolvedBlockReports = async (taskSessionIds: string[]) => {
+export const getBulkUnresolvedBlockReports =
+  (db: Database) => async (taskSessionIds: string[]) => {
     if (taskSessionIds.length === 0) {
       return new Map<string, schema.TaskEvent[]>();
     }
@@ -386,7 +332,8 @@ export const createTaskRepository = (db: Database) => {
     return result;
   };
 
-  const resolveBlockReport = async (params: ResolveBlockInput) => {
+export const resolveBlockReport =
+  (db: Database) => async (params: ResolveBlockRequest) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
@@ -442,7 +389,8 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const listTaskSessions = async (params: ListTaskSessionsInput) => {
+export const listTaskSessions =
+  (db: Database) => async (params: ListTaskSessionsRequest) => {
     const limit = params.limit ?? 50;
 
     const conditions = [
@@ -474,7 +422,9 @@ export const createTaskRepository = (db: Database) => {
       .limit(limit);
   };
 
-  const updateSlackThread = async (params: {
+export const updateSlackThread =
+  (db: Database) =>
+  async (params: {
     taskSessionId: string;
     workspaceId: string;
     userId: string;
@@ -499,44 +449,45 @@ export const createTaskRepository = (db: Database) => {
     return session ?? null;
   };
 
-  const pauseTask = async (params: PauseTaskInput) => {
-    const now = new Date();
+export const pauseTask = (db: Database) => async (params: PauseTaskRequest) => {
+  const now = new Date();
 
-    return db.transaction(async (tx) => {
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.paused,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
+  return db.transaction(async (tx) => {
+    const [session] = await tx
+      .update(schema.taskSessions)
+      .set({
+        status: STATUS.paused,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(schema.taskSessions.id, params.taskSessionId),
+          eq(schema.taskSessions.workspaceId, params.workspaceId),
+          eq(schema.taskSessions.userId, params.userId),
+        ),
+      )
+      .returning();
 
-      const [pauseEvent] = await tx
-        .insert(schema.taskEvents)
-        .values({
-          id: uuidv7(),
-          taskSessionId: params.taskSessionId,
-          eventType: "paused",
-          reason: params.reason,
-          rawContext: params.rawContext ?? {},
-        })
-        .returning();
+    const [pauseEvent] = await tx
+      .insert(schema.taskEvents)
+      .values({
+        id: uuidv7(),
+        taskSessionId: params.taskSessionId,
+        eventType: "paused",
+        reason: params.reason,
+        rawContext: params.rawContext ?? {},
+      })
+      .returning();
 
-      return {
-        session: session ?? null,
-        pauseReport: pauseEvent ?? null,
-      };
-    });
-  };
+    return {
+      session: session ?? null,
+      pauseReport: pauseEvent ?? null,
+    };
+  });
+};
 
-  const resumeTask = async (params: ResumeTaskInput) => {
+export const resumeTask =
+  (db: Database) => async (params: ResumeTaskRequest) => {
     const now = new Date();
 
     return db.transaction(async (tx) => {
@@ -584,7 +535,9 @@ export const createTaskRepository = (db: Database) => {
     });
   };
 
-  const listEvents = async (params: {
+export const listEvents =
+  (db: Database) =>
+  async (params: {
     taskSessionId: string;
     eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
@@ -606,7 +559,9 @@ export const createTaskRepository = (db: Database) => {
       .limit(limit);
   };
 
-  const getBulkLatestEvents = async (params: {
+export const getBulkLatestEvents =
+  (db: Database) =>
+  async (params: {
     taskSessionIds: string[];
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
@@ -641,7 +596,9 @@ export const createTaskRepository = (db: Database) => {
     return result;
   };
 
-  const getLatestEvent = async (params: {
+export const getLatestEvent =
+  (db: Database) =>
+  async (params: {
     taskSessionId: string;
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
   }) => {
@@ -660,7 +617,9 @@ export const createTaskRepository = (db: Database) => {
     return event ?? null;
   };
 
-  const getLatestEventByTypes = async (
+export const getLatestEventByTypes =
+  (db: Database) =>
+  async (
     taskSessionId: string,
     eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
   ) => {
@@ -668,7 +627,7 @@ export const createTaskRepository = (db: Database) => {
 
     const events = await Promise.all(
       eventTypes.map((eventType) =>
-        getLatestEvent({ taskSessionId, eventType }),
+        getLatestEvent(db)({ taskSessionId, eventType }),
       ),
     );
 
@@ -680,7 +639,9 @@ export const createTaskRepository = (db: Database) => {
     );
   };
 
-  const getTodayCompletedTasks = async (params: {
+export const getTodayCompletedTasks =
+  (db: Database) =>
+  async (params: {
     userId: string;
     workspaceId: string;
     dateRange: { from: Date; to: Date };
@@ -720,26 +681,23 @@ export const createTaskRepository = (db: Database) => {
     }));
   };
 
-  return {
-    createTaskSession,
-    findTaskSessionById,
-    addTaskUpdate,
-    reportBlock,
-    pauseTask,
-    resumeTask,
-    completeTask,
-    listBlockReports,
-    getUnresolvedBlockReports,
-    getBulkUnresolvedBlockReports,
-    resolveBlockReport,
-    listTaskSessions,
-    updateSlackThread,
-    listEvents,
-    getBulkLatestEvents,
-    getLatestEvent,
-    getLatestEventByTypes,
-    getTodayCompletedTasks,
-  };
-};
-
-export type TaskRepository = ReturnType<typeof createTaskRepository>;
+export const createTaskRepository = (db: Database): TaskRepository => ({
+  createTaskSession: createTaskSession(db),
+  findTaskSessionById: findTaskSessionById(db),
+  addTaskUpdate: addTaskUpdate(db),
+  reportBlock: reportBlock(db),
+  pauseTask: pauseTask(db),
+  resumeTask: resumeTask(db),
+  completeTask: completeTask(db),
+  listBlockReports: listBlockReports(db),
+  getUnresolvedBlockReports: getUnresolvedBlockReports(db),
+  getBulkUnresolvedBlockReports: getBulkUnresolvedBlockReports(db),
+  resolveBlockReport: resolveBlockReport(db),
+  listTaskSessions: listTaskSessions(db),
+  updateSlackThread: updateSlackThread(db),
+  listEvents: listEvents(db),
+  getBulkLatestEvents: getBulkLatestEvents(db),
+  getLatestEvent: getLatestEvent(db),
+  getLatestEventByTypes: getLatestEventByTypes(db),
+  getTodayCompletedTasks: getTodayCompletedTasks(db),
+});

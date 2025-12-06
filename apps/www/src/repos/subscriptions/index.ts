@@ -2,15 +2,13 @@ import type { Database } from "@ava/database/client";
 import { subscriptions, taskSessions } from "@ava/database/schema";
 import { and, eq, sql } from "drizzle-orm";
 
-export type SubscriptionRepository = ReturnType<
-  typeof createSubscriptionRepository
->;
+export * from "./interface";
 
-export const createSubscriptionRepository = (db: Database) => ({
-  /**
-   * ユーザーのアクティブなサブスクリプションを取得
-   */
-  async getActiveSubscription(userId: string) {
+/**
+ * ユーザーのアクティブなサブスクリプションを取得
+ */
+export const getActiveSubscription =
+  (db: Database) => async (userId: string) => {
     const activeSubscriptions = await db
       .select()
       .from(subscriptions)
@@ -23,17 +21,23 @@ export const createSubscriptionRepository = (db: Database) => ({
       .limit(1);
 
     return activeSubscriptions[0] ?? null;
-  },
+  };
 
-  /**
-   * ユーザーが作成したタスクセッション数をカウント
-   */
-  async countUserTaskSessions(userId: string): Promise<number> {
+/**
+ * ユーザーが作成したタスクセッション数をカウント
+ */
+export const countUserTaskSessions =
+  (db: Database) =>
+  async (userId: string): Promise<number> => {
     const result = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(taskSessions)
       .where(eq(taskSessions.userId, userId));
 
     return result[0]?.count ?? 0;
-  },
+  };
+
+export const createSubscriptionRepository = (db: Database) => ({
+  getActiveSubscription: getActiveSubscription(db),
+  countUserTaskSessions: countUserTaskSessions(db),
 });

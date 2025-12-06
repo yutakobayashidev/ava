@@ -1,5 +1,5 @@
 import type { User, Workspace } from "@ava/database/schema";
-import type { CreateWorkspaceInput } from "@/repos/workspaces";
+import type { CreateWorkspaceRequest } from "@/repos/workspaces";
 
 type RemoveNullish<T> = {
   [K in keyof T]-?: NonNullable<T[K]>;
@@ -21,7 +21,7 @@ export const user1: NonNullableUser = {
   createdAt: new Date("2024-01-01T00:00:00Z"),
 };
 
-export const workspace1: CreateWorkspaceInput = {
+export const workspace1: CreateWorkspaceRequest = {
   provider: "slack",
   externalId: "T01234ABCDE",
   name: "Test Workspace",
