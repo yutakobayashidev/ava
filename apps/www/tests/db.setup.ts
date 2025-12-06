@@ -7,7 +7,7 @@ import postgres from "postgres";
 import { DockerComposeEnvironment, Wait } from "testcontainers";
 import type { PgDatabase } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import { createDBUrl } from "@/utils/db";
+import { createDBUrl } from "@ava/database/utils";
 
 const execAsync = promisify(exec);
 
@@ -31,7 +31,9 @@ export async function setupDB({ port }: { port: "random" | number }) {
     port: mappedPort,
   });
 
-  await execAsync(`DATABASE_URL=${url} npx drizzle-kit push`);
+  await execAsync(
+    `DATABASE_URL=${url} pnpm --filter @ava/database drizzle-kit push`,
+  );
 
   const pool = postgres(url, { prepare: false });
   const db = drizzle(pool, { schema });
