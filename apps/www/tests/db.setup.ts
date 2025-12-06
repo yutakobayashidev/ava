@@ -1,13 +1,13 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 
+import type { PgDatabase } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
+import { createDBUrl } from "@ava/database/utils";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { reset } from "drizzle-seed";
 import postgres from "postgres";
 import { DockerComposeEnvironment, Wait } from "testcontainers";
-import type { PgDatabase } from "@ava/database/client";
-import * as schema from "@ava/database/schema";
-import { createDBUrl } from "@ava/database/utils";
 
 const execAsync = promisify(exec);
 
@@ -32,9 +32,7 @@ export async function setupDB({ port }: { port: "random" | number }) {
   });
 
   // Use drizzle-kit from packages/database via pnpm
-  await execAsync(
-    `cd ../../packages/database && DATABASE_URL=${url} pnpm drizzle-kit push`,
-  );
+  await execAsync(`DATABASE_URL=${url} pnpm --filter @ava/database db:push`);
 
   const pool = postgres(url, { prepare: false });
   const db = drizzle(pool, { schema });
