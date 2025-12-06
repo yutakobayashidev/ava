@@ -7,6 +7,15 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      lefthook:
+        specifier: 2.0.4
+        version: 2.0.4
+      prettier:
+        specifier: 3.7.4
+        version: 3.7.4
+
+  apps/www:
     dependencies:
       '@ai-sdk/openai':
         specifier: 2.0.74
@@ -271,7 +280,7 @@ importers:
         specifier: 0.3.1
         version: 0.3.1(drizzle-orm@0.44.7(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7))
       eslint:
-        specifier: '9'
+        specifier: 9.39.1
         version: 9.39.1(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.0.7
@@ -288,12 +297,6 @@ importers:
       jsdom:
         specifier: 27.2.0
         version: 27.2.0
-      lefthook:
-        specifier: 2.0.4
-        version: 2.0.4
-      prettier:
-        specifier: 3.7.1
-        version: 3.7.1
       tailwindcss:
         specifier: '4'
         version: 4.1.17
@@ -5077,8 +5080,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier@3.7.1:
-    resolution: {integrity: sha512-RWKXE4qB3u5Z6yz7omJkjWwmTfLdcbv44jUVHC5NpfXwFGzvpQM798FGv/6WNK879tc+Cn0AAyherCl1KjbyZQ==}
+  prettier@3.7.4:
+    resolution: {integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -11165,7 +11168,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier@3.7.1: {}
+  prettier@3.7.4: {}
 
   process-nextick-args@2.0.1: {}
 
