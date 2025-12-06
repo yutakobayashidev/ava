@@ -1,10 +1,11 @@
-import { loadEnvConfig } from "@next/env";
+import { config } from "dotenv-flow";
 import { defineConfig } from "drizzle-kit";
 
-loadEnvConfig(process.cwd());
+// Load environment variables from parent directory (apps/www)
+config({ path: "../../apps/www" });
 
 export default defineConfig({
-  schema: "./src/db/schema.ts",
+  schema: "./src/schema.ts",
   out: "./migrations",
   dialect: "postgresql",
   dbCredentials: {

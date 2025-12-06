@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setup } from "../../../tests/vitest.helper";
 import app from "@/handlers/api/oauth";
-import * as schema from "@/db/schema";
+import * as schema from "@ava/database/schema";
 import { uuidv7 } from "uuidv7";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";

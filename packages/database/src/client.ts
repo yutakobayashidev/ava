@@ -5,8 +5,8 @@ import { drizzle as neonDrizzle } from "drizzle-orm/neon-serverless";
 import postgres from "postgres";
 import { neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
-import * as schema from "../db/schema";
-import { createDBUrl } from "../utils/db";
+import * as schema from "./schema";
+import { createDBUrl } from "./utils";
 
 const db = (() => {
   if (process.env.VERCEL) {

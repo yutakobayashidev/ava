@@ -3,7 +3,7 @@ import type { TestFixtures, WorkerFixtures } from "../fixtures";
 import { generateDrizzleClient } from "./drizzle";
 import { createSession } from "@/usecases/auth/loginWithSlack";
 import { NonNullableUser } from "../dummyUsers";
-import { users } from "@/db/schema";
+import { users } from "@ava/database/schema";
 import { encodeBase32 } from "@oslojs/encoding";
 import crypto from "node:crypto";
 

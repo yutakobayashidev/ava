@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { Database } from "@/clients/drizzle";
-import { subscriptions, taskSessions } from "@/db/schema";
+import type { Database } from "@ava/database/client";
+import { subscriptions, taskSessions } from "@ava/database/schema";
 
 export type SubscriptionRepository = ReturnType<
   typeof createSubscriptionRepository

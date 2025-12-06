@@ -1,0 +1,39 @@
+{
+  "name": "@ava/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema": {
+      "types": "./src/schema.ts",
+      "default": "./src/schema.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
+    },
+    "./utils": {
+      "types": "./src/utils.ts",
+      "default": "./src/utils.ts"
+    }
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.0.2",
+    "dotenv-flow": "^4.1.0",
+    "drizzle-orm": "0.44.7",
+    "postgres": "3.4.7",
+    "server-only": "0.0.1",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.7",
+    "@types/ws": "8.18.1",
+    "@types/node": "20"
+  }
+}

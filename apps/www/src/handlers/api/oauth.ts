@@ -1,7 +1,7 @@
 import type { Env } from "@/app/create-app";
 import { createHonoApp } from "@/app/create-app";
-import type { Database } from "@/clients/drizzle";
-import * as schema from "@/db/schema";
+import type { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { fetchClientMetadataDocument, isClientMetadataUrl } from "@/lib/cimd";
 import { timingSafeCompare } from "@/lib/timing-safe";
 import { zValidator } from "@hono/zod-validator";

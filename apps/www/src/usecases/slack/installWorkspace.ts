@@ -2,7 +2,7 @@ import type { Env } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
 import { exchangeSlackInstallCode } from "@/lib/slackInstall";
 import { getTeamIcon } from "@/clients/slack";
-import * as schema from "@/db/schema";
+import * as schema from "@ava/database/schema";
 import { eq } from "drizzle-orm";
 
 type InstallWorkspace = {

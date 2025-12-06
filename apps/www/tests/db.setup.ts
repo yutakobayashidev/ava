@@ -5,8 +5,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { reset } from "drizzle-seed";
 import postgres from "postgres";
 import { DockerComposeEnvironment, Wait } from "testcontainers";
-import type { PgDatabase } from "@/clients/drizzle";
-import * as schema from "@/db/schema";
+import type { PgDatabase } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { createDBUrl } from "@/utils/db";
 
 const execAsync = promisify(exec);

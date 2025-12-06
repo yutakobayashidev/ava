@@ -1,7 +1,7 @@
 import type { Env } from "@/app/create-app";
 import type { OAuth2Tokens } from "arctic";
 import { slack } from "@/lib/oauth";
-import * as schema from "@/db/schema";
+import * as schema from "@ava/database/schema";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { createUserRepository } from "@/repos/users";

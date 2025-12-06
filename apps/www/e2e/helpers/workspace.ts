@@ -1,4 +1,4 @@
-import type { Database } from "@/clients/drizzle";
+import type { Database } from "@ava/database/client";
 import type { CreateWorkspaceInput } from "@/repos";
 import { createWorkspaceRepository } from "@/repos";
 import type { NonNullableUser } from "../dummyUsers";

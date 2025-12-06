@@ -1,8 +1,8 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
-import type { Database } from "../clients/drizzle";
-import * as schema from "../db/schema";
+import type { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 
 type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
 
