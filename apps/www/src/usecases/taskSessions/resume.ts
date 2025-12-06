@@ -3,6 +3,7 @@ import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { buildTaskResumedMessage } from "./slackMessages";
+import { createResumedTaskSession } from "@/models/taskSessions";
 import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
 
 export const createResumeTask = (
@@ -36,11 +37,13 @@ export const createResumeTask = (
     }
 
     const { session } = await taskRepository.resumeTask({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      summary,
-      rawContext: rawContext ?? {},
+      request: createResumedTaskSession({
+        taskSessionId: taskSessionId,
+        workspaceId: workspace.id,
+        userId: user.id,
+        summary,
+        rawContext: rawContext ?? {},
+      }),
     });
 
     if (!session) {

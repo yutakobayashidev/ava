@@ -1,4 +1,5 @@
 import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { createBlockedTaskSession } from "@/models/taskSessions";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
@@ -35,12 +36,16 @@ export const createReportBlocked = (
       };
     }
 
-    const { session, blockReport } = await taskRepository.reportBlock({
+    const blockedTask = createBlockedTaskSession({
       taskSessionId: taskSessionId,
       workspaceId: workspace.id,
       userId: user.id,
       reason,
       rawContext: rawContext ?? {},
+    });
+
+    const { session, blockReport } = await taskRepository.reportBlock({
+      request: blockedTask,
     });
 
     if (!session || !blockReport) {

@@ -2,6 +2,7 @@ import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { createUpdatedTaskSession } from "@/models/taskSessions";
 import { buildTaskUpdateMessage } from "./slackMessages";
 import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
 
@@ -35,12 +36,16 @@ export const createUpdateTask = (
       };
     }
 
-    const { session, updateEvent } = await taskRepository.addTaskUpdate({
+    const updatedTask = createUpdatedTaskSession({
       taskSessionId: taskSessionId,
       workspaceId: workspace.id,
       userId: user.id,
       summary,
       rawContext: rawContext ?? {},
+    });
+
+    const { session, updateEvent } = await taskRepository.addTaskUpdate({
+      request: updatedTask,
     });
 
     if (!session || !updateEvent) {

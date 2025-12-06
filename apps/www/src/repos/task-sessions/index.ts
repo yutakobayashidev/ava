@@ -4,56 +4,36 @@ import { uuidv7 } from "uuidv7";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import type {
-  AddTaskUpdateRequest,
-  CompleteTaskRequest,
-  CreateTaskSessionRequest,
-  ListOptions,
-  ListTaskSessionsRequest,
-  PauseTaskRequest,
-  ReportBlockRequest,
-  ResolveBlockRequest,
-  ResumeTaskRequest,
+  AddTaskUpdate,
+  CompleteTask,
+  CreateTaskSession,
+  PauseTask,
+  ReportBlock,
+  ResolveBlockReport,
+  ResumeTask,
   TaskRepository,
   TaskStatus,
 } from "./interface";
-
 export type { TaskRepository } from "./interface";
 
-const STATUS: Record<
-  "inProgress" | "blocked" | "paused" | "completed" | "cancelled",
-  TaskStatus
-> = {
-  inProgress: "in_progress",
-  blocked: "blocked",
-  paused: "paused",
-  completed: "completed",
-  cancelled: "cancelled",
-};
-
-// 高階関数として定義
+// モデルを受け取る関数（DBに保存）
 export const createTaskSession =
-  (db: Database) => async (params: CreateTaskSessionRequest) => {
+  (db: Database): CreateTaskSession =>
+  ({ request }) => {
     return db.transaction(async (tx) => {
-      const sessionId = uuidv7();
       const [session] = await tx
         .insert(schema.taskSessions)
         .values({
-          id: sessionId,
-          userId: params.userId,
-          workspaceId: params.workspaceId,
-          issueProvider: params.issueProvider,
-          issueId: params.issueId ?? null,
-          issueTitle: params.issueTitle,
-          initialSummary: params.initialSummary,
+          ...request,
+          issueId: request.issueId ?? null,
         })
         .returning();
 
-      // started イベントを作成
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
-        taskSessionId: sessionId,
+        taskSessionId: request.id,
         eventType: "started",
-        summary: params.initialSummary,
+        summary: request.initialSummary,
         rawContext: {},
       });
 
@@ -61,6 +41,286 @@ export const createTaskSession =
     });
   };
 
+export const addTaskUpdate =
+  (db: Database): AddTaskUpdate =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "in_progress",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      const [updateEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          ...request,
+          id: uuidv7(),
+          taskSessionId: request.taskSessionId,
+          eventType: "updated",
+          rawContext: request.rawContext ?? {},
+        })
+        .returning();
+
+      return {
+        session: session ?? null,
+        updateEvent: updateEvent ?? null,
+      };
+    });
+  };
+
+export const reportBlock =
+  (db: Database): ReportBlock =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "blocked",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      const [blockEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          ...request,
+          id: uuidv7(),
+          taskSessionId: request.taskSessionId,
+          eventType: "blocked",
+          rawContext: request.rawContext ?? {},
+        })
+        .returning();
+
+      return {
+        session: session ?? null,
+        blockReport: blockEvent ?? null,
+      };
+    });
+  };
+
+export const pauseTask =
+  (db: Database): PauseTask =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "paused",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      const [pauseEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          ...request,
+          id: uuidv7(),
+          taskSessionId: request.taskSessionId,
+          eventType: "paused",
+          rawContext: request.rawContext ?? {},
+        })
+        .returning();
+
+      return {
+        session: session ?? null,
+        pauseReport: pauseEvent ?? null,
+      };
+    });
+  };
+
+export const resumeTask =
+  (db: Database): ResumeTask =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const [latestPausedEvent] = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.taskSessionId, request.taskSessionId),
+            eq(schema.taskEvents.eventType, "paused"),
+          ),
+        )
+        .orderBy(desc(schema.taskEvents.createdAt))
+        .limit(1);
+
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "in_progress",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      await tx.insert(schema.taskEvents).values({
+        ...request,
+        id: uuidv7(),
+        taskSessionId: request.taskSessionId,
+        eventType: "resumed",
+        relatedEventId: latestPausedEvent?.id ?? null,
+        rawContext: request.rawContext ?? {},
+      });
+
+      return {
+        session: session ?? null,
+      };
+    });
+  };
+
+export const completeTask =
+  (db: Database): CompleteTask =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const blockedEvents = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.taskSessionId, request.taskSessionId),
+            eq(schema.taskEvents.eventType, "blocked"),
+          ),
+        )
+        .orderBy(desc(schema.taskEvents.createdAt));
+
+      const resolvedEvents = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.taskSessionId, request.taskSessionId),
+            eq(schema.taskEvents.eventType, "block_resolved"),
+          ),
+        );
+
+      const resolvedBlockIds = new Set(
+        resolvedEvents
+          .map((e) => e.relatedEventId)
+          .filter((id): id is string => id !== null),
+      );
+
+      const unresolvedBlocks = blockedEvents.filter(
+        (block) => !resolvedBlockIds.has(block.id),
+      );
+
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "completed",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      const [completedEvent] = await tx
+        .insert(schema.taskEvents)
+        .values({
+          ...request,
+          id: uuidv7(),
+          taskSessionId: request.taskSessionId,
+          eventType: "completed",
+          rawContext: {},
+        })
+        .returning();
+
+      return {
+        session: session ?? null,
+        completedEvent: completedEvent ?? null,
+        unresolvedBlocks,
+      };
+    });
+  };
+
+export const resolveBlockReport =
+  (db: Database): ResolveBlockReport =>
+  ({ request }) => {
+    return db.transaction(async (tx) => {
+      const [blockEvent] = await tx
+        .select()
+        .from(schema.taskEvents)
+        .where(
+          and(
+            eq(schema.taskEvents.id, request.blockReportId),
+            eq(schema.taskEvents.taskSessionId, request.taskSessionId),
+            eq(schema.taskEvents.eventType, "blocked"),
+          ),
+        );
+
+      if (!blockEvent) {
+        return {
+          session: null,
+          blockReport: null,
+        };
+      }
+
+      await tx.insert(schema.taskEvents).values({
+        id: uuidv7(),
+        taskSessionId: request.taskSessionId,
+        eventType: "block_resolved",
+        reason: blockEvent.reason,
+        relatedEventId: request.blockReportId,
+        rawContext: {},
+      });
+
+      const [session] = await tx
+        .update(schema.taskSessions)
+        .set({
+          status: "in_progress",
+          updatedAt: request.updatedAt,
+        })
+        .where(
+          and(
+            eq(schema.taskSessions.id, request.taskSessionId),
+            eq(schema.taskSessions.workspaceId, request.workspaceId),
+            eq(schema.taskSessions.userId, request.userId),
+          ),
+        )
+        .returning();
+
+      return {
+        session: session ?? null,
+        blockReport: blockEvent,
+      };
+    });
+  };
+
+// ユーティリティ関数
 export const findTaskSessionById =
   (db: Database) =>
   async (taskSessionId: string, workspaceId: string, userId: string) => {
@@ -78,319 +338,16 @@ export const findTaskSessionById =
     return session ?? null;
   };
 
-export const addTaskUpdate =
-  (db: Database) => async (params: AddTaskUpdateRequest) => {
-    const now = new Date();
-
-    return db.transaction(async (tx) => {
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.inProgress,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
-
-      // updated イベントを作成
-      const [updateEvent] = await tx
-        .insert(schema.taskEvents)
-        .values({
-          id: uuidv7(),
-          taskSessionId: params.taskSessionId,
-          eventType: "updated",
-          summary: params.summary,
-          rawContext: params.rawContext ?? {},
-        })
-        .returning();
-
-      return {
-        session: session ?? null,
-        updateEvent: updateEvent ?? null,
-      };
-    });
-  };
-
-export const reportBlock =
-  (db: Database) => async (params: ReportBlockRequest) => {
-    const now = new Date();
-
-    return db.transaction(async (tx) => {
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.blocked,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
-
-      const [blockEvent] = await tx
-        .insert(schema.taskEvents)
-        .values({
-          id: uuidv7(),
-          taskSessionId: params.taskSessionId,
-          eventType: "blocked",
-          reason: params.reason,
-          rawContext: params.rawContext ?? {},
-        })
-        .returning();
-
-      return {
-        session: session ?? null,
-        blockReport: blockEvent ?? null,
-      };
-    });
-  };
-
-export const completeTask =
-  (db: Database) => async (params: CompleteTaskRequest) => {
-    const now = new Date();
-
-    return db.transaction(async (tx) => {
-      // ブロックイベントを取得
-      const blockedEvents = await tx
-        .select()
-        .from(schema.taskEvents)
-        .where(
-          and(
-            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-            eq(schema.taskEvents.eventType, "blocked"),
-          ),
-        )
-        .orderBy(desc(schema.taskEvents.createdAt));
-
-      // 解決イベントを取得
-      const resolvedEvents = await tx
-        .select()
-        .from(schema.taskEvents)
-        .where(
-          and(
-            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-            eq(schema.taskEvents.eventType, "block_resolved"),
-          ),
-        );
-
-      // 解決されたブロックのIDを収集
-      const resolvedBlockIds = new Set(
-        resolvedEvents
-          .map((e) => e.relatedEventId)
-          .filter((id): id is string => id !== null),
-      );
-
-      // 未解決のブロックのみをフィルタリング
-      const unresolvedBlocks = blockedEvents.filter(
-        (block) => !resolvedBlockIds.has(block.id),
-      );
-
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.completed,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
-
-      // completed イベントを作成
-      const [completedEvent] = await tx
-        .insert(schema.taskEvents)
-        .values({
-          id: uuidv7(),
-          taskSessionId: params.taskSessionId,
-          eventType: "completed",
-          summary: params.summary,
-          rawContext: {},
-        })
-        .returning();
-
-      return {
-        session: session ?? null,
-        completedEvent: completedEvent ?? null,
-        unresolvedBlocks,
-      };
-    });
-  };
-
-export const listBlockReports =
-  (db: Database) =>
-  async (taskSessionId: string, options: ListOptions = {}) => {
-    const limit = options.limit ?? 50;
-    return db
-      .select()
-      .from(schema.taskEvents)
-      .where(
-        and(
-          eq(schema.taskEvents.taskSessionId, taskSessionId),
-          eq(schema.taskEvents.eventType, "blocked"),
-        ),
-      )
-      .orderBy(desc(schema.taskEvents.createdAt))
-      .limit(limit);
-  };
-
-export const getUnresolvedBlockReports =
-  (db: Database) => async (taskSessionId: string) => {
-    // ブロックイベントを取得
-    const blockedEvents = await db
-      .select()
-      .from(schema.taskEvents)
-      .where(
-        and(
-          eq(schema.taskEvents.taskSessionId, taskSessionId),
-          eq(schema.taskEvents.eventType, "blocked"),
-        ),
-      )
-      .orderBy(desc(schema.taskEvents.createdAt));
-
-    // 解決イベントを取得
-    const resolvedEvents = await db
-      .select()
-      .from(schema.taskEvents)
-      .where(
-        and(
-          eq(schema.taskEvents.taskSessionId, taskSessionId),
-          eq(schema.taskEvents.eventType, "block_resolved"),
-        ),
-      );
-
-    // 解決されたブロックのIDを収集
-    const resolvedBlockIds = new Set(
-      resolvedEvents
-        .map((e) => e.relatedEventId)
-        .filter((id): id is string => id !== null),
-    );
-
-    // 解決されていないブロックのみを返す
-    return blockedEvents.filter((block) => !resolvedBlockIds.has(block.id));
-  };
-
-export const getBulkUnresolvedBlockReports =
-  (db: Database) => async (taskSessionIds: string[]) => {
-    if (taskSessionIds.length === 0) {
-      return new Map<string, schema.TaskEvent[]>();
-    }
-
-    // 全ブロックイベントを取得
-    const blockedEvents = await db
-      .select()
-      .from(schema.taskEvents)
-      .where(
-        and(
-          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
-          eq(schema.taskEvents.eventType, "blocked"),
-        ),
-      )
-      .orderBy(desc(schema.taskEvents.createdAt));
-
-    // 全解決イベントを取得
-    const resolvedEvents = await db
-      .select()
-      .from(schema.taskEvents)
-      .where(
-        and(
-          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
-          eq(schema.taskEvents.eventType, "block_resolved"),
-        ),
-      );
-
-    // 解決されたブロックのIDを収集
-    const resolvedBlockIds = new Set(
-      resolvedEvents
-        .map((e) => e.relatedEventId)
-        .filter((id): id is string => id !== null),
-    );
-
-    // タスクIDごとにグループ化
-    const result = new Map<string, schema.TaskEvent[]>();
-    for (const event of blockedEvents) {
-      if (!resolvedBlockIds.has(event.id)) {
-        const existing = result.get(event.taskSessionId) || [];
-        existing.push(event);
-        result.set(event.taskSessionId, existing);
-      }
-    }
-
-    return result;
-  };
-
-export const resolveBlockReport =
-  (db: Database) => async (params: ResolveBlockRequest) => {
-    const now = new Date();
-
-    return db.transaction(async (tx) => {
-      // ブロックイベントを取得
-      const [blockEvent] = await tx
-        .select()
-        .from(schema.taskEvents)
-        .where(
-          and(
-            eq(schema.taskEvents.id, params.blockReportId),
-            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-            eq(schema.taskEvents.eventType, "blocked"),
-          ),
-        );
-
-      if (!blockEvent) {
-        return {
-          session: null,
-          blockReport: null,
-        };
-      }
-
-      // block_resolved イベントを作成
-      await tx.insert(schema.taskEvents).values({
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        eventType: "block_resolved",
-        reason: blockEvent.reason,
-        relatedEventId: params.blockReportId,
-        rawContext: {},
-      });
-
-      // タスクセッションのステータスをin_progressに戻す
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.inProgress,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
-
-      return {
-        session: session ?? null,
-        blockReport: blockEvent,
-      };
-    });
-  };
-
 export const listTaskSessions =
-  (db: Database) => async (params: ListTaskSessionsRequest) => {
+  (db: Database) =>
+  async (params: {
+    userId: string;
+    workspaceId: string;
+    status?: TaskStatus;
+    limit?: number;
+    updatedAfter?: Date;
+    updatedBefore?: Date;
+  }) => {
     const limit = params.limit ?? 50;
 
     const conditions = [
@@ -449,92 +406,6 @@ export const updateSlackThread =
     return session ?? null;
   };
 
-export const pauseTask = (db: Database) => async (params: PauseTaskRequest) => {
-  const now = new Date();
-
-  return db.transaction(async (tx) => {
-    const [session] = await tx
-      .update(schema.taskSessions)
-      .set({
-        status: STATUS.paused,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(schema.taskSessions.id, params.taskSessionId),
-          eq(schema.taskSessions.workspaceId, params.workspaceId),
-          eq(schema.taskSessions.userId, params.userId),
-        ),
-      )
-      .returning();
-
-    const [pauseEvent] = await tx
-      .insert(schema.taskEvents)
-      .values({
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        eventType: "paused",
-        reason: params.reason,
-        rawContext: params.rawContext ?? {},
-      })
-      .returning();
-
-    return {
-      session: session ?? null,
-      pauseReport: pauseEvent ?? null,
-    };
-  });
-};
-
-export const resumeTask =
-  (db: Database) => async (params: ResumeTaskRequest) => {
-    const now = new Date();
-
-    return db.transaction(async (tx) => {
-      // 最新のpausedイベントを取得
-      const [latestPausedEvent] = await tx
-        .select()
-        .from(schema.taskEvents)
-        .where(
-          and(
-            eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-            eq(schema.taskEvents.eventType, "paused"),
-          ),
-        )
-        .orderBy(desc(schema.taskEvents.createdAt))
-        .limit(1);
-
-      const [session] = await tx
-        .update(schema.taskSessions)
-        .set({
-          status: STATUS.inProgress,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(schema.taskSessions.id, params.taskSessionId),
-            eq(schema.taskSessions.workspaceId, params.workspaceId),
-            eq(schema.taskSessions.userId, params.userId),
-          ),
-        )
-        .returning();
-
-      // resumed イベントを作成
-      await tx.insert(schema.taskEvents).values({
-        id: uuidv7(),
-        taskSessionId: params.taskSessionId,
-        eventType: "resumed",
-        summary: params.summary,
-        relatedEventId: latestPausedEvent?.id ?? null,
-        rawContext: params.rawContext ?? {},
-      });
-
-      return {
-        session: session ?? null,
-      };
-    });
-  };
-
 export const listEvents =
   (db: Database) =>
   async (params: {
@@ -557,6 +428,83 @@ export const listEvents =
       .where(and(...conditions))
       .orderBy(desc(schema.taskEvents.createdAt))
       .limit(limit);
+  };
+
+export const getUnresolvedBlockReports =
+  (db: Database) => async (taskSessionId: string) => {
+    const blockedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          eq(schema.taskEvents.taskSessionId, taskSessionId),
+          eq(schema.taskEvents.eventType, "blocked"),
+        ),
+      )
+      .orderBy(desc(schema.taskEvents.createdAt));
+
+    const resolvedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          eq(schema.taskEvents.taskSessionId, taskSessionId),
+          eq(schema.taskEvents.eventType, "block_resolved"),
+        ),
+      );
+
+    const resolvedBlockIds = new Set(
+      resolvedEvents
+        .map((e) => e.relatedEventId)
+        .filter((id): id is string => id !== null),
+    );
+
+    return blockedEvents.filter((block) => !resolvedBlockIds.has(block.id));
+  };
+
+export const getBulkUnresolvedBlockReports =
+  (db: Database) => async (taskSessionIds: string[]) => {
+    if (taskSessionIds.length === 0) {
+      return new Map<string, schema.TaskEvent[]>();
+    }
+
+    const blockedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+          eq(schema.taskEvents.eventType, "blocked"),
+        ),
+      )
+      .orderBy(desc(schema.taskEvents.createdAt));
+
+    const resolvedEvents = await db
+      .select()
+      .from(schema.taskEvents)
+      .where(
+        and(
+          inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+          eq(schema.taskEvents.eventType, "block_resolved"),
+        ),
+      );
+
+    const resolvedBlockIds = new Set(
+      resolvedEvents
+        .map((e) => e.relatedEventId)
+        .filter((id): id is string => id !== null),
+    );
+
+    const result = new Map<string, schema.TaskEvent[]>();
+    for (const event of blockedEvents) {
+      if (!resolvedBlockIds.has(event.id)) {
+        const existing = result.get(event.taskSessionId) || [];
+        existing.push(event);
+        result.set(event.taskSessionId, existing);
+      }
+    }
+
+    return result;
   };
 
 export const getBulkLatestEvents =
@@ -583,7 +531,6 @@ export const getBulkLatestEvents =
       )
       .orderBy(desc(schema.taskEvents.createdAt));
 
-    // タスクIDごとにグループ化し、各グループでlimitを適用
     const result = new Map<string, schema.TaskEvent[]>();
     for (const event of events) {
       const existing = result.get(event.taskSessionId) || [];
@@ -665,7 +612,7 @@ export const getTodayCompletedTasks =
         and(
           eq(schema.taskSessions.userId, params.userId),
           eq(schema.taskSessions.workspaceId, params.workspaceId),
-          eq(schema.taskSessions.status, STATUS.completed),
+          eq(schema.taskSessions.status, "completed"),
           and(
             sql`${completedAlias.createdAt} >= ${params.dateRange.from}`,
             sql`${completedAlias.createdAt} < ${params.dateRange.to}`,
@@ -682,20 +629,22 @@ export const getTodayCompletedTasks =
   };
 
 export const createTaskRepository = (db: Database): TaskRepository => ({
+  // CRUD操作（ドメインモデルを受け取る）
   createTaskSession: createTaskSession(db),
-  findTaskSessionById: findTaskSessionById(db),
   addTaskUpdate: addTaskUpdate(db),
   reportBlock: reportBlock(db),
   pauseTask: pauseTask(db),
   resumeTask: resumeTask(db),
   completeTask: completeTask(db),
-  listBlockReports: listBlockReports(db),
-  getUnresolvedBlockReports: getUnresolvedBlockReports(db),
-  getBulkUnresolvedBlockReports: getBulkUnresolvedBlockReports(db),
   resolveBlockReport: resolveBlockReport(db),
+
+  // ユーティリティ関数
+  findTaskSessionById: findTaskSessionById(db),
   listTaskSessions: listTaskSessions(db),
   updateSlackThread: updateSlackThread(db),
   listEvents: listEvents(db),
+  getUnresolvedBlockReports: getUnresolvedBlockReports(db),
+  getBulkUnresolvedBlockReports: getBulkUnresolvedBlockReports(db),
   getBulkLatestEvents: getBulkLatestEvents(db),
   getLatestEvent: getLatestEvent(db),
   getLatestEventByTypes: getLatestEventByTypes(db),

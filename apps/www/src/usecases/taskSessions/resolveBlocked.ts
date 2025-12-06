@@ -3,6 +3,7 @@ import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { buildBlockResolvedMessage } from "./slackMessages";
+import { createResolvedBlockTaskSession } from "@/models/taskSessions";
 import type { ResolveBlockedInput, ResolveBlockedOutput } from "./interface";
 
 export const createResolveBlocked = (
@@ -36,10 +37,12 @@ export const createResolveBlocked = (
     }
 
     const { session, blockReport } = await taskRepository.resolveBlockReport({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      blockReportId: blockReportId,
+      request: createResolvedBlockTaskSession({
+        taskSessionId: taskSessionId,
+        workspaceId: workspace.id,
+        userId: user.id,
+        blockReportId: blockReportId,
+      }),
     });
 
     if (!session || !blockReport) {

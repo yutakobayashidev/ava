@@ -2,6 +2,7 @@ import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { createPausedTaskSession } from "@/models/taskSessions";
 import { buildTaskPausedMessage } from "./slackMessages";
 import type { PauseTaskInput, PauseTaskOutput } from "./interface";
 
@@ -35,12 +36,16 @@ export const createPauseTask = (
       };
     }
 
-    const { session, pauseReport } = await taskRepository.pauseTask({
+    const pausedTask = createPausedTaskSession({
       taskSessionId: taskSessionId,
       workspaceId: workspace.id,
       userId: user.id,
       reason,
       rawContext: rawContext ?? {},
+    });
+
+    const { session, pauseReport } = await taskRepository.pauseTask({
+      request: pausedTask,
     });
 
     if (!session || !pauseReport) {

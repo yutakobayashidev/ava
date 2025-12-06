@@ -3,6 +3,7 @@ import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { buildTaskCompletedMessage } from "./slackMessages";
+import { createCompletedTaskSession } from "@/models/taskSessions";
 import type {
   CompleteTaskInput,
   CompleteTaskOutput,
@@ -41,10 +42,12 @@ export const createCompleteTask = (
 
     const { session, completedEvent, unresolvedBlocks } =
       await taskRepository.completeTask({
-        taskSessionId: taskSessionId,
-        workspaceId: workspace.id,
-        userId: user.id,
-        summary,
+        request: createCompletedTaskSession({
+          taskSessionId: taskSessionId,
+          workspaceId: workspace.id,
+          userId: user.id,
+          summary,
+        }),
       });
 
     if (!session || !completedEvent) {

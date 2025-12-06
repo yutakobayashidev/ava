@@ -2,6 +2,7 @@ import type { TaskRepository } from "@/repos";
 import { createSubscriptionRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
+import { createStartedTaskSession } from "@/models/taskSessions";
 import { buildTaskStartedMessage } from "./slackMessages";
 import type { StartTaskInput, StartTaskOutput } from "./interface";
 
@@ -26,13 +27,17 @@ export const createStartTask = (
       };
     }
 
-    const session = await taskRepository.createTaskSession({
+    const startedTask = createStartedTaskSession({
       userId: user.id,
       workspaceId: workspace.id,
       issueProvider: issue.provider,
       issueId: issue.id ?? null,
       issueTitle: issue.title,
       initialSummary: initialSummary,
+    });
+
+    const session = await taskRepository.createTaskSession({
+      request: startedTask,
     });
 
     if (!session) {
