@@ -6,7 +6,8 @@
     "setup": "corepack enable pnpm",
     "preinstall": "npx only-allow pnpm",
     "prepare": "lefthook install",
-    "fmt": "prettier -w ."
+    "fmt": "prettier -w .",
+    "lint": "knip"
   },
   "devDependencies": {
     "lefthook": "2.0.4",

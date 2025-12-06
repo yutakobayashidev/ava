@@ -182,9 +182,6 @@ importers:
       input-otp:
         specifier: 1.4.2
         version: 1.4.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      knip:
-        specifier: 5.70.2
-        version: 5.70.2(@types/node@20.19.25)(typescript@5.9.3)
       lucide-react:
         specifier: 0.555.0
         version: 0.555.0(react@19.2.1)
@@ -236,9 +233,6 @@ importers:
       vite-tsconfig-paths:
         specifier: 5.1.4
         version: 5.1.4(typescript@5.9.3)(vite@7.2.4(@types/node@20.19.25)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
-      ws:
-        specifier: 8.18.3
-        version: 8.18.3
       zod:
         specifier: 4.1.13
         version: 4.1.13
@@ -267,9 +261,6 @@ importers:
       '@types/react-dom':
         specifier: '19'
         version: 19.2.3(@types/react@19.2.7)
-      '@types/ws':
-        specifier: 8.18.1
-        version: 8.18.1
       '@vitejs/plugin-react':
         specifier: 5.1.1
         version: 5.1.1(vite@7.2.4(@types/node@20.19.25)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
@@ -279,9 +270,6 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.5.0
         version: 1.5.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)(vitest@4.0.14(@opentelemetry/api@1.9.0)(@types/node@20.19.25)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
-      drizzle-kit:
-        specifier: 0.31.7
-        version: 0.31.7
       drizzle-seed:
         specifier: 0.3.1
         version: 0.3.1(drizzle-orm@0.44.7(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7))
@@ -10297,23 +10285,6 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
-
-  knip@5.70.2(@types/node@20.19.25)(typescript@5.9.3):
-    dependencies:
-      '@nodelib/fs.walk': 1.2.8
-      '@types/node': 20.19.25
-      fast-glob: 3.3.3
-      formatly: 0.3.0
-      jiti: 2.6.1
-      js-yaml: 4.1.1
-      minimist: 1.2.8
-      oxc-resolver: 11.14.0
-      picocolors: 1.1.1
-      picomatch: 4.0.3
-      smol-toml: 1.5.2
-      strip-json-comments: 5.0.3
-      typescript: 5.9.3
-      zod: 4.1.13
 
   knip@5.70.2(@types/node@22.19.1)(typescript@5.9.3):
     dependencies:
