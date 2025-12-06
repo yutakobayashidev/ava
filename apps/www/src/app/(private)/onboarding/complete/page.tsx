@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Sparkles, ArrowRight } from "lucide-react";
-import { db } from "@ava/database/client";
-import { createWorkspaceRepository } from "@/repos";
-import { users } from "@ava/database/schema";
-import { eq } from "drizzle-orm";
-import { OnboardingProgress } from "../OnboardingProgress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuth } from "@/lib/auth";
+import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
+import { users } from "@ava/database/schema";
+import { eq } from "drizzle-orm";
+import { ArrowRight, Sparkles } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { OnboardingProgress } from "../OnboardingProgress";
 
 export const metadata: Metadata = {
   title: "準備完了",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default async function CompletePage() {
   const { user } = await requireAuth();
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack未連携の場合は戻す

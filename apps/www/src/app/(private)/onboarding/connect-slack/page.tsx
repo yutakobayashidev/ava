@@ -1,19 +1,19 @@
-import type { Metadata } from "next";
-import { db } from "@ava/database/client";
-import { listChannels, type SlackChannel } from "@ava/integrations/slack";
-import { getWorkspaceBotToken } from "@/lib/slack";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth";
+import { getWorkspaceBotToken } from "@/lib/slack";
+import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 import { getInitials } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
+import { listChannels, type SlackChannel } from "@ava/integrations/slack";
 import { ArrowRight, CheckCircle } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { OnboardingProgress } from "../OnboardingProgress";
-import { requireAuth } from "@/lib/auth";
-import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 
 export const metadata: Metadata = {
   title: "Slackワークスペースを連携",
@@ -27,7 +27,7 @@ export default async function ConnectSlackPage({
   const { user } = await requireAuth();
 
   const params = await searchParams;
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
 
   // ユーザーの Slack Team ID を使って既存ワークスペースを検索し、自動的に設定
   if (user.slackTeamId && !user.workspaceId) {
@@ -80,7 +80,7 @@ export default async function ConnectSlackPage({
       redirect("/onboarding/connect-slack?error=missing_channel");
     }
 
-    const workspaceRepository = createWorkspaceRepository({ db });
+    const workspaceRepository = createWorkspaceRepository(db);
     const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
     if (!workspace?.botAccessToken) {

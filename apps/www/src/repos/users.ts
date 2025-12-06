@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
-import { uuidv7 } from "uuidv7";
 import type { Database } from "@ava/database/client";
 import { users } from "@ava/database/schema";
+import { and, eq } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 type UserProvider = "slack";
 
@@ -15,7 +15,7 @@ type CreateUserInput = {
   image?: string;
 };
 
-export const createUserRepository = ({ db }: { db: Database }) => ({
+export const createUserRepository = (db: Database) => ({
   async createUser(input: CreateUserInput) {
     const [user] = await db
       .insert(users)

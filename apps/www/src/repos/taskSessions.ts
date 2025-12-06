@@ -8,10 +8,6 @@ type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
 
 type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
 
-type TaskRepositoryDeps = {
-  db: Database;
-};
-
 type CreateTaskSessionInput = {
   userId: string;
   workspaceId: string;
@@ -91,7 +87,7 @@ const STATUS: Record<
   cancelled: "cancelled",
 };
 
-export const createTaskRepository = ({ db }: TaskRepositoryDeps) => {
+export const createTaskRepository = (db: Database) => {
   const createTaskSession = async (params: CreateTaskSessionInput) => {
     return db.transaction(async (tx) => {
       const sessionId = uuidv7();

@@ -1,4 +1,4 @@
-import { createHonoApp, getUsecaseContext } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 import { validateSessionToken } from "@/lib/server/session";
 import { absoluteUrl } from "@/lib/utils";
 import { handleSubscriptionUpsert } from "@/usecases/stripe/handleSubscriptionUpsert";
@@ -16,7 +16,8 @@ const STRIPE_LOOKUP_KEYS = {
 const app = createHonoApp()
   .post("/webhook", async (ctx) => {
     const { STRIPE_WEBHOOK_SECRET } = env(ctx);
-    const { stripe, db } = getUsecaseContext(ctx);
+    const stripe = ctx.get("stripe");
+    const db = ctx.get("db");
 
     const signature = ctx.req.header("stripe-signature");
 
@@ -97,7 +98,8 @@ const app = createHonoApp()
       throw new HTTPException(401, { message: "Unauthorized" });
     }
 
-    const { db, stripe } = getUsecaseContext(ctx);
+    const db = ctx.get("db");
+    const stripe = ctx.get("stripe");
 
     const me = await db.query.users.findFirst({
       where: eq(users.id, user.id),
@@ -205,7 +207,8 @@ const app = createHonoApp()
       throw new HTTPException(401, { message: "Unauthorized" });
     }
 
-    const { db, stripe } = getUsecaseContext(ctx);
+    const db = ctx.get("db");
+    const stripe = ctx.get("stripe");
 
     const me = await db.query.users.findFirst({
       where: eq(users.id, user.id),
@@ -232,7 +235,7 @@ const app = createHonoApp()
       throw new HTTPException(401, { message: "Unauthorized" });
     }
 
-    const { db } = getUsecaseContext(ctx);
+    const db = ctx.get("db");
 
     const subscription = await db.query.subscriptions.findFirst({
       where: (subscriptions, { eq, and, inArray }) =>

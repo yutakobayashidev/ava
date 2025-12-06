@@ -1,13 +1,13 @@
-import type { Env } from "@/app/create-app";
-import type { Database } from "@ava/database/client";
 import { absoluteUrl } from "@/lib/utils";
+import type { HonoEnv } from "@/types";
+import { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import * as schema from "@ava/database/schema";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;
@@ -46,7 +46,7 @@ async function findUserAndWorkspaceByToken(
   return { user, workspace };
 }
 
-function getToken(c: Context<Env>) {
+function getToken(c: Context) {
   const auth = c.req.header("Authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   return auth.slice("Bearer ".length);
@@ -67,7 +67,7 @@ function throwUnauthorized(): never {
   });
 }
 
-export const oauthMiddleware = createMiddleware<Env>(async (c, next) => {
+export const oauthMiddleware = createMiddleware<HonoEnv>(async (c, next) => {
   const token = getToken(c);
   if (!token) throwUnauthorized();
 

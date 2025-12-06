@@ -1,8 +1,8 @@
+import { requireAuth } from "@/lib/auth";
+import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { db } from "@ava/database/client";
-import { createWorkspaceRepository } from "@/repos";
-import { requireAuth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "オンボーディング",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function OnboardingPage() {
   const { user } = await requireAuth();
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack連携が完了していればStep 2へ

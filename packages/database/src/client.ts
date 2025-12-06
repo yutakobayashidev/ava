@@ -1,9 +1,9 @@
 import "server-only";
 
-import { drizzle as pgDrizzle } from "drizzle-orm/postgres-js";
-import { drizzle as neonDrizzle } from "drizzle-orm/neon-serverless";
-import postgres from "postgres";
 import { neonConfig } from "@neondatabase/serverless";
+import { drizzle as neonDrizzle } from "drizzle-orm/neon-serverless";
+import { drizzle as pgDrizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import ws from "ws";
 import * as schema from "./schema";
 import { createDBUrl } from "./utils";

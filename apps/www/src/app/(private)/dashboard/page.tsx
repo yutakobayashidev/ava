@@ -1,5 +1,6 @@
-import { db } from "@ava/database/client";
-import { createTaskRepository } from "@/repos";
+import { Header } from "@/components/header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -8,15 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Header } from "@/components/header";
-import Link from "next/link";
-import { MessageSquare } from "lucide-react";
-import { formatDate, formatDuration } from "@/utils/date";
 import { requireWorkspace } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
+import { createTaskRepository } from "@/repos";
+import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
+import { db } from "@ava/database/client";
+import { MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -35,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
 export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository({ db });
+  const taskRepository = createTaskRepository(db);
   const tasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,

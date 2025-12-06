@@ -1,5 +1,5 @@
+import { createUserRepository, createWorkspaceRepository } from "@/repos";
 import { afterAll, afterEach, vi } from "vitest";
-import { createWorkspaceRepository, createUserRepository } from "@/repos";
 
 export async function setup() {
   const { container, db, truncate, down } = await vi.hoisted(async () => {
@@ -59,8 +59,8 @@ export async function setup() {
   }
 
   async function createTestUserAndWorkspace() {
-    const userRepository = createUserRepository({ db });
-    const workspaceRepository = createWorkspaceRepository({ db });
+    const userRepository = createUserRepository(db);
+    const workspaceRepository = createWorkspaceRepository(db);
 
     const user = await userRepository.createUser({
       provider: "slack",

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { HonoEnv } from "@/types";
+import { describe, expect, it, vi } from "vitest";
 import { handleApplicationCommands } from "./handleSlackCommands";
-import type { Env } from "@/app/create-app";
 
 describe("handleApplicationCommands", () => {
-  const mockCtx = {} as Env["Variables"];
+  const mockCtx = {} as HonoEnv["Variables"];
 
   it("should call matching command handler", async () => {
     const mockHandler = vi.fn().mockResolvedValue({

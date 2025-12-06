@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { db } from "@ava/database/client";
-import { listChannels, type SlackChannel } from "@ava/integrations/slack";
-import { getWorkspaceBotToken } from "@/lib/slack";
-import { requireAuth } from "@/lib/auth";
-import { createWorkspaceRepository } from "@/repos";
 import { Header } from "@/components/header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth";
+import { getWorkspaceBotToken } from "@/lib/slack";
+import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
+import { listChannels, type SlackChannel } from "@ava/integrations/slack";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default async function ChannelSettingsPage({
   const { user } = await requireAuth();
   const params = await searchParams;
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   if (!workspace?.botAccessToken) {
@@ -54,7 +54,7 @@ export default async function ChannelSettingsPage({
       redirect("/settings/channel?error=missing_channel");
     }
 
-    const workspaceRepository = createWorkspaceRepository({ db });
+    const workspaceRepository = createWorkspaceRepository(db);
     const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
     if (!workspace?.botAccessToken) {

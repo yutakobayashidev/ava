@@ -1,8 +1,8 @@
-import { StreamableHTTPTransport } from "@hono/mcp";
-import { createMcpServer } from "./mcp-server";
+import { createHonoApp } from "@/create-app";
 import { oauthMiddleware } from "@/middleware/oauth";
-import { createHonoApp, getUsecaseContext } from "@/app/create-app";
+import { StreamableHTTPTransport } from "@hono/mcp";
 import { cors } from "hono/cors";
+import { createMcpServer } from "./mcp-server";
 
 export const mcpHandler = createHonoApp().basePath("/mcp");
 
@@ -20,7 +20,7 @@ mcpHandler.all(
   }),
   oauthMiddleware,
   async (c) => {
-    const mcp = createMcpServer(getUsecaseContext(c));
+    const mcp = createMcpServer(c);
     const transport = new StreamableHTTPTransport();
 
     await mcp.connect(transport);

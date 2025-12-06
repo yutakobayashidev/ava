@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { setup } from "../../tests/vitest.helper";
-import { createHonoApp } from "@/app/create-app";
-import { oauthMiddleware } from "./oauth";
+import { createHonoApp } from "@/create-app";
 import * as schema from "@ava/database/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setup } from "../../tests/vitest.helper";
+import { oauthMiddleware } from "./oauth";
 
 const { db } = await setup();
 

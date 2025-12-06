@@ -1,6 +1,6 @@
-import type { Database } from "@ava/database/client";
 import type { CreateWorkspaceInput } from "@/repos";
 import { createWorkspaceRepository } from "@/repos";
+import type { Database } from "@ava/database/client";
 import type { NonNullableUser } from "../dummyUsers";
 
 export async function setupWorkspaceForUser(
@@ -8,7 +8,7 @@ export async function setupWorkspaceForUser(
   user: NonNullableUser,
   workspaceInput: CreateWorkspaceInput,
 ) {
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
 
   const workspace = await workspaceRepository.createWorkspace(workspaceInput);
 

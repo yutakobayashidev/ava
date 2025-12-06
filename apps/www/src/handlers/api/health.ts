@@ -1,4 +1,4 @@
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 
 const app = createHonoApp();
 

@@ -1,18 +1,17 @@
-import type { Env } from "@/app/create-app";
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 import {
   fetchClientMetadataDocument,
   isClientMetadataUrl,
 } from "@/lib/server/cimd";
 import { timingSafeCompare } from "@/lib/timing-safe";
-import type { Database } from "@ava/database/client";
+import { Context } from "@/types";
+import { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { zValidator } from "@hono/zod-validator";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64urlNoPadding, encodeHexLowerCase } from "@oslojs/encoding";
 import { randomBytes } from "crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import type { Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { uuidv7 } from "uuidv7";
@@ -75,7 +74,7 @@ export async function getClient(
  * クライアント認証とフォームパースを行う
  */
 async function parseAndAuthenticateRequest(
-  db: Context<Env>["var"]["db"],
+  db: Database,
   authHeader: string | undefined,
   contentType: string,
   body: Record<string, string | File>,
@@ -152,7 +151,7 @@ async function parseAndAuthenticateRequest(
 async function handleAuthorizationCodeGrant(
   body: z.infer<typeof authCodeExchangeSchema>,
   client: typeof schema.clients.$inferSelect,
-  c: Context<Env>,
+  c: Context,
 ) {
   const code = body.code;
   const redirectUri = body.redirect_uri;
@@ -308,7 +307,7 @@ async function handleAuthorizationCodeGrant(
 async function handleRefreshTokenGrant(
   body: z.infer<typeof refreshTokenSchema>,
   client: typeof schema.clients.$inferSelect,
-  c: Context<Env>,
+  c: Context,
 ) {
   const refreshToken = body.refresh_token;
   const db = c.get("db");

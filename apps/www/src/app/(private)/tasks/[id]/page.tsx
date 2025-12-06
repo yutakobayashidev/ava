@@ -1,21 +1,21 @@
-import { notFound } from "next/navigation";
-import { db } from "@ava/database/client";
-import { createTaskRepository } from "@/repos";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import { requireWorkspace } from "@/lib/auth";
+import { createTaskRepository } from "@/repos";
+import { formatDate, formatDuration } from "@/utils/date";
+import { buildSlackThreadUrl } from "@/utils/slack";
+import { db } from "@ava/database/client";
 import {
   ArrowLeft,
-  Clock,
   Calendar,
+  Clock,
   GitBranch,
   MessageSquare,
 } from "lucide-react";
-import { formatDate, formatDuration } from "@/utils/date";
-import { requireWorkspace } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { buildSlackThreadUrl } from "@/utils/slack";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 function StatusBadge({ status }: { status: string }) {
   const variants = {
@@ -77,7 +77,7 @@ export default async function TaskDetailPage({
   const { id } = await params;
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository({ db });
+  const taskRepository = createTaskRepository(db);
   const task = await taskRepository.findTaskSessionById(
     id,
     workspace.id,

@@ -1,7 +1,7 @@
 import { generateState } from "arctic";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 
-import { createHonoApp, getUsecaseContext } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { validateSessionToken } from "@/lib/server/session";
@@ -11,7 +11,13 @@ import { verifySlackSignature } from "@/middleware/slack";
 import { createUserRepository } from "@/repos/users";
 import { createWorkspaceRepository } from "@/repos/workspaces";
 import { installWorkspace } from "@/usecases/slack/installWorkspace";
-import * as taskSessionUsecases from "@/usecases/taskSessions";
+import {
+  constructCompleteTaskWorkflow,
+  constructPauseTaskWorkflow,
+  constructReportBlockedWorkflow,
+  constructResolveBlockedWorkflow,
+  constructResumeTaskWorkflow,
+} from "@/usecases/taskSessions/constructor";
 import { buildRedirectUrl } from "@/utils/urls";
 import {
   buildSlackInstallUrl,
@@ -102,7 +108,13 @@ app.get("/install/callback", async (ctx) => {
       code,
       userId: user.id,
     },
-    getUsecaseContext(ctx),
+    {
+      db: ctx.get("db"),
+      ai: ctx.get("ai"),
+      stripe: ctx.get("stripe"),
+      user: ctx.get("user"),
+      workspace: ctx.get("workspace"),
+    },
   );
 
   // Cookie削除（成功/失敗に関わらず）
@@ -151,7 +163,13 @@ app.post(
       teamId,
       userId,
       commands: [dailyReportInteraction],
-      ctx: getUsecaseContext(ctx),
+      ctx: {
+        db: ctx.get("db"),
+        ai: ctx.get("ai"),
+        stripe: ctx.get("stripe"),
+        user: ctx.get("user"),
+        workspace: ctx.get("workspace"),
+      },
     });
 
     return ctx.json(result);
@@ -176,9 +194,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     const triggerId = payload.trigger_id;
     const teamId = payload.team.id;
 
-    const usecaseContext = getUsecaseContext(ctx);
-    const { db } = usecaseContext;
-    const workspaceRepository = createWorkspaceRepository({ db });
+    const db = ctx.get("db");
+    const workspaceRepository = createWorkspaceRepository(db);
 
     // ワークスペース情報を取得
     const workspace = await workspaceRepository.findWorkspaceByExternalId({
@@ -241,10 +258,9 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     const teamId = payload.team.id;
     const userId = payload.user.id;
 
-    const baseContext = getUsecaseContext(ctx);
-    const { db } = baseContext;
-    const workspaceRepository = createWorkspaceRepository({ db });
-    const userRepository = createUserRepository({ db });
+    const db = ctx.get("db");
+    const workspaceRepository = createWorkspaceRepository(db);
+    const userRepository = createUserRepository(db);
 
     // ワークスペースとユーザーを取得
     const workspace = await workspaceRepository.findWorkspaceByExternalId({
@@ -263,54 +279,57 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
       return ctx.json({ error: "User not found" }, 400);
     }
 
-    const usecaseContext = { ...baseContext, workspace, user };
-
     try {
       switch (callbackId) {
         case "complete_task_modal": {
           const summary =
             values.summary_block.summary_input.value || "完了しました";
-          await taskSessionUsecases.completeTask(
-            { taskSessionId, summary },
-            usecaseContext,
-          );
+          await constructCompleteTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, summary },
+          });
           break;
         }
         case "report_blocked_modal": {
           const reason =
             values.reason_block.reason_input.value || "詰まっています";
-          await taskSessionUsecases.reportBlocked(
-            { taskSessionId, reason },
-            usecaseContext,
-          );
+          await constructReportBlockedWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, reason },
+          });
           break;
         }
         case "pause_task_modal": {
           const reason = values.reason_block.reason_input.value || "休止します";
-          await taskSessionUsecases.pauseTask(
-            { taskSessionId, reason },
-            usecaseContext,
-          );
+          await constructPauseTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, reason },
+          });
           break;
         }
         case "resume_task_modal": {
           const summary =
             values.summary_block.summary_input.value || "再開しました";
-          await taskSessionUsecases.resumeTask(
-            { taskSessionId, summary },
-            usecaseContext,
-          );
+          await constructResumeTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, summary },
+          });
           break;
         }
         case "resolve_blocked_modal": {
           const metadata = JSON.parse(taskSessionId);
-          await taskSessionUsecases.resolveBlocked(
-            {
+          await constructResolveBlockedWorkflow(ctx)({
+            workspace,
+            user,
+            params: {
               taskSessionId: metadata.taskSessionId,
               blockReportId: metadata.blockReportId,
             },
-            usecaseContext,
-          );
+          });
           break;
         }
         default:

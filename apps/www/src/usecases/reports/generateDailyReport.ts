@@ -1,4 +1,3 @@
-import type { Env } from "@/app/create-app";
 import { generateText } from "@/lib/server/ai";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import {
@@ -6,6 +5,7 @@ import {
   createUserRepository,
   createWorkspaceRepository,
 } from "@/repos";
+import { HonoEnv } from "@/types";
 import { fillPrompt } from "@/utils/prompts";
 
 type BlockReport = {
@@ -106,14 +106,14 @@ function buildDailySummaryPrompt(
 
 export const generateDailyReport = async (
   params: GenerateDailyReport,
-  ctx: Env["Variables"],
+  ctx: HonoEnv["Variables"],
 ): Promise<DailyReportResult> => {
   const { slackTeamId, slackUserId } = params;
   const { db, ai } = ctx;
 
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const userRepository = createUserRepository({ db });
-  const taskRepository = createTaskRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
+  const userRepository = createUserRepository(db);
+  const taskRepository = createTaskRepository(db);
 
   // ワークスペースを取得
   const workspace = await workspaceRepository.findWorkspaceByExternalId({

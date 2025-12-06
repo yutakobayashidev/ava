@@ -1,89 +1,99 @@
-import { Env } from "@/app/create-app";
-import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
-import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import type { TaskRepository } from "@/repos";
+import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { buildTaskBlockedMessage } from "./slackMessages";
+import type { ReportBlockedInput, ReportBlockedOutput } from "./interface";
 
-type ReportBlocked = {
-  taskSessionId: string;
-  reason: string;
-  rawContext?: Record<string, unknown>;
-};
+export const createReportBlocked = (
+  taskRepository: TaskRepository,
+  slackNotificationService: SlackNotificationService,
+) => {
+  return async (input: ReportBlockedInput): Promise<ReportBlockedOutput> => {
+    const { workspace, user, params } = input;
+    const { taskSessionId, reason, rawContext } = params;
 
-export const reportBlocked = async (
-  params: ReportBlocked,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { taskSessionId, reason, rawContext } = params;
+    // 現在のタスクセッションを取得して状態遷移を検証
+    const currentSession = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const notificationService = createNotificationService(
-    workspace,
-    taskRepository,
-    workspaceRepository,
-  );
+    if (!currentSession) {
+      return {
+        success: false,
+        error: "タスクセッションが見つかりません",
+      };
+    }
 
-  // 現在のタスクセッションを取得して状態遷移を検証
-  const currentSession = await taskRepository.findTaskSessionById(
-    taskSessionId,
-    workspace.id,
-    user.id,
-  );
+    // → blocked への遷移を検証
+    if (!isValidTransition(currentSession.status, "blocked")) {
+      return {
+        success: false,
+        error: `Invalid status transition: ${currentSession.status} → blocked. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+      };
+    }
 
-  if (!currentSession) {
+    const { session, blockReport } = await taskRepository.reportBlock({
+      taskSessionId: taskSessionId,
+      workspaceId: workspace.id,
+      userId: user.id,
+      reason,
+      rawContext: rawContext ?? {},
+    });
+
+    if (!session || !blockReport) {
+      return {
+        success: false,
+        error: "ブロッキング情報の登録に失敗しました",
+      };
+    }
+
+    // Slack通知
+    let slackNotification: { delivered: boolean; reason?: string };
+
+    const slackThread = createSlackThreadInfo({
+      channel: session.slackChannel,
+      threadTs: session.slackThreadTs,
+    });
+
+    if (slackThread) {
+      // メッセージ組み立て（ユースケース層の責務）
+      const message = buildTaskBlockedMessage({
+        session: { id: session.id },
+        reason,
+        blockReportId: blockReport.id,
+      });
+
+      // Slack通知（インフラ層への委譲）
+      const notification = await slackNotificationService.postMessage({
+        workspace,
+        channel: slackThread.channel,
+        message,
+        threadTs: slackThread.threadTs,
+      });
+
+      slackNotification = {
+        delivered: notification.delivered,
+        reason: notification.error,
+      };
+    } else {
+      slackNotification = {
+        delivered: false,
+        reason: "Slack thread not configured",
+      };
+    }
+
     return {
-      success: false,
-      error: "タスクセッションが見つかりません",
+      success: true,
+      data: {
+        taskSessionId: session.id,
+        blockReportId: blockReport.id,
+        status: session.status,
+        reason: blockReport.reason,
+        slackNotification,
+      },
     };
-  }
-
-  // → blocked への遷移を検証
-  if (!isValidTransition(currentSession.status, "blocked")) {
-    return {
-      success: false,
-      error: `Invalid status transition: ${currentSession.status} → blocked. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-    };
-  }
-
-  const { session, blockReport } = await taskRepository.reportBlock({
-    taskSessionId: taskSessionId,
-    workspaceId: workspace.id,
-    userId: user.id,
-    reason,
-    rawContext: rawContext ?? {},
-  });
-
-  if (!session || !blockReport) {
-    return {
-      success: false,
-      error: "ブロッキング情報の登録に失敗しました",
-    };
-  }
-
-  const slackNotification = await notificationService.notifyTaskBlocked({
-    session: {
-      id: session.id,
-      slackThreadTs: session.slackThreadTs,
-      slackChannel: session.slackChannel,
-    },
-    reason,
-    blockReportId: blockReport.id,
-  });
-
-  const result = {
-    task_session_id: session.id,
-    block_report_id: blockReport.id,
-    status: session.status,
-    reason: blockReport.reason,
-    slack_notification: slackNotification,
-    message: "ブロッキング情報を登録しました。",
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
   };
 };

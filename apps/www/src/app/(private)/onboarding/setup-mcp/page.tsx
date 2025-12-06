@@ -1,15 +1,15 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth";
+import { absoluteUrl } from "@/lib/utils";
+import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
-import { absoluteUrl } from "@/lib/utils";
-import { db } from "@ava/database/client";
 import { OnboardingProgress } from "../OnboardingProgress";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { McpSetupTabs } from "./McpSetupTabs";
-import { requireAuth } from "@/lib/auth";
-import { createWorkspaceRepository } from "@/repos";
 
 export const metadata: Metadata = {
   title: "MCPサーバーを接続",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default async function SetupMcpPage() {
   const { user } = await requireAuth();
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   // Slack未連携の場合は戻す
