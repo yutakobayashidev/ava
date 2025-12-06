@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@ava/database/client";
-import {
-  listChannels,
-  getValidBotToken,
-  type SlackChannel,
-} from "@ava/integrations/slack";
+import { listChannels, type SlackChannel } from "@ava/integrations/slack";
+import { getWorkspaceBotToken } from "@/lib/slack";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -62,20 +59,9 @@ export default async function ConnectSlackPage({
 
   if (workspace?.botAccessToken) {
     try {
-      const validToken = await getValidBotToken({
-        botAccessToken: workspace.botAccessToken,
-        botRefreshToken: workspace.botRefreshToken,
-        botTokenExpiresAt: workspace.botTokenExpiresAt,
-        clientId: process.env.SLACK_APP_CLIENT_ID,
-        clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
-        onTokenRotated: async (rotatedTokens) => {
-          await workspaceRepository.updateWorkspaceCredentials({
-            workspaceId: workspace.id,
-            botAccessToken: rotatedTokens.accessToken,
-            botRefreshToken: rotatedTokens.refreshToken,
-            botTokenExpiresAt: rotatedTokens.expiresAt,
-          });
-        },
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
       });
       channels = await listChannels(validToken);
     } catch (error) {
@@ -104,20 +90,9 @@ export default async function ConnectSlackPage({
     let availableChannels: SlackChannel[] = [];
 
     try {
-      const validToken = await getValidBotToken({
-        botAccessToken: workspace.botAccessToken,
-        botRefreshToken: workspace.botRefreshToken,
-        botTokenExpiresAt: workspace.botTokenExpiresAt,
-        clientId: process.env.SLACK_APP_CLIENT_ID,
-        clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
-        onTokenRotated: async (rotatedTokens) => {
-          await workspaceRepository.updateWorkspaceCredentials({
-            workspaceId: workspace.id,
-            botAccessToken: rotatedTokens.accessToken,
-            botRefreshToken: rotatedTokens.refreshToken,
-            botTokenExpiresAt: rotatedTokens.expiresAt,
-          });
-        },
+      const validToken = await getWorkspaceBotToken({
+        workspace,
+        workspaceRepository,
       });
       availableChannels = await listChannels(validToken);
     } catch (error) {

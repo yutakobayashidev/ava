@@ -5,6 +5,7 @@ import { createHonoApp, getUsecaseContext } from "@/app/create-app";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
 import { validateSessionToken } from "@/lib/server/session";
+import { getWorkspaceBotToken } from "@/lib/slack";
 import { absoluteUrl } from "@/lib/utils";
 import { verifySlackSignature } from "@/middleware/slack";
 import { createUserRepository } from "@/repos/users";
@@ -19,7 +20,6 @@ import {
   createReportBlockedModal,
   createResolveBlockedModal,
   createResumeTaskModal,
-  getValidBotToken,
   openModal,
   type SlackOAuthConfig,
 } from "@ava/integrations/slack";
@@ -190,20 +190,9 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     }
 
     // Bot tokenを取得
-    const token = await getValidBotToken({
-      botAccessToken: workspace.botAccessToken,
-      botRefreshToken: workspace.botRefreshToken,
-      botTokenExpiresAt: workspace.botTokenExpiresAt,
-      clientId: process.env.SLACK_APP_CLIENT_ID,
-      clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
-      onTokenRotated: async (rotatedTokens) => {
-        await workspaceRepository.updateWorkspaceCredentials({
-          workspaceId: workspace.id,
-          botAccessToken: rotatedTokens.accessToken,
-          botRefreshToken: rotatedTokens.refreshToken,
-          botTokenExpiresAt: rotatedTokens.expiresAt,
-        });
-      },
+    const token = await getWorkspaceBotToken({
+      workspace,
+      workspaceRepository,
     });
 
     // action_idに応じてモーダルを表示
