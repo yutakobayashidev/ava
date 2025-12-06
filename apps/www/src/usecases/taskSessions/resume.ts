@@ -9,8 +9,18 @@ type ResumeTask = {
   rawContext?: Record<string, unknown>;
 };
 
+type ResumeTaskSuccess = {
+  taskSessionId: string;
+  status: string;
+  resumedAt: Date;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type ResumeTaskResult =
-  | { success: true; data: string }
+  | { success: true; data: ResumeTaskSuccess }
   | { success: false; error: string };
 
 export const createResumeTask = (
@@ -68,17 +78,14 @@ export const createResumeTask = (
       summary,
     });
 
-    const result = {
-      task_session_id: session.id,
-      status: session.status,
-      resumed_at: session.updatedAt,
-      slack_notification: slackNotification,
-      message: "タスクを再開しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        status: session.status,
+        resumedAt: session.updatedAt,
+        slackNotification,
+      },
     };
   };
 };

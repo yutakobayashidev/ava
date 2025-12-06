@@ -8,8 +8,23 @@ type CompleteTask = {
   summary: string;
 };
 
+type CompleteTaskSuccess = {
+  taskSessionId: string;
+  completionId: string;
+  status: string;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+  unresolvedBlocks?: Array<{
+    blockReportId: string;
+    reason: string | null;
+    createdAt: Date;
+  }>;
+};
+
 type CompleteTaskResult =
-  | { success: true; data: string }
+  | { success: true; data: CompleteTaskSuccess }
   | { success: false; error: string };
 
 export const createCompleteTask = (
@@ -67,27 +82,24 @@ export const createCompleteTask = (
       summary,
     });
 
-    const response: Record<string, unknown> = {
-      task_session_id: session.id,
-      completion_id: completedEvent.id,
+    const data: CompleteTaskSuccess = {
+      taskSessionId: session.id,
+      completionId: completedEvent.id,
       status: session.status,
-      slack_notification: slackNotification,
-      message: "完了報告を保存しました。",
+      slackNotification,
     };
 
     if (unresolvedBlocks.length > 0) {
-      response.unresolved_blocks = unresolvedBlocks.map((block) => ({
-        block_report_id: block.id,
+      data.unresolvedBlocks = unresolvedBlocks.map((block) => ({
+        blockReportId: block.id,
         reason: block.reason,
-        created_at: block.createdAt,
+        createdAt: block.createdAt,
       }));
-      response.message =
-        "完了報告を保存しました。未解決のブロッキングがあります。resolve_blockedツールで解決を報告してください。";
     }
 
     return {
       success: true,
-      data: JSON.stringify(response, null, 2),
+      data,
     };
   };
 };

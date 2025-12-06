@@ -9,8 +9,19 @@ type ReportBlocked = {
   rawContext?: Record<string, unknown>;
 };
 
+type ReportBlockedSuccess = {
+  taskSessionId: string;
+  blockReportId: string;
+  status: string;
+  reason: string | null;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type ReportBlockedResult =
-  | { success: true; data: string }
+  | { success: true; data: ReportBlockedSuccess }
   | { success: false; error: string };
 
 export const createReportBlocked = (
@@ -69,18 +80,15 @@ export const createReportBlocked = (
       blockReportId: blockReport.id,
     });
 
-    const result = {
-      task_session_id: session.id,
-      block_report_id: blockReport.id,
-      status: session.status,
-      reason: blockReport.reason,
-      slack_notification: slackNotification,
-      message: "ブロッキング情報を登録しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        blockReportId: blockReport.id,
+        status: session.status,
+        reason: blockReport.reason,
+        slackNotification,
+      },
     };
   };
 };

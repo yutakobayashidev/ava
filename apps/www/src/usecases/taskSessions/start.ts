@@ -12,8 +12,18 @@ type StartTask = {
   initialSummary: string;
 };
 
+type StartTaskSuccess = {
+  taskSessionId: string;
+  status: string;
+  issuedAt: Date;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type StartTaskResult =
-  | { success: true; data: string }
+  | { success: true; data: StartTaskSuccess }
   | { success: false; error: string };
 
 export const createStartTask = (
@@ -70,17 +80,14 @@ export const createStartTask = (
       },
     });
 
-    const result = {
-      task_session_id: session.id,
-      status: session.status,
-      issued_at: session.createdAt,
-      slack_notification: slackNotification,
-      message: "タスクの追跡を開始しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        status: session.status,
+        issuedAt: session.createdAt,
+        slackNotification,
+      },
     };
   };
 };

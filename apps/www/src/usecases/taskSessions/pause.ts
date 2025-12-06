@@ -9,8 +9,19 @@ type PauseTask = {
   rawContext?: Record<string, unknown>;
 };
 
+type PauseTaskSuccess = {
+  taskSessionId: string;
+  pauseReportId: string;
+  status: string;
+  pausedAt: Date;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type PauseTaskResult =
-  | { success: true; data: string }
+  | { success: true; data: PauseTaskSuccess }
   | { success: false; error: string };
 
 export const createPauseTask = (
@@ -68,18 +79,15 @@ export const createPauseTask = (
       reason,
     });
 
-    const result = {
-      task_session_id: session.id,
-      pause_report_id: pauseReport.id,
-      status: session.status,
-      paused_at: pauseReport.createdAt,
-      slack_notification: slackNotification,
-      message: "タスクを一時休止しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        pauseReportId: pauseReport.id,
+        status: session.status,
+        pausedAt: pauseReport.createdAt,
+        slackNotification,
+      },
     };
   };
 };

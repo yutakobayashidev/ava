@@ -8,8 +8,19 @@ type ResolveBlocked = {
   blockReportId: string;
 };
 
+type ResolveBlockedSuccess = {
+  taskSessionId: string;
+  blockReportId: string;
+  status: string;
+  resolvedAt: Date;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type ResolveBlockedResult =
-  | { success: true; data: string }
+  | { success: true; data: ResolveBlockedSuccess }
   | { success: false; error: string };
 
 export const createResolveBlocked = (
@@ -66,18 +77,15 @@ export const createResolveBlocked = (
       blockReason: blockReport.reason ?? "Unknown block",
     });
 
-    const result = {
-      task_session_id: session.id,
-      block_report_id: blockReport.id,
-      status: session.status,
-      resolved_at: blockReport.createdAt,
-      slack_notification: slackNotification,
-      message: "ブロッキングの解決を報告しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        blockReportId: blockReport.id,
+        status: session.status,
+        resolvedAt: blockReport.createdAt,
+        slackNotification,
+      },
     };
   };
 };

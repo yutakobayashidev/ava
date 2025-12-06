@@ -2,12 +2,37 @@ import { createTaskRepository } from "@/repos";
 import { HonoEnv } from "@/types";
 
 type ListTasks = {
-  status?: "in_progress" | "blocked" | "paused" | "completed";
+  status?: "inProgress" | "blocked" | "paused" | "completed";
   limit?: number;
 };
 
+// ステータスをDBの形式に変換
+function convertStatusToDb(
+  status?: string,
+): "in_progress" | "blocked" | "paused" | "completed" | undefined {
+  if (status === "inProgress") return "in_progress";
+  if (status === "blocked" || status === "paused" || status === "completed")
+    return status;
+  return undefined;
+}
+
+type TaskSummary = {
+  taskSessionId: string;
+  issueProvider: string;
+  issueId: string | null;
+  issueTitle: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type ListTasksSuccess = {
+  total: number;
+  tasks: TaskSummary[];
+};
+
 type ListTasksResult =
-  | { success: true; data: string }
+  | { success: true; data: ListTasksSuccess }
   | { success: false; error: string };
 
 export const createListTasks = (
@@ -21,26 +46,24 @@ export const createListTasks = (
     const sessions = await taskRepository.listTaskSessions({
       userId: user.id,
       workspaceId: workspace.id,
-      status,
+      status: convertStatusToDb(status),
       limit,
     });
 
-    const result = {
-      total: sessions.length,
-      tasks: sessions.map((session) => ({
-        task_session_id: session.id,
-        issue_provider: session.issueProvider,
-        issue_id: session.issueId,
-        issue_title: session.issueTitle,
-        status: session.status,
-        created_at: session.createdAt,
-        updated_at: session.updatedAt,
-      })),
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        total: sessions.length,
+        tasks: sessions.map((session) => ({
+          taskSessionId: session.id,
+          issueProvider: session.issueProvider,
+          issueId: session.issueId,
+          issueTitle: session.issueTitle,
+          status: session.status,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+        })),
+      },
     };
   };
 };

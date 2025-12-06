@@ -109,17 +109,17 @@ describe("createMcpServer", async () => {
     ]);
   });
 
-  describe("start_task", () => {
+  describe("startTask", () => {
     it("GitHub issueでタスクを開始できる", async () => {
       const result = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: {
             provider: "github",
             id: "123",
             title: "テスト用のタスク",
           },
-          initial_summary: "これはテスト用のタスク開始です",
+          initialSummary: "これはテスト用のタスク開始です",
         },
       })) as CallToolResult;
 
@@ -132,20 +132,20 @@ describe("createMcpServer", async () => {
         status: "in_progress",
         message: "タスクの追跡を開始しました。",
       });
-      expect(responseData.task_session_id).toBeDefined();
-      expect(responseData.issued_at).toBeDefined();
+      expect(responseData.taskSessionId).toBeDefined();
+      expect(responseData.issuedAt).toBeDefined();
       expect(notifyTaskStarted).toHaveBeenCalledOnce();
     });
 
     it("手動タスクを開始できる", async () => {
       const result = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: {
             provider: "manual",
             title: "手動タスク",
           },
-          initial_summary: "手動で作成したタスクです",
+          initialSummary: "手動で作成したタスクです",
         },
       })) as CallToolResult;
 
@@ -155,29 +155,29 @@ describe("createMcpServer", async () => {
         status: "in_progress",
         message: "タスクの追跡を開始しました。",
       });
-      expect(responseData.task_session_id).toBeDefined();
+      expect(responseData.taskSessionId).toBeDefined();
     });
   });
 
-  describe("update_task", () => {
+  describe("updateTask", () => {
     it("タスクを更新できる", async () => {
       // まずタスクを開始
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "更新テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクを更新
       const result = (await client.callTool({
-        name: "update_task",
+        name: "updateTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "進捗を更新しました",
         },
       })) as CallToolResult;
@@ -192,9 +192,9 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "update_task",
+        name: "updateTask",
         arguments: {
-          task_session_id: "non-existent-id",
+          taskSessionId: "non-existent-id",
           summary: "進捗を更新しました",
         },
       })) as CallToolResult;
@@ -205,30 +205,30 @@ describe("createMcpServer", async () => {
 
     it("完了済みタスクは更新できない", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "完了済み更新テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクを完了
       await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "完了しました",
         },
       });
 
       // 完了済みタスクを更新しようとする
       const result = (await client.callTool({
-        name: "update_task",
+        name: "updateTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "完了後の更新",
         },
       })) as CallToolResult;
@@ -239,23 +239,23 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("report_blocked", () => {
+  describe("reportBlocked", () => {
     it("タスクのブロッキングを報告できる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "ブロックテスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       const result = (await client.callTool({
-        name: "report_blocked",
+        name: "reportBlocked",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "APIのレスポンスが遅い",
         },
       })) as CallToolResult;
@@ -270,9 +270,9 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "report_blocked",
+        name: "reportBlocked",
         arguments: {
-          task_session_id: "non-existent-id",
+          taskSessionId: "non-existent-id",
           reason: "ブロッキングが発生しました",
         },
       })) as CallToolResult;
@@ -282,23 +282,23 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("pause_task", () => {
+  describe("pauseTask", () => {
     it("タスクを一時停止できる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "一時停止テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       const result = (await client.callTool({
-        name: "pause_task",
+        name: "pauseTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "別の緊急タスクに対応",
         },
       })) as CallToolResult;
@@ -313,9 +313,9 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "pause_task",
+        name: "pauseTask",
         arguments: {
-          task_session_id: "non-existent-id",
+          taskSessionId: "non-existent-id",
           reason: "一時停止します",
         },
       })) as CallToolResult;
@@ -325,33 +325,33 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("resume_task", () => {
+  describe("resumeTask", () => {
     it("一時停止したタスクを再開できる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "再開テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // 一時停止
       await client.callTool({
-        name: "pause_task",
+        name: "pauseTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "一時中断",
         },
       });
 
       // 再開
       const result = (await client.callTool({
-        name: "resume_task",
+        name: "resumeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "タスクを再開しました",
         },
       })) as CallToolResult;
@@ -366,9 +366,9 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "resume_task",
+        name: "resumeTask",
         arguments: {
-          task_session_id: "non-existent-id",
+          taskSessionId: "non-existent-id",
           summary: "再開します",
         },
       })) as CallToolResult;
@@ -379,30 +379,30 @@ describe("createMcpServer", async () => {
 
     it("完了したタスクは再開できない", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "完了後再開テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクを完了
       await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "完了しました",
         },
       });
 
       // 完了したタスクを再開しようとする
       const result = (await client.callTool({
-        name: "resume_task",
+        name: "resumeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "再開します",
         },
       })) as CallToolResult;
@@ -413,23 +413,23 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("complete_task", () => {
+  describe("completeTask", () => {
     it("タスクを完了できる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "完了テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       const result = (await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "タスクを完了しました",
         },
       })) as CallToolResult;
@@ -444,9 +444,9 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id: "non-existent-id",
+          taskSessionId: "non-existent-id",
           summary: "完了しました",
         },
       })) as CallToolResult;
@@ -456,37 +456,37 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("resolve_blocked", () => {
+  describe("resolveBlocked", () => {
     it("ブロッキングを解決できる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "解決テスト" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクをブロック状態にする
       const blockResult = (await client.callTool({
-        name: "report_blocked",
+        name: "reportBlocked",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "依存関係の問題",
         },
       })) as CallToolResult;
-      const { block_report_id } = JSON.parse(
+      const { blockReportId } = JSON.parse(
         (blockResult.content[0] as TextContent).text,
       );
 
       // ブロッキングを解決
       const result = (await client.callTool({
-        name: "resolve_blocked",
+        name: "resolveBlocked",
         arguments: {
-          task_session_id,
-          block_report_id,
+          taskSessionId,
+          blockReportId,
         },
       })) as CallToolResult;
 
@@ -500,10 +500,10 @@ describe("createMcpServer", async () => {
 
     it("存在しないタスクIDでエラーになる", async () => {
       const result = (await client.callTool({
-        name: "resolve_blocked",
+        name: "resolveBlocked",
         arguments: {
-          task_session_id: "non-existent-id",
-          block_report_id: "some-block-id",
+          taskSessionId: "non-existent-id",
+          blockReportId: "some-block-id",
         },
       })) as CallToolResult;
 
@@ -513,31 +513,31 @@ describe("createMcpServer", async () => {
 
     it("存在しないブロックレポートIDでエラーになる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "不正ブロックID" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // ブロック状態にする
       await client.callTool({
-        name: "report_blocked",
+        name: "reportBlocked",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "テスト",
         },
       });
 
-      // 存在しないblock_report_idで解決しようとする
+      // 存在しないblockReportIdで解決しようとする
       const result = (await client.callTool({
-        name: "resolve_blocked",
+        name: "resolveBlocked",
         arguments: {
-          task_session_id,
-          block_report_id: "non-existent-block-id",
+          taskSessionId,
+          blockReportId: "non-existent-block-id",
         },
       })) as CallToolResult;
 
@@ -547,52 +547,52 @@ describe("createMcpServer", async () => {
 
     it("完了したタスクのブロックは解決できない", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "完了後ブロック解決" },
-          initial_summary: "初期サマリ",
+          initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクをブロック状態にする
       const blockResult = (await client.callTool({
-        name: "report_blocked",
+        name: "reportBlocked",
         arguments: {
-          task_session_id,
+          taskSessionId,
           reason: "テスト",
         },
       })) as CallToolResult;
-      const { block_report_id } = JSON.parse(
+      const { blockReportId } = JSON.parse(
         (blockResult.content[0] as TextContent).text,
       );
 
       // タスクを完了（blockedからcompletedへの遷移はできないので、まずin_progressに戻す）
       // ただし、この状態遷移は不正なので、ブロック解決してから完了する
       await client.callTool({
-        name: "resolve_blocked",
+        name: "resolveBlocked",
         arguments: {
-          task_session_id,
-          block_report_id,
+          taskSessionId,
+          blockReportId,
         },
       });
 
       await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id,
+          taskSessionId,
           summary: "完了しました",
         },
       });
 
-      // 完了したタスクのブロックを解決しようとする（不正なblock_report_idを使う）
+      // 完了したタスクのブロックを解決しようとする（不正なblockReportIdを使う）
       const result = (await client.callTool({
-        name: "resolve_blocked",
+        name: "resolveBlocked",
         arguments: {
-          task_session_id,
-          block_report_id: "dummy-id",
+          taskSessionId,
+          blockReportId: "dummy-id",
         },
       })) as CallToolResult;
 
@@ -602,61 +602,61 @@ describe("createMcpServer", async () => {
     });
   });
 
-  describe("list_tasks", () => {
+  describe("listTasks", () => {
     it("タスク一覧を取得できる", async () => {
       // テスト用にいくつかタスクを作成
       await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "リストテスト1" },
-          initial_summary: "タスク1",
+          initialSummary: "タスク1",
         },
       });
 
       await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "リストテスト2" },
-          initial_summary: "タスク2",
+          initialSummary: "タスク2",
         },
       });
 
       const result = (await client.callTool({
-        name: "list_tasks",
+        name: "listTasks",
         arguments: {},
       })) as CallToolResult;
 
       const responseData = JSON.parse((result.content[0] as TextContent).text);
       expect(Array.isArray(responseData.tasks)).toBe(true);
       expect(responseData.tasks.length).toBeGreaterThanOrEqual(2);
-      expect(responseData.tasks[0]).toHaveProperty("task_session_id");
+      expect(responseData.tasks[0]).toHaveProperty("taskSessionId");
       expect(responseData.tasks[0]).toHaveProperty("status");
     });
 
     it("ステータスでフィルタリングできる", async () => {
       const startResult = (await client.callTool({
-        name: "start_task",
+        name: "startTask",
         arguments: {
           issue: { provider: "manual", title: "フィルタテスト" },
-          initial_summary: "タスク",
+          initialSummary: "タスク",
         },
       })) as CallToolResult;
-      const { task_session_id } = JSON.parse(
+      const { taskSessionId } = JSON.parse(
         (startResult.content[0] as TextContent).text,
       );
 
       // タスクを完了
       await client.callTool({
-        name: "complete_task",
+        name: "completeTask",
         arguments: {
-          task_session_id,
-          pr_url: "https://github.com/example/repo/pull/456",
+          taskSessionId,
+          prUrl: "https://github.com/example/repo/pull/456",
           summary: "完了",
         },
       });
 
       const result = (await client.callTool({
-        name: "list_tasks",
+        name: "listTasks",
         arguments: {
           status: "completed",
         },

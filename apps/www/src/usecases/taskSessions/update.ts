@@ -9,8 +9,19 @@ type UpdateTask = {
   rawContext?: Record<string, unknown>;
 };
 
+type UpdateTaskSuccess = {
+  taskSessionId: string;
+  updateId: string;
+  status: string;
+  summary: string | null;
+  slackNotification: {
+    delivered: boolean;
+    reason?: string;
+  };
+};
+
 type UpdateTaskResult =
-  | { success: true; data: string }
+  | { success: true; data: UpdateTaskSuccess }
   | { success: false; error: string };
 
 export const createUpdateTask = (
@@ -68,18 +79,15 @@ export const createUpdateTask = (
       summary,
     });
 
-    const result = {
-      task_session_id: session.id,
-      update_id: updateEvent.id,
-      status: session.status,
-      summary: updateEvent.summary,
-      slack_notification: slackNotification,
-      message: "進捗を保存しました。",
-    };
-
     return {
       success: true,
-      data: JSON.stringify(result, null, 2),
+      data: {
+        taskSessionId: session.id,
+        updateId: updateEvent.id,
+        status: session.status,
+        summary: updateEvent.summary,
+        slackNotification,
+      },
     };
   };
 };
