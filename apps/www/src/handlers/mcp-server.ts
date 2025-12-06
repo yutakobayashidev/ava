@@ -50,8 +50,12 @@ export function createMcpServer(ctx: Context) {
           .describe("着手時点の抽象的な状況や方針"),
       }),
     },
-    async (args) => {
-      const result = await constructStartTaskWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructStartTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -85,8 +89,12 @@ export function createMcpServer(ctx: Context) {
         rawContext: rawContextSchema,
       }),
     },
-    async (args) => {
-      const result = await constructUpdateTaskWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructUpdateTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -117,8 +125,12 @@ export function createMcpServer(ctx: Context) {
         rawContext: rawContextSchema,
       }),
     },
-    async (args) => {
-      const result = await constructReportBlockedWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructReportBlockedWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -152,8 +164,12 @@ export function createMcpServer(ctx: Context) {
         rawContext: rawContextSchema,
       }),
     },
-    async (args) => {
-      const result = await constructPauseTaskWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructPauseTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -184,8 +200,12 @@ export function createMcpServer(ctx: Context) {
         rawContext: rawContextSchema,
       }),
     },
-    async (args) => {
-      const result = await constructResumeTaskWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructResumeTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -215,8 +235,12 @@ export function createMcpServer(ctx: Context) {
           .describe("完了内容の抽象的サマリ"),
       }),
     },
-    async (args) => {
-      const result = await constructCompleteTaskWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructCompleteTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -254,8 +278,12 @@ export function createMcpServer(ctx: Context) {
           ),
       }),
     },
-    async (args) => {
-      const result = await constructResolveBlockedWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructResolveBlockedWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
@@ -290,8 +318,12 @@ export function createMcpServer(ctx: Context) {
           .describe("取得する最大件数（デフォルト: 50）"),
       }),
     },
-    async (args) => {
-      const result = await constructListTasksWorkflow(ctx)(args);
+    async (params) => {
+      const result = await constructListTasksWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {

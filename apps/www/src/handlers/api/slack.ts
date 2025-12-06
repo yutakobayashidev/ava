@@ -279,40 +279,56 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
       return ctx.json({ error: "User not found" }, 400);
     }
 
-    // コンテキストに設定
-    ctx.set("workspace", workspace);
-    ctx.set("user", user);
-
     try {
       switch (callbackId) {
         case "complete_task_modal": {
           const summary =
             values.summary_block.summary_input.value || "完了しました";
-          await constructCompleteTaskWorkflow(ctx)({ taskSessionId, summary });
+          await constructCompleteTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, summary },
+          });
           break;
         }
         case "report_blocked_modal": {
           const reason =
             values.reason_block.reason_input.value || "詰まっています";
-          await constructReportBlockedWorkflow(ctx)({ taskSessionId, reason });
+          await constructReportBlockedWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, reason },
+          });
           break;
         }
         case "pause_task_modal": {
           const reason = values.reason_block.reason_input.value || "休止します";
-          await constructPauseTaskWorkflow(ctx)({ taskSessionId, reason });
+          await constructPauseTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, reason },
+          });
           break;
         }
         case "resume_task_modal": {
           const summary =
             values.summary_block.summary_input.value || "再開しました";
-          await constructResumeTaskWorkflow(ctx)({ taskSessionId, summary });
+          await constructResumeTaskWorkflow(ctx)({
+            workspace,
+            user,
+            params: { taskSessionId, summary },
+          });
           break;
         }
         case "resolve_blocked_modal": {
           const metadata = JSON.parse(taskSessionId);
           await constructResolveBlockedWorkflow(ctx)({
-            taskSessionId: metadata.taskSessionId,
-            blockReportId: metadata.blockReportId,
+            workspace,
+            user,
+            params: {
+              taskSessionId: metadata.taskSessionId,
+              blockReportId: metadata.blockReportId,
+            },
           });
           break;
         }

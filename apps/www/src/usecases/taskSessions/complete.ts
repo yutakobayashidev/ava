@@ -1,11 +1,19 @@
 import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
-import { createTaskRepository } from "@/repos";
-import { createNotificationService } from "@/services/notificationService";
+import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import type { TaskRepository } from "@/repos";
+import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { HonoEnv } from "@/types";
+import { buildTaskCompletedMessage } from "./slackMessages";
 
-type CompleteTask = {
+type CompleteTaskParams = {
   taskSessionId: string;
   summary: string;
+};
+
+export type CompleteTaskInput = {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  params: CompleteTaskParams;
 };
 
 type CompleteTaskSuccess = {
@@ -28,12 +36,11 @@ type CompleteTaskResult =
   | { success: false; error: string };
 
 export const createCompleteTask = (
-  taskRepository: ReturnType<typeof createTaskRepository>,
-  notificationService: ReturnType<typeof createNotificationService>,
-  user: HonoEnv["Variables"]["user"],
-  workspace: HonoEnv["Variables"]["workspace"],
+  taskRepository: TaskRepository,
+  slackNotificationService: SlackNotificationService,
 ) => {
-  return async (params: CompleteTask): Promise<CompleteTaskResult> => {
+  return async (input: CompleteTaskInput): Promise<CompleteTaskResult> => {
+    const { workspace, user, params } = input;
     const { taskSessionId, summary } = params;
 
     // 現在のタスクセッションを取得して状態遷移を検証
@@ -73,14 +80,44 @@ export const createCompleteTask = (
       };
     }
 
-    const slackNotification = await notificationService.notifyTaskCompleted({
-      session: {
-        id: session.id,
-        slackThreadTs: session.slackThreadTs,
-        slackChannel: session.slackChannel,
-      },
-      summary,
+    // Slackスレッド情報の取得
+    const slackThread = createSlackThreadInfo({
+      channel: session.slackChannel,
+      threadTs: session.slackThreadTs,
     });
+
+    if (!slackThread) {
+      return {
+        success: false,
+        error: "Slack thread not configured for this task session",
+      };
+    }
+
+    // メッセージ組み立て（ユースケース層の責務）
+    const message = buildTaskCompletedMessage({ summary });
+
+    // Slack通知（インフラ層への委譲）
+    const notification = await slackNotificationService.postMessage({
+      workspace,
+      channel: slackThread.channel,
+      message,
+      threadTs: slackThread.threadTs,
+    });
+
+    // リアクションを追加
+    if (notification.delivered) {
+      await slackNotificationService.addReaction({
+        workspace,
+        channel: slackThread.channel,
+        timestamp: slackThread.threadTs,
+        emoji: "white_check_mark",
+      });
+    }
+
+    const slackNotification = {
+      delivered: notification.delivered,
+      reason: notification.error,
+    };
 
     const data: CompleteTaskSuccess = {
       taskSessionId: session.id,

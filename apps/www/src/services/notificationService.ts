@@ -94,6 +94,7 @@ const sendMessage = async (
  */
 export type NotificationService = {
   notifyTaskStarted: (params: {
+    workspace: Workspace;
     session: { id: string };
     issue: {
       title: string;
@@ -109,27 +110,33 @@ export type NotificationService = {
     };
   }) => Promise<NotificationResult>;
   notifyTaskUpdate: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     summary: string;
   }) => Promise<NotificationResult>;
   notifyTaskBlocked: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     reason: string;
     blockReportId: string;
   }) => Promise<NotificationResult>;
   notifyBlockResolved: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     blockReason: string;
   }) => Promise<NotificationResult>;
   notifyTaskPaused: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     reason: string;
   }) => Promise<NotificationResult>;
   notifyTaskResumed: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     summary: string;
   }) => Promise<NotificationResult>;
   notifyTaskCompleted: (params: {
+    workspace: Workspace;
     session: TaskSessionInfo;
     summary: string;
   }) => Promise<NotificationResult>;
@@ -139,14 +146,13 @@ export type NotificationService = {
  * NotificationServiceを作成する
  */
 export const createNotificationService = (
-  workspace: Workspace,
   taskRepository: TaskRepository,
   workspaceRepository: WorkspaceRepository,
 ): NotificationService => {
   /**
    * Slack設定を取得
    */
-  const resolveSlackConfig = (): SlackConfig | null => {
+  const resolveSlackConfig = (workspace: Workspace): SlackConfig | null => {
     if (!workspace.botAccessToken || !workspace.notificationChannelId) {
       return null;
     }
@@ -162,9 +168,10 @@ export const createNotificationService = (
    * Slack設定チェック + 実行（トークンローテーションを含む）
    */
   const withSlackConfig = async (
+    workspace: Workspace,
     fn: (config: SlackConfig) => Promise<NotificationResult>,
   ): Promise<NotificationResult> => {
-    const slackConfig = resolveSlackConfig();
+    const slackConfig = resolveSlackConfig(workspace);
     if (!slackConfig) {
       return { delivered: false, reason: "missing_config" };
     }
@@ -195,8 +202,8 @@ export const createNotificationService = (
 
   return {
     notifyTaskStarted: (params) =>
-      withSlackConfig(async (config) => {
-        const { session, issue, initialSummary, user } = params;
+      withSlackConfig(params.workspace, async (config) => {
+        const { workspace, session, issue, initialSummary, user } = params;
 
         const issueIdText = issue.id ? ` (${issue.id})` : "";
         const userLabel = user.slackId
@@ -280,7 +287,7 @@ export const createNotificationService = (
       }),
 
     notifyTaskUpdate: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, summary } = params;
 
         const validationError = validateThreadInfo(session);
@@ -300,7 +307,7 @@ export const createNotificationService = (
       }),
 
     notifyTaskBlocked: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, reason, blockReportId } = params;
 
         const validationError = validateThreadInfo(session);
@@ -346,7 +353,7 @@ export const createNotificationService = (
       }),
 
     notifyBlockResolved: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, blockReason } = params;
 
         const validationError = validateThreadInfo(session);
@@ -366,7 +373,7 @@ export const createNotificationService = (
       }),
 
     notifyTaskPaused: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, reason } = params;
 
         const validationError = validateThreadInfo(session);
@@ -411,7 +418,7 @@ export const createNotificationService = (
       }),
 
     notifyTaskResumed: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, summary } = params;
 
         const validationError = validateThreadInfo(session);
@@ -431,7 +438,7 @@ export const createNotificationService = (
       }),
 
     notifyTaskCompleted: (params) =>
-      withSlackConfig(async (config) => {
+      withSlackConfig(params.workspace, async (config) => {
         const { session, summary } = params;
 
         const validationError = validateThreadInfo(session);
