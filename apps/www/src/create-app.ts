@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import { createAiSdkModels } from "./lib/server/ai";
 import { HonoEnv } from "./types";
 
-export const factory = () =>
+const factory = () =>
   createFactory<HonoEnv>({
     initApp: (app) => {
       app.use(async (c, next) => {

@@ -2,7 +2,7 @@
  * Slack スレッド情報の Value Object
  * セッションに紐づくSlackスレッドの情報を型安全に扱う
  */
-export type SlackThreadInfo = {
+type SlackThreadInfo = {
   readonly channel: string;
   readonly threadTs: string;
 };
@@ -23,17 +23,4 @@ export function createSlackThreadInfo(params: {
     channel: params.channel,
     threadTs: params.threadTs,
   };
-}
-
-/**
- * Slack スレッド情報が有効かどうかを判定する型ガード
- */
-export function hasSlackThread(session: {
-  slackChannel: string | null;
-  slackThreadTs: string | null;
-}): session is {
-  slackChannel: string;
-  slackThreadTs: string;
-} & typeof session {
-  return session.slackChannel !== null && session.slackThreadTs !== null;
 }

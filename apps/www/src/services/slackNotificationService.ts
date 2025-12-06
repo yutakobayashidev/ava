@@ -9,7 +9,7 @@ import type { Block } from "@slack/web-api";
 /**
  * 通知の配信結果
  */
-export type NotificationResult = {
+type NotificationResult = {
   delivered: boolean;
   channel?: string;
   threadTs?: string;

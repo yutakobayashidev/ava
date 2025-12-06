@@ -8,7 +8,7 @@ import { HonoEnv } from "@/types";
 // Common Types
 // ============================================
 
-export type SlackNotificationResult = {
+type SlackNotificationResult = {
   delivered: boolean;
   reason?: string;
 };
@@ -17,7 +17,7 @@ export type SlackNotificationResult = {
 // Start Task
 // ============================================
 
-export type StartTaskParams = {
+type StartTaskParams = {
   issue: {
     provider: "github" | "manual";
     id?: string;
@@ -32,7 +32,7 @@ export type StartTaskInput = {
   params: StartTaskParams;
 };
 
-export type StartTaskSuccess = {
+type StartTaskSuccess = {
   taskSessionId: string;
   status: string;
   issuedAt: Date;
@@ -47,7 +47,7 @@ export type StartTaskOutput =
 // Update Task
 // ============================================
 
-export type UpdateTaskParams = {
+type UpdateTaskParams = {
   taskSessionId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
@@ -59,7 +59,7 @@ export type UpdateTaskInput = {
   params: UpdateTaskParams;
 };
 
-export type UpdateTaskSuccess = {
+type UpdateTaskSuccess = {
   taskSessionId: string;
   updateId: string;
   status: string;
@@ -75,7 +75,7 @@ export type UpdateTaskOutput =
 // Complete Task
 // ============================================
 
-export type CompleteTaskParams = {
+type CompleteTaskParams = {
   taskSessionId: string;
   summary: string;
 };
@@ -106,7 +106,7 @@ export type CompleteTaskOutput =
 // Report Blocked
 // ============================================
 
-export type ReportBlockedParams = {
+type ReportBlockedParams = {
   taskSessionId: string;
   reason: string;
   rawContext?: Record<string, unknown>;
@@ -118,7 +118,7 @@ export type ReportBlockedInput = {
   params: ReportBlockedParams;
 };
 
-export type ReportBlockedSuccess = {
+type ReportBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
@@ -134,7 +134,7 @@ export type ReportBlockedOutput =
 // Pause Task
 // ============================================
 
-export type PauseTaskParams = {
+type PauseTaskParams = {
   taskSessionId: string;
   reason: string;
   rawContext?: Record<string, unknown>;
@@ -146,7 +146,7 @@ export type PauseTaskInput = {
   params: PauseTaskParams;
 };
 
-export type PauseTaskSuccess = {
+type PauseTaskSuccess = {
   taskSessionId: string;
   pauseReportId: string;
   status: string;
@@ -162,7 +162,7 @@ export type PauseTaskOutput =
 // Resume Task
 // ============================================
 
-export type ResumeTaskParams = {
+type ResumeTaskParams = {
   taskSessionId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
@@ -174,7 +174,7 @@ export type ResumeTaskInput = {
   params: ResumeTaskParams;
 };
 
-export type ResumeTaskSuccess = {
+type ResumeTaskSuccess = {
   taskSessionId: string;
   status: string;
   resumedAt: Date;
@@ -189,7 +189,7 @@ export type ResumeTaskOutput =
 // Resolve Blocked
 // ============================================
 
-export type ResolveBlockedParams = {
+type ResolveBlockedParams = {
   taskSessionId: string;
   blockReportId: string;
 };
@@ -200,7 +200,7 @@ export type ResolveBlockedInput = {
   params: ResolveBlockedParams;
 };
 
-export type ResolveBlockedSuccess = {
+type ResolveBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
@@ -216,7 +216,7 @@ export type ResolveBlockedOutput =
 // List Tasks
 // ============================================
 
-export type ListTasksParams = {
+type ListTasksParams = {
   status?: "inProgress" | "blocked" | "paused" | "completed";
   limit?: number;
 };
@@ -227,7 +227,7 @@ export type ListTasksInput = {
   params: ListTasksParams;
 };
 
-export type TaskSummary = {
+type TaskSummary = {
   taskSessionId: string;
   issueProvider: string;
   issueId: string | null;
@@ -237,7 +237,7 @@ export type TaskSummary = {
   updatedAt: Date;
 };
 
-export type ListTasksSuccess = {
+type ListTasksSuccess = {
   total: number;
   tasks: TaskSummary[];
 };

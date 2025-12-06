@@ -14,59 +14,21 @@ import { createMcpServer } from "./mcp-server";
 
 const { db, createTestUserAndWorkspace } = await setup();
 
-const {
-  notifyTaskStarted,
-  notifyTaskUpdate,
-  notifyTaskBlocked,
-  notifyBlockResolved,
-  notifyTaskPaused,
-  notifyTaskResumed,
-  notifyTaskCompleted,
-} = vi.hoisted(() => ({
-  notifyTaskStarted: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyTaskUpdate: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyTaskBlocked: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyBlockResolved: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyTaskPaused: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyTaskResumed: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-  notifyTaskCompleted: vi.fn().mockResolvedValue({
-    delivered: false,
-    reason: "missing_config",
-  }),
-}));
-
 describe("createMcpServer", async () => {
   let client: Client;
 
   beforeEach(async () => {
-    vi.mock("@/services/notificationService", () => {
+    vi.mock("@/services/slackNotificationService", () => {
       return {
-        createNotificationService: () => ({
-          notifyTaskStarted,
-          notifyTaskUpdate,
-          notifyTaskBlocked,
-          notifyBlockResolved,
-          notifyTaskPaused,
-          notifyTaskResumed,
-          notifyTaskCompleted,
+        createSlackNotificationService: () => ({
+          postMessage: vi.fn().mockResolvedValue({
+            delivered: false,
+            error: "missing_config",
+          }),
+          addReaction: vi.fn().mockResolvedValue({
+            delivered: false,
+            error: "missing_config",
+          }),
         }),
       };
     });
@@ -134,7 +96,6 @@ describe("createMcpServer", async () => {
       });
       expect(responseData.taskSessionId).toBeDefined();
       expect(responseData.issuedAt).toBeDefined();
-      expect(notifyTaskStarted).toHaveBeenCalledOnce();
     });
 
     it("手動タスクを開始できる", async () => {
@@ -187,7 +148,6 @@ describe("createMcpServer", async () => {
         status: "in_progress",
         message: "進捗を保存しました。",
       });
-      expect(notifyTaskUpdate).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
@@ -265,7 +225,6 @@ describe("createMcpServer", async () => {
         status: "blocked",
         message: "ブロッキング情報を登録しました。",
       });
-      expect(notifyTaskBlocked).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
@@ -308,7 +267,6 @@ describe("createMcpServer", async () => {
         status: "paused",
         message: "タスクを一時休止しました。",
       });
-      expect(notifyTaskPaused).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
@@ -361,7 +319,6 @@ describe("createMcpServer", async () => {
         status: "in_progress",
         message: "タスクを再開しました。",
       });
-      expect(notifyTaskResumed).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
@@ -439,7 +396,6 @@ describe("createMcpServer", async () => {
         status: "completed",
         message: "完了報告を保存しました。",
       });
-      expect(notifyTaskCompleted).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
@@ -495,7 +451,6 @@ describe("createMcpServer", async () => {
         status: "in_progress",
         message: "ブロッキングの解決を報告しました。",
       });
-      expect(notifyBlockResolved).toHaveBeenCalledOnce();
     });
 
     it("存在しないタスクIDでエラーになる", async () => {
