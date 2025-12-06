@@ -1,10 +1,10 @@
-import type { Env } from "@/app/create-app";
+import { HonoEnv } from "@/types";
 import { generateDailyReport } from "@/usecases/reports/generateDailyReport";
 
 type DailyReportContext = {
   teamId: string;
   userId: string;
-  ctx: Env["Variables"];
+  ctx: HonoEnv["Variables"];
 };
 
 const handler = async ({ teamId, userId, ctx }: DailyReportContext) => {

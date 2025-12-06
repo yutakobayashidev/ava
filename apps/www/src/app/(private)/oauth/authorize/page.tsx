@@ -42,7 +42,7 @@ export default async function AuthorizePage({
 
   const { requestParams, client } = validation;
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   if (!workspace) {

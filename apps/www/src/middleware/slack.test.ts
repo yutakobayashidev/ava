@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifySlackSignature } from "./slack";
 
 vi.mock("server-only", () => ({}));

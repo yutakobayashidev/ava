@@ -83,22 +83,29 @@ describe("createMcpServer", async () => {
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
 
-    const ctx = {
-      db,
-      user,
-      workspace,
-      ai: createAiSdkModels({
-        env: {
-          OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-        },
-      }),
-      stripe: {} as Stripe,
-    };
+    // モックのContextを作成
+    const mockContext = {
+      get: (key: string) => {
+        const values = {
+          db,
+          user,
+          workspace,
+          ai: createAiSdkModels({
+            env: {
+              OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+            },
+          }),
+          stripe: {} as Stripe,
+        };
+        return values[key as keyof typeof values];
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
 
     // クライアントとサーバーを接続
     await Promise.all([
       client.connect(clientTransport),
-      createMcpServer(ctx).connect(serverTransport),
+      createMcpServer(mockContext).connect(serverTransport),
     ]);
   });
 

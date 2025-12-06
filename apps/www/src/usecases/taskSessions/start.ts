@@ -1,11 +1,7 @@
-import { Env } from "@/app/create-app";
+import { createSubscriptionRepository, createTaskRepository } from "@/repos";
 import { createNotificationService } from "@/services/notificationService";
-import {
-  createTaskRepository,
-  createSubscriptionRepository,
-  createWorkspaceRepository,
-} from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
+import { HonoEnv } from "@/types";
 
 type StartTask = {
   issue: {
@@ -16,76 +12,75 @@ type StartTask = {
   initialSummary: string;
 };
 
-export const startTasks = async (
-  params: StartTask,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { issue, initialSummary } = params;
+type StartTaskResult =
+  | { success: true; data: string }
+  | { success: false; error: string };
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
+export const createStartTask = (
+  taskRepository: ReturnType<typeof createTaskRepository>,
+  subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
+  notificationService: ReturnType<typeof createNotificationService>,
+  user: HonoEnv["Variables"]["user"],
+  workspace: HonoEnv["Variables"]["workspace"],
+) => {
+  return async (params: StartTask): Promise<StartTaskResult> => {
+    const { issue, initialSummary } = params;
 
-  // プラン制限のチェック
-  const subscriptionRepository = createSubscriptionRepository({ db });
-  const limitError = await checkFreePlanLimit(user.id, subscriptionRepository);
-  if (limitError) {
-    return {
-      success: false,
-      error: limitError,
+    // プラン制限のチェック
+    const limitError = await checkFreePlanLimit(
+      user.id,
+      subscriptionRepository,
+    );
+    if (limitError) {
+      return {
+        success: false,
+        error: limitError,
+      };
+    }
+
+    const session = await taskRepository.createTaskSession({
+      userId: user.id,
+      workspaceId: workspace.id,
+      issueProvider: issue.provider,
+      issueId: issue.id ?? null,
+      issueTitle: issue.title,
+      initialSummary: initialSummary,
+    });
+
+    if (!session) {
+      return {
+        success: false,
+        error: "タスクセッションの作成に失敗しました",
+      };
+    }
+
+    const slackNotification = await notificationService.notifyTaskStarted({
+      session: { id: session.id },
+      issue: {
+        title: issue.title,
+        provider: issue.provider,
+        id: issue.id ?? null,
+      },
+      initialSummary: initialSummary,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        slackId: user.slackId,
+      },
+    });
+
+    const result = {
+      task_session_id: session.id,
+      status: session.status,
+      issued_at: session.createdAt,
+      slack_notification: slackNotification,
+      message: "タスクの追跡を開始しました。",
     };
-  }
 
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const notificationService = createNotificationService(
-    workspace,
-    taskRepository,
-    workspaceRepository,
-  );
-
-  const session = await taskRepository.createTaskSession({
-    userId: user.id,
-    workspaceId: workspace.id,
-    issueProvider: issue.provider,
-    issueId: issue.id ?? null,
-    issueTitle: issue.title,
-    initialSummary: initialSummary,
-  });
-
-  if (!session) {
     return {
-      success: false,
-      error: "タスクセッションの作成に失敗しました",
+      success: true,
+      data: JSON.stringify(result, null, 2),
     };
-  }
-
-  const slackNotification = await notificationService.notifyTaskStarted({
-    session: { id: session.id },
-    issue: {
-      title: issue.title,
-      provider: issue.provider,
-      id: issue.id ?? null,
-    },
-    initialSummary: initialSummary,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      slackId: user.slackId,
-    },
-  });
-
-  const result = {
-    task_session_id: session.id,
-    status: session.status,
-    issued_at: session.createdAt,
-    slack_notification: slackNotification,
-    message: "タスクの追跡を開始しました。",
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
   };
 };

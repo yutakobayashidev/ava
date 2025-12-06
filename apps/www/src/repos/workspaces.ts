@@ -7,10 +7,6 @@ import * as schema from "@ava/database/schema";
 type WorkspaceProvider =
   (typeof schema.workspaceProviderEnum.enumValues)[number];
 
-type WorkspaceRepositoryDeps = {
-  db: Database;
-};
-
 type CreateWorkspaceInput = {
   provider: WorkspaceProvider;
   externalId: string;
@@ -51,7 +47,7 @@ type FindByExternalIdInput = {
 // AddMemberInput, IsMemberInput, ListWorkspacesForUserInput は削除
 // workspace_members テーブルが不要になったため
 
-export const createWorkspaceRepository = ({ db }: WorkspaceRepositoryDeps) => {
+export const createWorkspaceRepository = (db: Database) => {
   const createWorkspace = async (input: CreateWorkspaceInput) => {
     const [workspace] = await db
       .insert(schema.workspaces)

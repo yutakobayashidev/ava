@@ -1,8 +1,17 @@
+import { Context } from "@/types";
+import {
+  constructCompleteTaskWorkflow,
+  constructListTasksWorkflow,
+  constructPauseTaskWorkflow,
+  constructReportBlockedWorkflow,
+  constructResolveBlockedWorkflow,
+  constructResumeTaskWorkflow,
+  constructStartTaskWorkflow,
+  constructUpdateTaskWorkflow,
+} from "@/usecases/taskSessions/constructor";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod/v3";
 import camelcaseKeys from "camelcase-keys";
-import type { Env } from "@/app/create-app";
-import * as taskSessionUsecases from "@/usecases/taskSessions";
+import { z } from "zod/v3";
 
 const rawContextSchema = z
   .record(z.string(), z.unknown())
@@ -18,7 +27,7 @@ const issueSchema = z.object({
     .describe("タスクの簡潔なタイトル"),
 });
 
-export function createMcpServer(ctx: Env["Variables"]) {
+export function createMcpServer(ctx: Context) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
@@ -39,7 +48,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.startTasks(camelArgs, ctx);
+      const result = await constructStartTaskWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -70,7 +79,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.updateTask(camelArgs, ctx);
+      const result = await constructUpdateTaskWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -101,7 +110,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.reportBlocked(camelArgs, ctx);
+      const result = await constructReportBlockedWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -132,7 +141,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.pauseTask(camelArgs, ctx);
+      const result = await constructPauseTaskWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -163,7 +172,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.resumeTask(camelArgs, ctx);
+      const result = await constructResumeTaskWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -193,7 +202,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.completeTask(camelArgs, ctx);
+      const result = await constructCompleteTaskWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -225,7 +234,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.resolveBlocked(camelArgs, ctx);
+      const result = await constructResolveBlockedWorkflow(ctx)(camelArgs);
       return {
         content: [
           {
@@ -257,7 +266,7 @@ export function createMcpServer(ctx: Env["Variables"]) {
     },
     async (args) => {
       const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.listTasks(camelArgs, ctx);
+      const result = await constructListTasksWorkflow(ctx)(camelArgs);
       return {
         content: [
           {

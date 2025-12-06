@@ -1,13 +1,13 @@
-import type { Env } from "@/app/create-app";
+import { absoluteUrl } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
+import { HonoEnv } from "@/types";
+import * as schema from "@ava/database/schema";
 import {
   exchangeSlackInstallCode,
   getTeamIcon,
   type SlackOAuthConfig,
 } from "@ava/integrations/slack";
-import * as schema from "@ava/database/schema";
 import { eq } from "drizzle-orm";
-import { absoluteUrl } from "@/lib/utils";
 
 type InstallWorkspace = {
   code: string;
@@ -20,7 +20,7 @@ type InstallWorkspaceResult =
 
 export const installWorkspace = async (
   params: InstallWorkspace,
-  ctx: Env["Variables"],
+  ctx: HonoEnv["Variables"],
 ): Promise<InstallWorkspaceResult> => {
   const { code, userId } = params;
   const { db } = ctx;
@@ -33,7 +33,7 @@ export const installWorkspace = async (
 
   try {
     const oauthResult = await exchangeSlackInstallCode(slackConfig, code);
-    const workspaceRepository = createWorkspaceRepository({ db });
+    const workspaceRepository = createWorkspaceRepository(db);
 
     // ログイン中のユーザーを取得
     const [currentUser] = await db

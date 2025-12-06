@@ -1,12 +1,12 @@
-import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "@ava/database/client";
 import { subscriptions, taskSessions } from "@ava/database/schema";
+import { and, eq, sql } from "drizzle-orm";
 
 export type SubscriptionRepository = ReturnType<
   typeof createSubscriptionRepository
 >;
 
-export const createSubscriptionRepository = ({ db }: { db: Database }) => ({
+export const createSubscriptionRepository = (db: Database) => ({
   /**
    * ユーザーのアクティブなサブスクリプションを取得
    */

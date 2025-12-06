@@ -40,7 +40,7 @@ export async function requireWorkspace(
 ): Promise<RequireWorkspaceResult> {
   const { user } = await requireAuth();
 
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   if (!workspace) {

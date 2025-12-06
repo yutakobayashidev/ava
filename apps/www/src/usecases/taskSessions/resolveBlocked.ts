@@ -1,86 +1,83 @@
-import { Env } from "@/app/create-app";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { createTaskRepository } from "@/repos";
 import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
-import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
+import { HonoEnv } from "@/types";
 
 type ResolveBlocked = {
   taskSessionId: string;
   blockReportId: string;
 };
 
-export const resolveBlocked = async (
-  params: ResolveBlocked,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { taskSessionId, blockReportId } = params;
+type ResolveBlockedResult =
+  | { success: true; data: string }
+  | { success: false; error: string };
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const notificationService = createNotificationService(
-    workspace,
-    taskRepository,
-    workspaceRepository,
-  );
+export const createResolveBlocked = (
+  taskRepository: ReturnType<typeof createTaskRepository>,
+  notificationService: ReturnType<typeof createNotificationService>,
+  user: HonoEnv["Variables"]["user"],
+  workspace: HonoEnv["Variables"]["workspace"],
+) => {
+  return async (params: ResolveBlocked): Promise<ResolveBlockedResult> => {
+    const { taskSessionId, blockReportId } = params;
 
-  // 現在のタスクセッションを取得して状態遷移を検証
-  const currentSession = await taskRepository.findTaskSessionById(
-    taskSessionId,
-    workspace.id,
-    user.id,
-  );
+    // 現在のタスクセッションを取得して状態遷移を検証
+    const currentSession = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
 
-  if (!currentSession) {
-    return {
-      success: false,
-      error: "タスクセッションが見つかりません",
+    if (!currentSession) {
+      return {
+        success: false,
+        error: "タスクセッションが見つかりません",
+      };
+    }
+
+    // blocked → in_progress への遷移を検証
+    if (!isValidTransition(currentSession.status, "in_progress")) {
+      return {
+        success: false,
+        error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+      };
+    }
+
+    const { session, blockReport } = await taskRepository.resolveBlockReport({
+      taskSessionId: taskSessionId,
+      workspaceId: workspace.id,
+      userId: user.id,
+      blockReportId: blockReportId,
+    });
+
+    if (!session || !blockReport) {
+      return {
+        success: false,
+        error: "ブロッキングの解決処理に失敗しました",
+      };
+    }
+
+    const slackNotification = await notificationService.notifyBlockResolved({
+      session: {
+        id: session.id,
+        slackThreadTs: session.slackThreadTs,
+        slackChannel: session.slackChannel,
+      },
+      blockReason: blockReport.reason ?? "Unknown block",
+    });
+
+    const result = {
+      task_session_id: session.id,
+      block_report_id: blockReport.id,
+      status: session.status,
+      resolved_at: blockReport.createdAt,
+      slack_notification: slackNotification,
+      message: "ブロッキングの解決を報告しました。",
     };
-  }
 
-  // blocked → in_progress への遷移を検証
-  if (!isValidTransition(currentSession.status, "in_progress")) {
     return {
-      success: false,
-      error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+      success: true,
+      data: JSON.stringify(result, null, 2),
     };
-  }
-
-  const { session, blockReport } = await taskRepository.resolveBlockReport({
-    taskSessionId: taskSessionId,
-    workspaceId: workspace.id,
-    userId: user.id,
-    blockReportId: blockReportId,
-  });
-
-  if (!session || !blockReport) {
-    return {
-      success: false,
-      error: "ブロッキングの解決処理に失敗しました",
-    };
-  }
-
-  const slackNotification = await notificationService.notifyBlockResolved({
-    session: {
-      id: session.id,
-      slackThreadTs: session.slackThreadTs,
-      slackChannel: session.slackChannel,
-    },
-    blockReason: blockReport.reason ?? "Unknown block",
-  });
-
-  const result = {
-    task_session_id: session.id,
-    block_report_id: blockReport.id,
-    status: session.status,
-    resolved_at: blockReport.createdAt,
-    slack_notification: slackNotification,
-    message: "ブロッキングの解決を報告しました。",
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
   };
 };

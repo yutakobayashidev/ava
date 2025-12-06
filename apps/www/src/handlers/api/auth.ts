@@ -1,4 +1,4 @@
-import { createHonoApp, getUsecaseContext } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 import { slack } from "@/lib/oauth";
 import { invalidateSession, validateSessionToken } from "@/lib/server/session";
 import { absoluteUrl } from "@/lib/utils";
@@ -55,7 +55,16 @@ const app = createHonoApp()
       return c.text("Bad request", 400);
     }
 
-    const result = await loginWithSlack({ code }, getUsecaseContext(c));
+    const result = await loginWithSlack(
+      { code },
+      {
+        db: c.get("db"),
+        ai: c.get("ai"),
+        stripe: c.get("stripe"),
+        user: c.get("user"),
+        workspace: c.get("workspace"),
+      },
+    );
 
     if (!result.success) {
       return new Response("Please restart the process.", {

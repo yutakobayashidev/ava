@@ -1,9 +1,9 @@
 import "server-only";
 
-import { postMessage, addReaction } from "@ava/integrations/slack";
 import { getWorkspaceBotToken } from "@/lib/slack";
 import type { TaskRepository, WorkspaceRepository } from "@/repos";
 import type { Workspace } from "@ava/database/schema";
+import { addReaction, postMessage } from "@ava/integrations/slack";
 import type { Block } from "@slack/web-api";
 
 /**
@@ -92,7 +92,7 @@ const sendMessage = async (
 /**
  * NotificationService
  */
-type NotificationService = {
+export type NotificationService = {
   notifyTaskStarted: (params: {
     session: { id: string };
     issue: {

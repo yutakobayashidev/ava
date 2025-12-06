@@ -1,10 +1,10 @@
-import type Stripe from "stripe";
-import { users, subscriptions } from "@ava/database/schema";
+import { HonoEnv } from "@/types";
+import { subscriptions, users } from "@ava/database/schema";
 import { eq } from "drizzle-orm";
-import type { Env } from "@/app/create-app";
+import type Stripe from "stripe";
 
 export async function handleSubscriptionUpsert(
-  db: Env["Variables"]["db"],
+  db: HonoEnv["Variables"]["db"],
   subscription: Stripe.Subscription,
 ) {
   return await db.transaction(async (tx) => {
