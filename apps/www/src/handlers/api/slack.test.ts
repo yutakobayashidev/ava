@@ -1,4 +1,4 @@
-import { users } from "@/db/schema";
+import { users } from "@ava/database/schema";
 import app from "@/handlers/api/slack";
 import {
   createSession,

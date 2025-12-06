@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
-import type { Database } from "@/clients/drizzle";
-import { users } from "@/db/schema";
+import type { Database } from "@ava/database/client";
+import { users } from "@ava/database/schema";
 
 type UserProvider = "slack";
 

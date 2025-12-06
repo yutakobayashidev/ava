@@ -1,4 +1,4 @@
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import { requireWorkspace } from "@/lib/auth";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";

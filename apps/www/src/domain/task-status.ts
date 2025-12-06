@@ -1,4 +1,4 @@
-import type { TaskSession } from "@/db/schema";
+import type { TaskSession } from "@ava/database/schema";
 
 export type TaskStatus = TaskSession["status"];
 

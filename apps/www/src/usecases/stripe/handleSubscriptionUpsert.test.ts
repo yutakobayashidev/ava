@@ -1,7 +1,7 @@
 import { describe, expect, beforeEach, it } from "vitest";
 import { setup } from "../../../tests/vitest.helper";
 import { handleSubscriptionUpsert } from "./handleSubscriptionUpsert";
-import { users } from "@/db/schema";
+import { users } from "@ava/database/schema";
 import { eq } from "drizzle-orm";
 
 const { db, createTestUserAndWorkspace } = await setup();

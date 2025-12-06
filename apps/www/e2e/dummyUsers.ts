@@ -1,4 +1,4 @@
-import type { User, Workspace } from "@/db/schema";
+import type { User, Workspace } from "@ava/database/schema";
 import type { CreateWorkspaceInput } from "@/repos/workspaces";
 
 type RemoveNullish<T> = {

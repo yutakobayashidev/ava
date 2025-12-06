@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setup } from "../../tests/vitest.helper";
 import { createHonoApp } from "@/app/create-app";
 import { oauthMiddleware } from "./oauth";
-import * as schema from "@/db/schema";
+import * as schema from "@ava/database/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
 

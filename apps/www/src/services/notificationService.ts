@@ -6,7 +6,7 @@ import {
   getWorkspaceBotToken,
 } from "@/clients/slack";
 import type { TaskRepository, WorkspaceRepository } from "@/repos";
-import type { Workspace } from "@/db/schema";
+import type { Workspace } from "@ava/database/schema";
 import type { Block } from "@slack/web-api";
 
 /**

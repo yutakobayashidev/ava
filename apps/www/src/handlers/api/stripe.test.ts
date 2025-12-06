@@ -5,7 +5,7 @@ import {
   generateSessionToken,
   createSession,
 } from "@/usecases/auth/loginWithSlack";
-import { users, subscriptions } from "@/db/schema";
+import { users, subscriptions } from "@ava/database/schema";
 import { eq } from "drizzle-orm";
 
 const {

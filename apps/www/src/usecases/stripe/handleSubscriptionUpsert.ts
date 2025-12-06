@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import { users, subscriptions } from "@/db/schema";
+import { users, subscriptions } from "@ava/database/schema";
 import { eq } from "drizzle-orm";
 import type { Env } from "@/app/create-app";
 

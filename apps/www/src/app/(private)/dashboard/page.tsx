@@ -1,4 +1,4 @@
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import { createTaskRepository } from "@/repos";
 import {
   Table,

@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import { reset } from "drizzle-seed";
 import postgres from "postgres";
-import * as schema from "@/db/schema";
-import { createDBUrl } from "@/utils/db";
+import * as schema from "@ava/database/schema";
+import { createDBUrl } from "@ava/database/utils";
 import { config } from "./env";
 
 config();

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import { createTaskRepository } from "@/repos";
 import { Header } from "@/components/header";
 import { Badge } from "@/components/ui/badge";

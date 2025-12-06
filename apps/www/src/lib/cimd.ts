@@ -1,5 +1,5 @@
-import type { Database } from "@/clients/drizzle";
-import * as schema from "@/db/schema";
+import type { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { uuidv7 } from "uuidv7";
 
 /**

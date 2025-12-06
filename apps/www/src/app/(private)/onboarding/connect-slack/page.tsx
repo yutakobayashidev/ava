@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import {
   listChannels,
   type SlackChannel,

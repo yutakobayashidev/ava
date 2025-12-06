@@ -8,7 +8,7 @@ import {
   createLoginRedirectUrl,
   authorizeRequestSchema,
 } from "./oauth";
-import * as schema from "@/db/schema";
+import * as schema from "@ava/database/schema";
 import { uuidv7 } from "uuidv7";
 
 const { db } = await setup();

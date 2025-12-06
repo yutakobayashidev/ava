@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import {
   listChannels,
   type SlackChannel,

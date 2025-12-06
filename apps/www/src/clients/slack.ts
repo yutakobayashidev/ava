@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Workspace } from "@/db/schema";
+import type { Workspace } from "@ava/database/schema";
 import { getValidBotToken } from "@/lib/slackTokenRotation";
 import type { WorkspaceRepository } from "@/repos/workspaces";
 import { WebClient, type Block, type ModalView } from "@slack/web-api";

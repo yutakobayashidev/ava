@@ -1,8 +1,8 @@
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import { requireWorkspace } from "@/lib/auth";
 import { Header } from "@/components/header";
 import { SubscriptionCard } from "./SubscriptionCard";
-import { users } from "@/db/schema";
+import { users } from "@ava/database/schema";
 import { eq } from "drizzle-orm";
 
 export default async function BillingPage() {

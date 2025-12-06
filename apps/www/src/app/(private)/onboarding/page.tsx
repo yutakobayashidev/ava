@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { db } from "@/clients/drizzle";
+import { db } from "@ava/database/client";
 import { createWorkspaceRepository } from "@/repos";
 import { requireAuth } from "@/lib/auth";
 

@@ -18,7 +18,7 @@ export async function setup() {
     return {};
   });
 
-  vi.mock("@/clients/drizzle", () => ({
+  vi.mock("@ava/database/client", () => ({
     db,
   }));
 

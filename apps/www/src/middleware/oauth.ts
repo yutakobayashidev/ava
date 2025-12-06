@@ -1,5 +1,5 @@
 import type { Env } from "@/app/create-app";
-import type { Database } from "@/clients/drizzle";
+import type { Database } from "@ava/database/client";
 import { absoluteUrl } from "@/lib/utils";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeHexLowerCase } from "@oslojs/encoding";
@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import * as schema from "../db/schema";
+import * as schema from "@ava/database/schema";
 
 type AuthContext = {
   user: typeof schema.users.$inferSelect;

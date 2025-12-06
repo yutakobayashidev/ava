@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
 import { createWorkspaceRepository } from "@/repos";
-import type { Database } from "@/clients/drizzle";
+import type { Database } from "@ava/database/client";
 
 type RequireAuthResult = {
   user: NonNullable<Awaited<ReturnType<typeof getCurrentSession>>["user"]>;

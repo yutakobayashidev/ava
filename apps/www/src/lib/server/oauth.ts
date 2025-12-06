@@ -1,5 +1,5 @@
-import { db } from "@/clients/drizzle";
-import * as schema from "@/db/schema";
+import { db } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { getClient, validateRedirectUriScheme } from "@/handlers/api/oauth";
 import { absoluteUrl } from "@/lib/utils";
 import { serializeSearchParams } from "@/utils/urls";

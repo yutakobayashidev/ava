@@ -6,7 +6,9 @@
     "setup": "corepack enable pnpm",
     "preinstall": "npx only-allow pnpm",
     "prepare": "lefthook install",
-    "fmt": "prettier -w ."
+    "fmt": "prettier -w .",
+    "lint": "SKIP_ENV_VALIDATION=true knip",
+    "lint:claude": "claude -p 'あなたはリンターです。mainブランチとの変更を確認し、タイポに関する問題を報告してください。ファイル名と行番号を1行目に、問題の説明を2行目に報告してください。他のテキストは返さないでください。'"
   },
   "devDependencies": {
     "lefthook": "2.0.4",

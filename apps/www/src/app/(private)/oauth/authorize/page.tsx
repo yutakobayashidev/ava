@@ -1,5 +1,5 @@
-import { db } from "@/clients/drizzle";
-import * as schema from "@/db/schema";
+import { db } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { uuidv7 } from "uuidv7";
