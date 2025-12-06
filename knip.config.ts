@@ -14,7 +14,13 @@ const config: KnipConfig = {
       vitest: {
         entry: ["src/**/*.test.ts"],
       },
-      ignore: ["src/components/ui/**", "env.ts"],
+      ignore: [
+        "src/components/ui/**",
+        "env.ts",
+        "next.config.ts",
+        "vitest.config.ts",
+        "reset.ts",
+      ],
       ignoreDependencies: [
         "@ava/database",
         "@hookform/resolvers",
