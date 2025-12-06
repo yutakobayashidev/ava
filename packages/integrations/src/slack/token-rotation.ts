@@ -1,13 +1,9 @@
 import "server-only";
 
-import { WebClient } from "@slack/web-api";
 import type { RotatedTokens, TokenRotationParams } from "./types";
+import { createWebClient } from "./utils";
 
 const DEFAULT_MINUTES_BEFORE_EXPIRATION = 120; // 2 hours
-
-const createWebClient = (token?: string): WebClient => {
-  return new WebClient(token);
-};
 
 /**
  * Slack bot token rotation

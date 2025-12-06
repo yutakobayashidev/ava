@@ -1,6 +1,5 @@
 import "server-only";
 
-import { WebClient } from "@slack/web-api";
 import type {
   PostMessageParams,
   PostMessageResult,
@@ -8,10 +7,7 @@ import type {
   SlackChannel,
   OpenModalParams,
 } from "./types";
-
-const createWebClient = (token: string): WebClient => {
-  return new WebClient(token);
-};
+import { createWebClient } from "./utils";
 
 export const postMessage = async ({
   token,

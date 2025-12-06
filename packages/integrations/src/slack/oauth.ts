@@ -1,13 +1,9 @@
 import "server-only";
 
-import { WebClient } from "@slack/web-api";
 import type { SlackOAuthResult } from "./types";
+import { createWebClient } from "./utils";
 
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
-
-const createWebClient = (): WebClient => {
-  return new WebClient();
-};
 
 export const DEFAULT_SLACK_SCOPES = [
   "channels:read",
