@@ -1,15 +1,15 @@
+import { requireAuth } from "@/lib/auth";
+import {
+  createLoginRedirectUrl,
+  validateAuthorizeRequest,
+} from "@/lib/server/oauth";
+import { getCurrentSession } from "@/lib/server/session";
+import { createWorkspaceRepository } from "@/repos";
 import { db } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
+import { redirect } from "next/navigation";
 import { uuidv7 } from "uuidv7";
-import { getCurrentSession } from "@/lib/session";
-import { createWorkspaceRepository } from "@/repos";
-import {
-  validateAuthorizeRequest,
-  createLoginRedirectUrl,
-} from "@/lib/server/oauth";
-import { requireAuth } from "@/lib/auth";
 
 export default async function AuthorizePage({
   searchParams,

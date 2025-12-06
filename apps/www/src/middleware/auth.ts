@@ -1,4 +1,4 @@
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/server/session";
 import { createMiddleware } from "hono/factory";
 
 const SKIP_PATHS = ["/login", "/oauth", "/api", "/mcp", "/.well-known"];

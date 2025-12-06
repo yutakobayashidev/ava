@@ -1,9 +1,13 @@
 import type { Env } from "@/app/create-app";
 import { createWorkspaceRepository } from "@/repos";
-import { exchangeSlackInstallCode } from "@/lib/slackInstall";
-import { getTeamIcon } from "@/clients/slack";
+import {
+  exchangeSlackInstallCode,
+  getTeamIcon,
+  type SlackOAuthConfig,
+} from "@ava/integrations/slack";
 import * as schema from "@ava/database/schema";
 import { eq } from "drizzle-orm";
+import { absoluteUrl } from "@/lib/utils";
 
 type InstallWorkspace = {
   code: string;
@@ -21,8 +25,14 @@ export const installWorkspace = async (
   const { code, userId } = params;
   const { db } = ctx;
 
+  const slackConfig: SlackOAuthConfig = {
+    clientId: process.env.SLACK_APP_CLIENT_ID,
+    clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+    redirectUri: absoluteUrl("/api/slack/install/callback"),
+  };
+
   try {
-    const oauthResult = await exchangeSlackInstallCode(code);
+    const oauthResult = await exchangeSlackInstallCode(slackConfig, code);
     const workspaceRepository = createWorkspaceRepository({ db });
 
     // ログイン中のユーザーを取得

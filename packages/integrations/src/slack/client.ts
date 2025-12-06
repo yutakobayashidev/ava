@@ -1,59 +1,13 @@
 import "server-only";
 
-import type { Workspace } from "@ava/database/schema";
-import { getValidBotToken } from "@/lib/slackTokenRotation";
-import type { WorkspaceRepository } from "@/repos/workspaces";
-import { WebClient, type Block, type ModalView } from "@slack/web-api";
-
-type PostMessageParams = {
-  token: string;
-  channel: string;
-  text: string;
-  threadTs?: string;
-  blocks?: Block[];
-};
-
-type AddReactionParams = {
-  token: string;
-  channel: string;
-  timestamp: string;
-  name: string;
-};
-
-export type SlackChannel = {
-  id: string;
-  name: string;
-  isPrivate: boolean;
-};
-
-type GetWorkspaceTokenParams = {
-  workspace: Workspace;
-  workspaceRepository: WorkspaceRepository;
-};
-
-/**
- * Get a valid bot token for the workspace, rotating if necessary
- */
-export const getWorkspaceBotToken = async ({
-  workspace,
-  workspaceRepository,
-}: GetWorkspaceTokenParams): Promise<string> => {
-  return getValidBotToken({
-    botAccessToken: workspace.botAccessToken,
-    botRefreshToken: workspace.botRefreshToken,
-    botTokenExpiresAt: workspace.botTokenExpiresAt,
-    clientId: process.env.SLACK_APP_CLIENT_ID,
-    clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
-    onTokenRotated: async (rotatedTokens) => {
-      await workspaceRepository.updateWorkspaceCredentials({
-        workspaceId: workspace.id,
-        botAccessToken: rotatedTokens.accessToken,
-        botRefreshToken: rotatedTokens.refreshToken,
-        botTokenExpiresAt: rotatedTokens.expiresAt,
-      });
-    },
-  });
-};
+import type {
+  PostMessageParams,
+  PostMessageResult,
+  AddReactionParams,
+  SlackChannel,
+  OpenModalParams,
+} from "./types";
+import { createWebClient } from "./utils";
 
 export const postMessage = async ({
   token,
@@ -61,8 +15,8 @@ export const postMessage = async ({
   text,
   threadTs,
   blocks,
-}: PostMessageParams) => {
-  const client = new WebClient(token);
+}: PostMessageParams): Promise<PostMessageResult> => {
+  const client = createWebClient(token);
 
   const result = await client.chat.postMessage({
     channel,
@@ -82,7 +36,7 @@ export const postMessage = async ({
 };
 
 export const listChannels = async (token: string): Promise<SlackChannel[]> => {
-  const client = new WebClient(token);
+  const client = createWebClient(token);
   const channels: SlackChannel[] = [];
   let cursor: string | undefined;
 
@@ -124,7 +78,7 @@ export const addReaction = async ({
   timestamp,
   name,
 }: AddReactionParams) => {
-  const client = new WebClient(token);
+  const client = createWebClient(token);
 
   try {
     const result = await client.reactions.add({
@@ -148,7 +102,7 @@ export const addReaction = async ({
 };
 
 export const getTeamIcon = async (token: string): Promise<string | null> => {
-  const client = new WebClient(token);
+  const client = createWebClient(token);
 
   try {
     const result = await client.team.info();
@@ -179,18 +133,12 @@ export const getTeamIcon = async (token: string): Promise<string | null> => {
   }
 };
 
-type OpenModalParams = {
-  token: string;
-  triggerId: string;
-  view: ModalView;
-};
-
 export const openModal = async ({
   token,
   triggerId,
   view,
 }: OpenModalParams) => {
-  const client = new WebClient(token);
+  const client = createWebClient(token);
 
   const result = await client.views.open({
     trigger_id: triggerId,

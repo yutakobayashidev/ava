@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { db } from "@ava/database/client";
-import {
-  listChannels,
-  type SlackChannel,
-  getWorkspaceBotToken,
-} from "@/clients/slack";
+import { listChannels, type SlackChannel } from "@ava/integrations/slack";
+import { getWorkspaceBotToken } from "@/lib/slack";
 import { requireAuth } from "@/lib/auth";
 import { createWorkspaceRepository } from "@/repos";
 import { Header } from "@/components/header";

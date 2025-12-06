@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuth } from "@/lib/auth";
-import { slackConfig } from "@/lib/slackInstall";
 import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 import { absoluteUrl } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
 import { Settings, Slack, Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DEFAULT_SLACK_SCOPES } from "@ava/integrations/slack";
 import { McpSetupTabs } from "../onboarding/setup-mcp/McpSetupTabs";
 
 export const metadata: Metadata = {
@@ -144,7 +144,7 @@ export default async function SettingsPage({
                       ボット権限の管理
                     </p>
                     <p className="text-xs text-slate-600">
-                      必要なスコープ: {slackConfig.scopes.join(", ")}
+                      必要なスコープ: {DEFAULT_SLACK_SCOPES.join(", ")}
                     </p>
                   </div>
                   <Button asChild>

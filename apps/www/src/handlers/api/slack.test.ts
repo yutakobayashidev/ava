@@ -16,7 +16,8 @@ const { generateState } = vi.hoisted(() => ({
 
 const { buildSlackInstallUrl } = vi.hoisted(() => ({
   buildSlackInstallUrl: vi.fn(
-    (state: string) => `https://slack.com/oauth/v2/authorize?state=${state}`,
+    (_config: unknown, state: string) =>
+      `https://slack.com/oauth/v2/authorize?state=${state}`,
   ),
 }));
 
@@ -35,15 +36,21 @@ vi.mock("arctic", () => ({
   Slack: class MockSlack {},
 }));
 
-vi.mock("@/lib/slackInstall", () => ({
-  buildSlackInstallUrl,
-}));
+vi.mock("@ava/integrations/slack", async () => {
+  const actual = await vi.importActual<
+    typeof import("@ava/integrations/slack")
+  >("@ava/integrations/slack");
+  return {
+    ...actual,
+    buildSlackInstallUrl,
+  };
+});
 
 vi.mock("@/usecases/slack/installWorkspace", () => ({
   installWorkspace,
 }));
 
-vi.mock("@/lib/session", () => ({
+vi.mock("@/lib/server/session", () => ({
   validateSessionToken,
 }));
 
@@ -99,7 +106,14 @@ describe("api/slack", () => {
 
       // Verify mocks were called
       expect(generateState).toHaveBeenCalled();
-      expect(buildSlackInstallUrl).toHaveBeenCalledWith("mock-state-12345");
+      expect(buildSlackInstallUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: expect.any(String),
+          clientSecret: expect.any(String),
+          redirectUri: expect.any(String),
+        }),
+        "mock-state-12345",
+      );
     });
   });
 

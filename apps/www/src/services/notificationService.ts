@@ -1,10 +1,7 @@
 import "server-only";
 
-import {
-  postMessage,
-  addReaction,
-  getWorkspaceBotToken,
-} from "@/clients/slack";
+import { postMessage, addReaction } from "@ava/integrations/slack";
+import { getWorkspaceBotToken } from "@/lib/slack";
 import type { TaskRepository, WorkspaceRepository } from "@/repos";
 import type { Workspace } from "@ava/database/schema";
 import type { Block } from "@slack/web-api";

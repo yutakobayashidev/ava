@@ -1,4 +1,4 @@
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/server/session";
 import { createMiddleware } from "hono/factory";
 import { NextResponse } from "next/server";
 

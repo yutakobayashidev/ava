@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@ava/database/client";
-import {
-  listChannels,
-  type SlackChannel,
-  getWorkspaceBotToken,
-} from "@/clients/slack";
+import { listChannels, type SlackChannel } from "@ava/integrations/slack";
+import { getWorkspaceBotToken } from "@/lib/slack";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

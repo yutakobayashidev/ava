@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/server/session";
 import { ArrowRight, Slack } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";

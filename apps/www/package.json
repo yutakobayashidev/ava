@@ -30,6 +30,7 @@
     "@ai-sdk/openai": "2.0.74",
     "@ai-sdk/provider": "2.0.0",
     "@ava/database": "workspace:*",
+    "@ava/integrations": "workspace:*",
     "@hono/mcp": "0.2.0",
     "@hono/ua-blocker": "0.1.20",
     "@hono/zod-validator": "0.7.5",

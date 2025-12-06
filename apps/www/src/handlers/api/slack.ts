@@ -2,25 +2,40 @@ import { generateState } from "arctic";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
-import { validateSessionToken } from "@/lib/session";
-import { buildSlackInstallUrl } from "@/lib/slackInstall";
-import { installWorkspace } from "@/usecases/slack/installWorkspace";
-import { buildRedirectUrl } from "@/utils/urls";
-import { env } from "hono/adapter";
-import { verifySlackSignature } from "@/middleware/slack";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
-import { openModal, getWorkspaceBotToken } from "@/clients/slack";
-import * as slackModals from "@/lib/slackModals";
-import { createWorkspaceRepository } from "@/repos/workspaces";
+import { validateSessionToken } from "@/lib/server/session";
+import { getWorkspaceBotToken } from "@/lib/slack";
+import { absoluteUrl } from "@/lib/utils";
+import { verifySlackSignature } from "@/middleware/slack";
 import { createUserRepository } from "@/repos/users";
+import { createWorkspaceRepository } from "@/repos/workspaces";
+import { installWorkspace } from "@/usecases/slack/installWorkspace";
 import * as taskSessionUsecases from "@/usecases/taskSessions";
+import { buildRedirectUrl } from "@/utils/urls";
+import {
+  buildSlackInstallUrl,
+  createCompleteTaskModal,
+  createPauseTaskModal,
+  createReportBlockedModal,
+  createResolveBlockedModal,
+  createResumeTaskModal,
+  openModal,
+  type SlackOAuthConfig,
+} from "@ava/integrations/slack";
+import { zValidator } from "@hono/zod-validator";
+import { env } from "hono/adapter";
+import { z } from "zod";
 
 const app = createHonoApp();
 
 const STATE_COOKIE = "slack_install_state";
+
+const slackConfig: SlackOAuthConfig = {
+  clientId: process.env.SLACK_APP_CLIENT_ID,
+  clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+  redirectUri: absoluteUrl("/api/slack/install/callback"),
+};
 
 app.get("/install/start", async (ctx) => {
   const sessionToken = getCookie(ctx, "session");
@@ -33,7 +48,7 @@ app.get("/install/start", async (ctx) => {
   }
 
   const state = generateState();
-  const authorizeUrl = buildSlackInstallUrl(state);
+  const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
   const { NODE_ENV } = env(ctx);
 
   setCookie(ctx, STATE_COOKIE, state, {
@@ -184,21 +199,21 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
     let view;
     switch (actionId) {
       case "complete_task":
-        view = slackModals.createCompleteTaskModal(actionValue);
+        view = createCompleteTaskModal(actionValue);
         break;
       case "report_blocked":
-        view = slackModals.createReportBlockedModal(actionValue);
+        view = createReportBlockedModal(actionValue);
         break;
       case "pause_task":
-        view = slackModals.createPauseTaskModal(actionValue);
+        view = createPauseTaskModal(actionValue);
         break;
       case "resume_task":
-        view = slackModals.createResumeTaskModal(actionValue);
+        view = createResumeTaskModal(actionValue);
         break;
       case "resolve_blocked": {
         // JSONをパースしてtaskSessionIdとblockReportIdを取得
         const parsed = JSON.parse(actionValue);
-        view = slackModals.createResolveBlockedModal(
+        view = createResolveBlockedModal(
           parsed.taskSessionId,
           parsed.blockReportId,
         );
