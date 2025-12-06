@@ -1,16 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setup } from "../../tests/vitest.helper";
 
 // vitest.helperの後にインポートする
-import { createMcpServer } from "./mcp-server";
+import { createAiSdkModels } from "@/lib/server/ai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createAiSdkModels } from "@/lib/ai";
 import type {
   CallToolResult,
   TextContent,
 } from "@modelcontextprotocol/sdk/types.js";
 import type Stripe from "stripe";
+import { createMcpServer } from "./mcp-server";
 
 const { db, createTestUserAndWorkspace } = await setup();
 

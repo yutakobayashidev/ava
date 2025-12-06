@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { siteConfig } from "@/config/site";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/server/session";
 import {
   AlertCircle,
   ArrowRight,

@@ -1,0 +1,19 @@
+{
+  "name": "@ava/integrations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./slack": {
+      "types": "./src/slack/index.ts",
+      "default": "./src/slack/index.ts"
+    }
+  },
+  "dependencies": {
+    "@slack/web-api": "7.11.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "20"
+  }
+}

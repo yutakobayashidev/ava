@@ -1,11 +1,15 @@
 import "server-only";
 
 import { WebClient } from "@slack/web-api";
-import { absoluteUrl } from "./utils";
+import type { SlackOAuthResult } from "./types";
 
 const SLACK_OAUTH_ENDPOINT = "https://slack.com/oauth/v2/authorize";
 
-const DEFAULT_SCOPES = [
+const createWebClient = (): WebClient => {
+  return new WebClient();
+};
+
+export const DEFAULT_SLACK_SCOPES = [
   "channels:read",
   "chat:write",
   "chat:write.public",
@@ -13,32 +17,41 @@ const DEFAULT_SCOPES = [
   "groups:read",
   "reactions:write",
   "team:read",
-];
+] as const;
 
-export const slackConfig = {
-  clientId: process.env.SLACK_APP_CLIENT_ID,
-  clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
-  redirectUri: absoluteUrl("/api/slack/install/callback"),
-  scopes: DEFAULT_SCOPES,
-} as const;
+export type SlackOAuthConfig = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scopes?: string[];
+};
 
-export const buildSlackInstallUrl = (state: string): string => {
+export const buildSlackInstallUrl = (
+  config: SlackOAuthConfig,
+  state: string,
+): string => {
   const url = new URL(SLACK_OAUTH_ENDPOINT);
-  url.searchParams.set("client_id", slackConfig.clientId);
-  url.searchParams.set("redirect_uri", slackConfig.redirectUri);
-  url.searchParams.set("scope", slackConfig.scopes.join(","));
+  url.searchParams.set("client_id", config.clientId);
+  url.searchParams.set("redirect_uri", config.redirectUri);
+  url.searchParams.set(
+    "scope",
+    (config.scopes ?? DEFAULT_SLACK_SCOPES).join(","),
+  );
   url.searchParams.set("state", state);
   return url.toString();
 };
 
-export const exchangeSlackInstallCode = async (code: string) => {
-  const client = new WebClient();
+export const exchangeSlackInstallCode = async (
+  config: SlackOAuthConfig,
+  code: string,
+): Promise<SlackOAuthResult> => {
+  const client = createWebClient();
 
   const response = await client.oauth.v2.access({
-    client_id: slackConfig.clientId,
-    client_secret: slackConfig.clientSecret,
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
     code,
-    redirect_uri: slackConfig.redirectUri,
+    redirect_uri: config.redirectUri,
   });
 
   if (!response.ok) {

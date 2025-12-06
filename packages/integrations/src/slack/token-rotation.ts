@@ -1,13 +1,12 @@
 import "server-only";
 
 import { WebClient } from "@slack/web-api";
+import type { RotatedTokens, TokenRotationParams } from "./types";
 
 const DEFAULT_MINUTES_BEFORE_EXPIRATION = 120; // 2 hours
 
-type RotatedTokens = {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
+const createWebClient = (token?: string): WebClient => {
+  return new WebClient(token);
 };
 
 /**
@@ -19,19 +18,13 @@ type RotatedTokens = {
  * @param minutesBeforeExpiration Minutes before expiration to trigger rotation (default: 120)
  * @returns Rotated tokens if rotation was necessary, null otherwise
  */
-const performBotTokenRotation = async ({
+export const performBotTokenRotation = async ({
   botRefreshToken,
   botTokenExpiresAt,
   clientId,
   clientSecret,
   minutesBeforeExpiration = DEFAULT_MINUTES_BEFORE_EXPIRATION,
-}: {
-  botRefreshToken: string | null;
-  botTokenExpiresAt: Date | null;
-  clientId: string;
-  clientSecret: string;
-  minutesBeforeExpiration?: number;
-}): Promise<RotatedTokens | null> => {
+}: TokenRotationParams): Promise<RotatedTokens | null> => {
   // If no expiration time is set, no rotation is needed (legacy token)
   if (!botTokenExpiresAt) {
     return null;
@@ -53,7 +46,7 @@ const performBotTokenRotation = async ({
   }
 
   // Perform token rotation using Slack Web API
-  const client = new WebClient();
+  const client = createWebClient();
 
   const response = await client.oauth.v2.access({
     client_id: clientId,
@@ -89,10 +82,6 @@ const performBotTokenRotation = async ({
 
 /**
  * Get a valid Slack bot token, rotating if necessary
- * @param workspace Workspace with bot token information
- * @param clientId Slack app client ID
- * @param clientSecret Slack app client secret
- * @returns Valid bot access token
  */
 export const getValidBotToken = async ({
   botAccessToken,

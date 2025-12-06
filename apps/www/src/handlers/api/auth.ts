@@ -1,12 +1,12 @@
-import { generateState } from "arctic";
-import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { createHonoApp, getUsecaseContext } from "@/app/create-app";
-import { env } from "hono/adapter";
 import { slack } from "@/lib/oauth";
-import { loginWithSlack } from "@/usecases/auth/loginWithSlack";
-import { invalidateSession, validateSessionToken } from "@/lib/session";
-import { HTTPException } from "hono/http-exception";
+import { invalidateSession, validateSessionToken } from "@/lib/server/session";
 import { absoluteUrl } from "@/lib/utils";
+import { loginWithSlack } from "@/usecases/auth/loginWithSlack";
+import { generateState } from "arctic";
+import { env } from "hono/adapter";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { HTTPException } from "hono/http-exception";
 
 const app = createHonoApp()
   .get("/slack", async (c) => {

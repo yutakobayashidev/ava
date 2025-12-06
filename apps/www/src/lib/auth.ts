@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/server/session";
 import { createWorkspaceRepository } from "@/repos";
 import type { Database } from "@ava/database/client";
+import { redirect } from "next/navigation";
 
 type RequireAuthResult = {
   user: NonNullable<Awaited<ReturnType<typeof getCurrentSession>>["user"]>;

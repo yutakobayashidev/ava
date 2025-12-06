@@ -4,9 +4,9 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { db } from "@ava/database/client";
 import {
   listChannels,
+  getValidBotToken,
   type SlackChannel,
-  getWorkspaceBotToken,
-} from "@/clients/slack";
+} from "@ava/integrations/slack";
 import { requireAuth } from "@/lib/auth";
 import { createWorkspaceRepository } from "@/repos";
 import { Header } from "@/components/header";
@@ -37,9 +37,20 @@ export default async function ChannelSettingsPage({
   let channelError: string | null = null;
 
   try {
-    const validToken = await getWorkspaceBotToken({
-      workspace,
-      workspaceRepository,
+    const validToken = await getValidBotToken({
+      botAccessToken: workspace.botAccessToken,
+      botRefreshToken: workspace.botRefreshToken,
+      botTokenExpiresAt: workspace.botTokenExpiresAt,
+      clientId: process.env.SLACK_APP_CLIENT_ID,
+      clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+      onTokenRotated: async (rotatedTokens) => {
+        await workspaceRepository.updateWorkspaceCredentials({
+          workspaceId: workspace.id,
+          botAccessToken: rotatedTokens.accessToken,
+          botRefreshToken: rotatedTokens.refreshToken,
+          botTokenExpiresAt: rotatedTokens.expiresAt,
+        });
+      },
     });
     channels = await listChannels(validToken);
   } catch (error) {
@@ -67,9 +78,20 @@ export default async function ChannelSettingsPage({
     let availableChannels: SlackChannel[] = [];
 
     try {
-      const validToken = await getWorkspaceBotToken({
-        workspace,
-        workspaceRepository,
+      const validToken = await getValidBotToken({
+        botAccessToken: workspace.botAccessToken,
+        botRefreshToken: workspace.botRefreshToken,
+        botTokenExpiresAt: workspace.botTokenExpiresAt,
+        clientId: process.env.SLACK_APP_CLIENT_ID,
+        clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+        onTokenRotated: async (rotatedTokens) => {
+          await workspaceRepository.updateWorkspaceCredentials({
+            workspaceId: workspace.id,
+            botAccessToken: rotatedTokens.accessToken,
+            botRefreshToken: rotatedTokens.refreshToken,
+            botTokenExpiresAt: rotatedTokens.expiresAt,
+          });
+        },
       });
       availableChannels = await listChannels(validToken);
     } catch (error) {

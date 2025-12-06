@@ -3,8 +3,8 @@ import "server-only";
 import {
   postMessage,
   addReaction,
-  getWorkspaceBotToken,
-} from "@/clients/slack";
+  getValidBotToken,
+} from "@ava/integrations/slack";
 import type { TaskRepository, WorkspaceRepository } from "@/repos";
 import type { Workspace } from "@ava/database/schema";
 import type { Block } from "@slack/web-api";
@@ -174,9 +174,20 @@ export const createNotificationService = (
 
     try {
       // トークンローテーションを実行（必要に応じて）
-      const validToken = await getWorkspaceBotToken({
-        workspace,
-        workspaceRepository,
+      const validToken = await getValidBotToken({
+        botAccessToken: workspace.botAccessToken,
+        botRefreshToken: workspace.botRefreshToken,
+        botTokenExpiresAt: workspace.botTokenExpiresAt,
+        clientId: process.env.SLACK_APP_CLIENT_ID,
+        clientSecret: process.env.SLACK_APP_CLIENT_SECRET,
+        onTokenRotated: async (rotatedTokens) => {
+          await workspaceRepository.updateWorkspaceCredentials({
+            workspaceId: workspace.id,
+            botAccessToken: rotatedTokens.accessToken,
+            botRefreshToken: rotatedTokens.refreshToken,
+            botTokenExpiresAt: rotatedTokens.expiresAt,
+          });
+        },
       });
 
       // 有効なトークンでconfigを更新

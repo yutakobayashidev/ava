@@ -29,6 +29,9 @@ importers:
       '@ava/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ava/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@hono/mcp':
         specifier: 0.2.0
         version: 0.2.0(@modelcontextprotocol/sdk@1.23.0(zod@4.1.13))(hono-rate-limiter@0.4.2(hono@4.10.7))(hono@4.10.7)
@@ -343,6 +346,19 @@ importers:
       drizzle-kit:
         specifier: 0.31.7
         version: 0.31.7
+
+  packages/integrations:
+    dependencies:
+      '@slack/web-api':
+        specifier: 7.11.0
+        version: 7.11.0
+      server-only:
+        specifier: 0.0.1
+        version: 0.0.1
+    devDependencies:
+      '@types/node':
+        specifier: '20'
+        version: 20.19.25
 
 packages:
 
@@ -2307,6 +2323,10 @@ packages:
   '@slack/types@2.19.0':
     resolution: {integrity: sha512-7+QZ38HGcNh/b/7MpvPG6jnw7mliV6UmrquJLqgdxkzJgQEYUcEztvFWRU49z0x4vthF0ixL5lTK601AXrS8IA==}
     engines: {node: '>= 12.13.0', npm: '>= 6.12.0'}
+
+  '@slack/web-api@7.11.0':
+    resolution: {integrity: sha512-m+dGluB7OTebNqEt7wRXyvUfjUGLBuqN4ZAjEmQvu7oeKmVNBXO+mQbH9nop0f/GCvkGK52aaoOWz0H1ole2xg==}
+    engines: {node: '>= 18', npm: '>= 8.6.0'}
 
   '@slack/web-api@7.13.0':
     resolution: {integrity: sha512-ERcExbWrnkDN8ovoWWe6Wgt/usanj1dWUd18dJLpctUI4mlPS0nKt81Joh8VI+OPbNnY1lIilVt9gdMBD9U2ig==}
@@ -7889,6 +7909,23 @@ snapshots:
       '@types/node': 20.19.25
 
   '@slack/types@2.19.0': {}
+
+  '@slack/web-api@7.11.0':
+    dependencies:
+      '@slack/logger': 4.0.0
+      '@slack/types': 2.19.0
+      '@types/node': 20.19.25
+      '@types/retry': 0.12.0
+      axios: 1.13.2
+      eventemitter3: 5.0.1
+      form-data: 4.0.5
+      is-electron: 2.2.2
+      is-stream: 2.0.1
+      p-queue: 6.6.2
+      p-retry: 4.6.2
+      retry: 0.13.1
+    transitivePeerDependencies:
+      - debug
 
   '@slack/web-api@7.13.0':
     dependencies:

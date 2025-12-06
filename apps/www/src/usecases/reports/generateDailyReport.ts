@@ -1,12 +1,12 @@
 import type { Env } from "@/app/create-app";
+import { generateText } from "@/lib/server/ai";
+import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import {
   createTaskRepository,
-  createWorkspaceRepository,
   createUserRepository,
+  createWorkspaceRepository,
 } from "@/repos";
 import { fillPrompt } from "@/utils/prompts";
-import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
-import { generateText } from "@/lib/ai";
 
 type BlockReport = {
   reason: string | null;
