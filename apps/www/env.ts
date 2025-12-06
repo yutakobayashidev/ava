@@ -32,6 +32,8 @@ export type Schema = z.infer<typeof schema>;
 const schema = z.intersection(staticEnv, runtimeEnv);
 
 export function config(kind: "static" | "runtime" = "static") {
+  if (process.env.NODE_ENV === "test") return;
+
   const { combinedEnv } = loadEnvConfig(process.cwd());
   const res =
     kind === "static"

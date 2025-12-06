@@ -22,7 +22,6 @@ const config: KnipConfig = {
         "reset.ts",
       ],
       ignoreDependencies: [
-        "@ava/database",
         "@hookform/resolvers",
         "@radix-ui/react-accordion",
         "@radix-ui/react-alert-dialog",
@@ -59,13 +58,14 @@ const config: KnipConfig = {
         "postcss",
         "sonner",
       ],
-      ignoreBinaries: ["claude", "stripe", "tunnelto"],
+      ignoreBinaries: ["stripe", "tunnelto"],
     },
     "packages/database": {
       entry: ["src/**/*.ts"],
       ignore: ["drizzle.config.ts"],
     },
   },
+  ignoreBinaries: ["only-allow", "claude", "eslint"],
 };
 
 export default config;

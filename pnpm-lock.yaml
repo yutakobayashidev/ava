@@ -270,6 +270,9 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.5.0
         version: 1.5.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)(vitest@4.0.14(@opentelemetry/api@1.9.0)(@types/node@20.19.25)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
+      dotenv-flow-cli:
+        specifier: 1.1.1
+        version: 1.1.1
       drizzle-seed:
         specifier: 0.3.1
         version: 0.3.1(drizzle-orm@0.44.7(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7))
@@ -318,9 +321,6 @@ importers:
       '@neondatabase/serverless':
         specifier: 1.0.2
         version: 1.0.2
-      dotenv-flow:
-        specifier: ^4.1.0
-        version: 4.1.0
       drizzle-orm:
         specifier: 0.44.7
         version: 0.44.7(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(postgres@3.4.7)
@@ -3341,6 +3341,14 @@ packages:
 
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
+
+  dotenv-expand@12.0.3:
+    resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
+    engines: {node: '>=12'}
+
+  dotenv-flow-cli@1.1.1:
+    resolution: {integrity: sha512-r2Ij1fAqHSownUugXAmdqtgJ6pyXTuPIJFY+y4sWnwSoelBkdCEgttaremc5gdjwXjdUQqNOzonIYl/Wx69OOg==}
+    hasBin: true
 
   dotenv-flow@4.1.0:
     resolution: {integrity: sha512-0cwP9jpQBQfyHwvE0cRhraZMkdV45TQedA8AAUZMsFzvmLcQyc1HPv+oX0OOYwLFjIlvgVepQ+WuQHbqDaHJZg==}
@@ -8979,6 +8987,17 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.4
       csstype: 3.2.3
+
+  dotenv-expand@12.0.3:
+    dependencies:
+      dotenv: 16.6.1
+
+  dotenv-flow-cli@1.1.1:
+    dependencies:
+      cross-spawn: 7.0.6
+      dotenv-expand: 12.0.3
+      dotenv-flow: 4.1.0
+      minimist: 1.2.8
 
   dotenv-flow@4.1.0:
     dependencies:
