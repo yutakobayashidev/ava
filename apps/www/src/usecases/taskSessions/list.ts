@@ -1,44 +1,42 @@
-import { Env } from "@/app/create-app";
-import { createTaskRepository } from "@/repos";
+import type { TaskRepository } from "@/repos";
+import type { ListTasksInput, ListTasksOutput } from "./interface";
 
-type ListTasks = {
-  status?: "in_progress" | "blocked" | "paused" | "completed";
-  limit?: number;
-};
+// ステータスをDBの形式に変換
+function convertStatusToDb(
+  status?: string,
+): "in_progress" | "blocked" | "paused" | "completed" | undefined {
+  if (status === "inProgress") return "in_progress";
+  if (status === "blocked" || status === "paused" || status === "completed")
+    return status;
+  return undefined;
+}
 
-export const listTasks = async (
-  params: ListTasks,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { status, limit } = params;
+export const createListTasks = (taskRepository: TaskRepository) => {
+  return async (input: ListTasksInput): Promise<ListTasksOutput> => {
+    const { workspace, user, params } = input;
+    const { status, limit } = params;
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
-  const taskRepository = createTaskRepository({ db });
+    const sessions = await taskRepository.listTaskSessions({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: convertStatusToDb(status),
+      limit,
+    });
 
-  const sessions = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status,
-    limit,
-  });
-
-  const result = {
-    total: sessions.length,
-    tasks: sessions.map((session) => ({
-      task_session_id: session.id,
-      issue_provider: session.issueProvider,
-      issue_id: session.issueId,
-      issue_title: session.issueTitle,
-      status: session.status,
-      created_at: session.createdAt,
-      updated_at: session.updatedAt,
-    })),
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
+    return {
+      success: true,
+      data: {
+        total: sessions.length,
+        tasks: sessions.map((session) => ({
+          taskSessionId: session.id,
+          issueProvider: session.issueProvider,
+          issueId: session.issueId,
+          issueTitle: session.issueTitle,
+          status: session.status,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+        })),
+      },
+    };
   };
 };

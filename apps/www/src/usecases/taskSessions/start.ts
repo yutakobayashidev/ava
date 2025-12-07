@@ -1,91 +1,100 @@
-import { Env } from "@/app/create-app";
-import { createNotificationService } from "@/services/notificationService";
-import {
-  createTaskRepository,
-  createSubscriptionRepository,
-  createWorkspaceRepository,
-} from "@/repos";
+import type { TaskRepository } from "@/repos";
+import { createSubscriptionRepository } from "@/repos";
+import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
+import type { StartTaskInput, StartTaskOutput } from "./interface";
+import { buildTaskStartedMessage } from "./slackMessages";
 
-type StartTask = {
-  issue: {
-    provider: "github" | "manual";
-    id?: string;
-    title: string;
-  };
-  initialSummary: string;
-};
+export const createStartTask = (
+  taskRepository: TaskRepository,
+  subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
+  slackNotificationService: SlackNotificationService,
+) => {
+  return async (input: StartTaskInput): Promise<StartTaskOutput> => {
+    const { workspace, user, params } = input;
+    const { issue, initialSummary } = params;
 
-export const startTasks = async (
-  params: StartTask,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { issue, initialSummary } = params;
+    // プラン制限のチェック
+    const limitError = await checkFreePlanLimit(
+      user.id,
+      subscriptionRepository,
+    );
+    if (limitError) {
+      return {
+        success: false,
+        error: limitError,
+      };
+    }
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
+    const session = await taskRepository.createTaskSession({
+      userId: user.id,
+      workspaceId: workspace.id,
+      issueProvider: issue.provider,
+      issueId: issue.id ?? null,
+      issueTitle: issue.title,
+      initialSummary: initialSummary,
+    });
+    // Slack通知
+    let slackNotification: { delivered: boolean; reason?: string };
 
-  // プラン制限のチェック
-  const subscriptionRepository = createSubscriptionRepository({ db });
-  const limitError = await checkFreePlanLimit(user.id, subscriptionRepository);
-  if (limitError) {
+    if (workspace.notificationChannelId) {
+      // メッセージ組み立て（ユースケース層の責務）
+      const message = buildTaskStartedMessage({
+        session: { id: session.id },
+        issue: {
+          title: issue.title,
+          provider: issue.provider,
+          id: issue.id ?? null,
+        },
+        initialSummary,
+        user: {
+          name: user.name,
+          email: user.email,
+          slackId: user.slackId,
+        },
+      });
+
+      // Slack通知（インフラ層への委譲）
+      const notification = await slackNotificationService.postMessage({
+        workspace,
+        channel: workspace.notificationChannelId,
+        message,
+      });
+
+      // スレッド情報を保存
+      if (
+        notification.delivered &&
+        notification.threadTs &&
+        notification.channel
+      ) {
+        await taskRepository.updateSlackThread({
+          taskSessionId: session.id,
+          workspaceId: workspace.id,
+          userId: user.id,
+          threadTs: notification.threadTs,
+          channel: notification.channel,
+        });
+      }
+
+      slackNotification = {
+        delivered: notification.delivered,
+        reason: notification.error,
+      };
+    } else {
+      slackNotification = {
+        delivered: false,
+        reason: "Notification channel not configured",
+      };
+    }
+
     return {
-      success: false,
-      error: limitError,
+      success: true,
+      data: {
+        taskSessionId: session.id,
+        status: session.status,
+        issuedAt: session.createdAt,
+        slackNotification,
+      },
     };
-  }
-
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const notificationService = createNotificationService(
-    workspace,
-    taskRepository,
-    workspaceRepository,
-  );
-
-  const session = await taskRepository.createTaskSession({
-    userId: user.id,
-    workspaceId: workspace.id,
-    issueProvider: issue.provider,
-    issueId: issue.id ?? null,
-    issueTitle: issue.title,
-    initialSummary: initialSummary,
-  });
-
-  if (!session) {
-    return {
-      success: false,
-      error: "タスクセッションの作成に失敗しました",
-    };
-  }
-
-  const slackNotification = await notificationService.notifyTaskStarted({
-    session: { id: session.id },
-    issue: {
-      title: issue.title,
-      provider: issue.provider,
-      id: issue.id ?? null,
-    },
-    initialSummary: initialSummary,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      slackId: user.slackId,
-    },
-  });
-
-  const result = {
-    task_session_id: session.id,
-    status: session.status,
-    issued_at: session.createdAt,
-    slack_notification: slackNotification,
-    message: "タスクの追跡を開始しました。",
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
   };
 };

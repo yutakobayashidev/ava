@@ -1,50 +1,56 @@
+import { Context } from "@/types";
+import {
+  constructCompleteTaskWorkflow,
+  constructListTasksWorkflow,
+  constructPauseTaskWorkflow,
+  constructReportBlockedWorkflow,
+  constructResolveBlockedWorkflow,
+  constructResumeTaskWorkflow,
+  constructStartTaskWorkflow,
+  constructUpdateTaskWorkflow,
+} from "@/usecases/taskSessions/constructor";
+import {
+  completeTaskInputSchema,
+  formatSuccessResponse,
+  listTasksInputSchema,
+  pauseTaskInputSchema,
+  reportBlockedInputSchema,
+  resolveBlockedInputSchema,
+  resumeTaskInputSchema,
+  startTaskInputSchema,
+  updateTaskInputSchema,
+} from "@/usecases/taskSessions/controller";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod/v3";
-import camelcaseKeys from "camelcase-keys";
-import type { Env } from "@/app/create-app";
-import * as taskSessionUsecases from "@/usecases/taskSessions";
 
-const rawContextSchema = z
-  .record(z.string(), z.unknown())
-  .default({})
-  .describe("Slackへ共有可能な抽象的メタデータ");
-
-const issueSchema = z.object({
-  provider: z.enum(["github", "manual"]).describe("課題の取得元"),
-  id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
-  title: z
-    .string()
-    .min(1, "タイトルは必須です")
-    .describe("タスクの簡潔なタイトル"),
-});
-
-export function createMcpServer(ctx: Env["Variables"]) {
+export function createMcpServer(ctx: Context) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
   });
 
   server.registerTool(
-    "start_task",
+    "startTask",
     {
-      title: "start_task",
+      title: "startTask",
       description: "開始サマリをSlackに共有するための入力仕様。",
-      inputSchema: z.object({
-        issue: issueSchema,
-        initial_summary: z
-          .string()
-          .min(1, "初期サマリは必須です")
-          .describe("着手時点の抽象的な状況や方針"),
-      }),
+      inputSchema: startTaskInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.startTasks(camelArgs, ctx);
+    async (params) => {
+      const result = await constructStartTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(
+                  result.data,
+                  "タスクの追跡を開始しました。",
+                )
+              : result.error,
           },
         ],
       };
@@ -52,30 +58,25 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "update_task",
+    "updateTask",
     {
-      title: "update_task",
+      title: "updateTask",
       description: "進捗の抽象的サマリを共有するための入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("進捗の抽象的説明"),
-        raw_context: rawContextSchema,
-      }),
+      inputSchema: updateTaskInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.updateTask(camelArgs, ctx);
+    async (params) => {
+      const result = await constructUpdateTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(result.data, "進捗を保存しました。")
+              : result.error,
           },
         ],
       };
@@ -83,30 +84,28 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "report_blocked",
+    "reportBlocked",
     {
-      title: "report_blocked",
+      title: "reportBlocked",
       description: "ブロッキング情報を共有するための入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("詰まっている理由の要約"),
-        raw_context: rawContextSchema,
-      }),
+      inputSchema: reportBlockedInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.reportBlocked(camelArgs, ctx);
+    async (params) => {
+      const result = await constructReportBlockedWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(
+                  result.data,
+                  "ブロッキング情報を登録しました。",
+                )
+              : result.error,
           },
         ],
       };
@@ -114,30 +113,25 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "pause_task",
+    "pauseTask",
     {
-      title: "pause_task",
+      title: "pauseTask",
       description: "タスクを一時休止するための入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("休止理由の要約"),
-        raw_context: rawContextSchema,
-      }),
+      inputSchema: pauseTaskInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.pauseTask(camelArgs, ctx);
+    async (params) => {
+      const result = await constructPauseTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(result.data, "タスクを一時休止しました。")
+              : result.error,
           },
         ],
       };
@@ -145,30 +139,25 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "resume_task",
+    "resumeTask",
     {
-      title: "resume_task",
+      title: "resumeTask",
       description: "一時休止したタスクを再開するための入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("再開時のコメント"),
-        raw_context: rawContextSchema,
-      }),
+      inputSchema: resumeTaskInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.resumeTask(camelArgs, ctx);
+    async (params) => {
+      const result = await constructResumeTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(result.data, "タスクを再開しました。")
+              : result.error,
           },
         ],
       };
@@ -176,29 +165,31 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "complete_task",
+    "completeTask",
     {
-      title: "complete_task",
+      title: "completeTask",
       description: "完了報告を共有するための入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("完了内容の抽象的サマリ"),
-      }),
+      inputSchema: completeTaskInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.completeTask(camelArgs, ctx);
+    async (params) => {
+      const result = await constructCompleteTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(
+                  result.data,
+                  result.data.unresolvedBlocks &&
+                    result.data.unresolvedBlocks.length > 0
+                    ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
+                    : "完了報告を保存しました。",
+                )
+              : result.error,
           },
         ],
       };
@@ -206,31 +197,28 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "resolve_blocked",
+    "resolveBlocked",
     {
-      title: "resolve_blocked",
+      title: "resolveBlocked",
       description: "ブロッキングが解決したことを報告する入力仕様。",
-      inputSchema: z.object({
-        task_session_id: z
-          .string()
-          .min(1, "task_session_idは必須です")
-          .describe("start_taskで払い出されたタスクID"),
-        block_report_id: z
-          .string()
-          .min(1, "block_report_idは必須です")
-          .describe(
-            "解決したブロッキングのID（complete_taskレスポンスやreport_blockedレスポンスから取得）",
-          ),
-      }),
+      inputSchema: resolveBlockedInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.resolveBlocked(camelArgs, ctx);
+    async (params) => {
+      const result = await constructResolveBlockedWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? formatSuccessResponse(
+                  result.data,
+                  "ブロッキングの解決を報告しました。",
+                )
+              : result.error,
           },
         ],
       };
@@ -238,31 +226,25 @@ export function createMcpServer(ctx: Env["Variables"]) {
   );
 
   server.registerTool(
-    "list_tasks",
+    "listTasks",
     {
-      title: "list_tasks",
+      title: "listTasks",
       description: "ユーザーのタスク一覧を取得する。",
-      inputSchema: z.object({
-        status: z
-          .enum(["in_progress", "blocked", "paused", "completed"])
-          .optional()
-          .describe("フィルタリングするステータス（省略時は全ステータス）"),
-        limit: z
-          .number()
-          .positive()
-          .max(100)
-          .optional()
-          .describe("取得する最大件数（デフォルト: 50）"),
-      }),
+      inputSchema: listTasksInputSchema,
     },
-    async (args) => {
-      const camelArgs = camelcaseKeys(args, { deep: true });
-      const result = await taskSessionUsecases.listTasks(camelArgs, ctx);
+    async (params) => {
+      const result = await constructListTasksWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
       return {
         content: [
           {
             type: "text",
-            text: result.success ? result.data : result.error,
+            text: result.success
+              ? JSON.stringify(result.data, null, 2)
+              : result.error,
           },
         ],
       };

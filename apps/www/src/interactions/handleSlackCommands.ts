@@ -1,11 +1,11 @@
-import type { Env } from "@/app/create-app";
+import { HonoEnv } from "@/types";
 
 type SlackCommandHandler = {
   commandName: string;
   handler: (args: {
     teamId: string;
     userId: string;
-    ctx: Env["Variables"];
+    ctx: HonoEnv["Variables"];
   }) => Promise<{
     response_type: "ephemeral" | "in_channel";
     text: string;
@@ -23,7 +23,7 @@ export const handleApplicationCommands = async ({
   teamId: string;
   userId: string;
   commands: SlackCommandHandler[];
-  ctx: Env["Variables"];
+  ctx: HonoEnv["Variables"];
 }) => {
   for (const cmd of commands) {
     if (cmd.commandName === command) {

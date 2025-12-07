@@ -1,4 +1,4 @@
-import { createHonoApp } from "@/app/create-app";
+import { createHonoApp } from "@/create-app";
 import { absoluteUrl } from "@/lib/utils";
 import { cors } from "hono/cors";
 

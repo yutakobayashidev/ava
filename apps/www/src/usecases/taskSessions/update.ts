@@ -1,88 +1,95 @@
-import { Env } from "@/app/create-app";
-import { createNotificationService } from "@/services/notificationService";
-import { createTaskRepository, createWorkspaceRepository } from "@/repos";
-import { isValidTransition, ALLOWED_TRANSITIONS } from "@/domain/task-status";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import type { TaskRepository } from "@/repos";
+import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { buildTaskUpdateMessage } from "./slackMessages";
+import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
 
-type UpdateTask = {
-  taskSessionId: string;
-  summary: string;
-  rawContext?: Record<string, unknown>;
-};
+export const createUpdateTask = (
+  taskRepository: TaskRepository,
+  slackNotificationService: SlackNotificationService,
+) => {
+  return async (input: UpdateTaskInput): Promise<UpdateTaskOutput> => {
+    const { workspace, user, params } = input;
+    const { taskSessionId, summary, rawContext } = params;
 
-export const updateTask = async (
-  params: UpdateTask,
-  ctx: Env["Variables"],
-): Promise<
-  { success: true; data: string } | { success: false; error: string }
-> => {
-  const { taskSessionId, summary, rawContext } = params;
+    // 現在のタスクセッションを取得して状態遷移を検証
+    const currentSession = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
 
-  const [user, workspace, db] = [ctx.user, ctx.workspace, ctx.db];
-  const taskRepository = createTaskRepository({ db });
-  const workspaceRepository = createWorkspaceRepository({ db });
-  const notificationService = createNotificationService(
-    workspace,
-    taskRepository,
-    workspaceRepository,
-  );
+    if (!currentSession) {
+      return {
+        success: false,
+        error: "タスクセッションが見つかりません",
+      };
+    }
 
-  // 現在のタスクセッションを取得して状態遷移を検証
-  const currentSession = await taskRepository.findTaskSessionById(
-    taskSessionId,
-    workspace.id,
-    user.id,
-  );
+    // blocked/paused → in_progress への遷移を検証
+    if (!isValidTransition(currentSession.status, "in_progress")) {
+      return {
+        success: false,
+        error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+      };
+    }
 
-  if (!currentSession) {
+    const { session, updateEvent } = await taskRepository.addTaskUpdate({
+      taskSessionId: taskSessionId,
+      workspaceId: workspace.id,
+      userId: user.id,
+      summary,
+      rawContext: rawContext ?? {},
+    });
+
+    if (!session || !updateEvent) {
+      return {
+        success: false,
+        error: "タスクの更新に失敗しました",
+      };
+    }
+
+    // Slack通知
+    let slackNotification: { delivered: boolean; reason?: string };
+
+    const slackThread = createSlackThreadInfo({
+      channel: session.slackChannel,
+      threadTs: session.slackThreadTs,
+    });
+
+    if (slackThread) {
+      // メッセージ組み立て（ユースケース層の責務）
+      const message = buildTaskUpdateMessage({ summary });
+
+      // Slack通知（インフラ層への委譲）
+      const notification = await slackNotificationService.postMessage({
+        workspace,
+        channel: slackThread.channel,
+        message,
+        threadTs: slackThread.threadTs,
+      });
+
+      slackNotification = {
+        delivered: notification.delivered,
+        reason: notification.error,
+      };
+    } else {
+      slackNotification = {
+        delivered: false,
+        reason: "Slack thread not configured",
+      };
+    }
+
     return {
-      success: false,
-      error: "タスクセッションが見つかりません",
+      success: true,
+      data: {
+        taskSessionId: session.id,
+        updateId: updateEvent.id,
+        status: session.status,
+        summary: updateEvent.summary,
+        slackNotification,
+      },
     };
-  }
-
-  // blocked/paused → in_progress への遷移を検証
-  if (!isValidTransition(currentSession.status, "in_progress")) {
-    return {
-      success: false,
-      error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-    };
-  }
-
-  const { session, updateEvent } = await taskRepository.addTaskUpdate({
-    taskSessionId: taskSessionId,
-    workspaceId: workspace.id,
-    userId: user.id,
-    summary,
-    rawContext: rawContext ?? {},
-  });
-
-  if (!session || !updateEvent) {
-    return {
-      success: false,
-      error: "タスクの更新に失敗しました",
-    };
-  }
-
-  const slackNotification = await notificationService.notifyTaskUpdate({
-    session: {
-      id: session.id,
-      slackThreadTs: session.slackThreadTs,
-      slackChannel: session.slackChannel,
-    },
-    summary,
-  });
-
-  const result = {
-    task_session_id: session.id,
-    update_id: updateEvent.id,
-    status: session.status,
-    summary: updateEvent.summary,
-    slack_notification: slackNotification,
-    message: "進捗を保存しました。",
-  };
-
-  return {
-    success: true,
-    data: JSON.stringify(result, null, 2),
   };
 };

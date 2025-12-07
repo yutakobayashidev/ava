@@ -1,10 +1,10 @@
-import type { Env } from "@/app/create-app";
-import type { OAuth2Tokens } from "arctic";
 import { slack } from "@/lib/oauth";
-import * as schema from "@ava/database/schema";
-import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
-import { sha256 } from "@oslojs/crypto/sha2";
 import { createUserRepository } from "@/repos/users";
+import { HonoEnv } from "@/types";
+import * as schema from "@ava/database/schema";
+import { sha256 } from "@oslojs/crypto/sha2";
+import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
+import type { OAuth2Tokens } from "arctic";
 
 type LoginWithSlack = {
   code: string;
@@ -67,7 +67,7 @@ export function generateSessionToken(): string {
 }
 
 export async function createSession(
-  db: Env["Variables"]["db"],
+  db: HonoEnv["Variables"]["db"],
   token: string,
   userId: string,
 ): Promise<typeof schema.sessions.$inferSelect> {
@@ -92,7 +92,7 @@ export async function createSession(
 
 export const loginWithSlack = async (
   params: LoginWithSlack,
-  ctx: Env["Variables"],
+  ctx: HonoEnv["Variables"],
 ): Promise<LoginWithSlackResult> => {
   const { code } = params;
   const { db } = ctx;
@@ -109,7 +109,7 @@ export const loginWithSlack = async (
   const slackUser = await getSlackUser(tokens);
 
   // ユーザーの検索または作成（slackId + slackTeamId で一意）
-  const userRepository = createUserRepository({ db });
+  const userRepository = createUserRepository(db);
   let existingUser = await userRepository.findUserBySlackIdAndTeamId(
     slackUser.sub,
     slackUser.team_id,

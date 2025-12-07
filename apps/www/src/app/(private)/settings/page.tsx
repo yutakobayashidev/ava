@@ -1,4 +1,3 @@
-import { db } from "@ava/database/client";
 import { Header } from "@/components/header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +7,11 @@ import { requireAuth } from "@/lib/auth";
 import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 import { absoluteUrl } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
+import { db } from "@ava/database/client";
+import { DEFAULT_SLACK_SCOPES } from "@ava/integrations/slack";
 import { Settings, Slack, Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DEFAULT_SLACK_SCOPES } from "@ava/integrations/slack";
 import { McpSetupTabs } from "../onboarding/setup-mcp/McpSetupTabs";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default async function SettingsPage({
 }: PageProps<"/settings">) {
   const { user } = await requireAuth();
   const params = await searchParams;
-  const workspaceRepository = createWorkspaceRepository({ db });
+  const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);
 
   const statusMessage = getSlackStatusMessage(params);
