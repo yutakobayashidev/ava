@@ -1,17 +1,12 @@
-import { InternalServerError } from "@/errors";
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { InternalServerError } from "@/errors";
+import { createResolvedBlockTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
+import type { ResolveBlockedInput, ResolveBlockedWorkflow } from "./interface";
 import { buildBlockResolvedMessage } from "./slackMessages";
-import { createResolvedBlockTaskSession } from "@/models/taskSessions";
-import { type ResultAsync, okAsync, errAsync, fromPromise } from "neverthrow";
-import type {
-   
-  ResolveBlockedCompleted,
-  ResolveBlockedInput,
-  ResolveBlockedWorkflow,
-} from "./interface";
 
 const notifySlackForResolveBlocked =
   (slackNotificationService: SlackNotificationService) =>
@@ -114,20 +109,17 @@ export const createResolveBlockedWorkflow = (
             }));
           }),
       )
-      .map(
-        ({ session, blockReport, slackNotification }) =>
-          ({
-            kind: "ResolveBlockedCompleted" as const,
-            result: {
-              input: command.input,
-              taskSessionId: session.id,
-              blockReportId: blockReport.id,
-              status: session.status,
-              resolvedAt: blockReport.createdAt,
-              slackNotification,
-            },
-          }) as ResolveBlockedCompleted,
-      )
+      .map(({ session, blockReport, slackNotification }) => ({
+        kind: "ResolveBlockedCompleted" as const,
+        result: {
+          input: command.input,
+          taskSessionId: session.id,
+          blockReportId: blockReport.id,
+          status: "in_progress" as const,
+          resolvedAt: blockReport.createdAt,
+          slackNotification,
+        },
+      }))
       .mapErr((error) => {
         console.error(error);
         return error;
