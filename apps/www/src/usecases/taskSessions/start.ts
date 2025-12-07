@@ -42,33 +42,12 @@ export const createStartTask = (
       },
     });
 
-    // 投影後のセッションを取得
-    const session = await taskRepository.findTaskSessionById(
-      streamId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクセッションが見つかりません",
-      };
-    }
-
-    // Slack 通知はポリシー outbox に委譲（ここでは通知しない）
-    const slackNotification = {
-      delivered: false,
-      reason: "Delegated to policy outbox",
-    } as const;
-
     return {
       success: true,
       data: {
-        taskSessionId: session.id,
-        status: session.status,
-        issuedAt: session.createdAt,
-        slackNotification,
+        taskSessionId: streamId,
+        status: "in_progress",
+        issuedAt: new Date(),
       },
     };
   };

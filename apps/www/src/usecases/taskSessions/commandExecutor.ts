@@ -3,7 +3,7 @@ import type { Command } from "@/domain/task/types";
 import { createEventStore } from "@/repos/event-store";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
 import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
-import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
+import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
 import type { Database } from "@ava/database/client";
 import type { HonoEnv } from "@/types";
 
@@ -45,10 +45,12 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
       threadTs: state.slackThread?.threadTs ?? null,
     });
 
-    await queuePolicyEvents(deps.db, streamId, newEvents, {
-      workspaceId: workspace.id,
-      userId: user.id,
-    });
+    // 可能な限り即時に通知するため、アウトボックスをその場で処理する
+    try {
+      await processTaskPolicyOutbox(deps.db);
+    } catch (err) {
+      console.error("Failed to process task policy outbox", err);
+    }
 
     const nextState = replay(streamId, [...history, ...newEvents]);
 

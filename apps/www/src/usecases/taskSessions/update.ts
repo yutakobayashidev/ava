@@ -34,33 +34,13 @@ export const createUpdateTask = (
       },
     });
 
-    const session = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクの更新に失敗しました",
-      };
-    }
-
-    // Slack 通知はポリシー outbox に委譲
-    const slackNotification = {
-      delivered: false,
-      reason: "Delegated to policy outbox",
-    } as const;
-
     return {
       success: true,
       data: {
-        taskSessionId: session.id,
+        taskSessionId: taskSessionId,
         updateId: result.persistedEvents[0]?.id ?? "",
-        status: session.status,
+        status: result.nextState.status,
         summary,
-        slackNotification,
       },
     };
   };

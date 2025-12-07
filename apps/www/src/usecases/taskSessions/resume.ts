@@ -34,32 +34,12 @@ export const createResumeTask = (
       },
     });
 
-    const session = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクの再開処理に失敗しました",
-      };
-    }
-
-    // Slack 通知はポリシー outbox に委譲
-    const slackNotification = {
-      delivered: false,
-      reason: "Delegated to policy outbox",
-    } as const;
-
     return {
       success: true,
       data: {
-        taskSessionId: session.id,
-        status: session.status,
-        resumedAt: result.persistedEvents[0]?.createdAt ?? session.updatedAt,
-        slackNotification,
+        taskSessionId: taskSessionId,
+        status: result.nextState.status,
+        resumedAt: result.persistedEvents[0].createdAt,
       },
     };
   };

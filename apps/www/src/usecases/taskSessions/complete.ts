@@ -38,33 +38,13 @@ export const createCompleteTask = (
       },
     });
 
-    const session = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクの完了処理に失敗しました",
-      };
-    }
-
-    // Slack 通知はポリシー outbox に委譲
-    const slackNotification = {
-      delivered: false,
-      reason: "Delegated to policy outbox",
-    } as const;
-
     const unresolvedBlocks =
       (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
 
     const data: CompleteTaskSuccess = {
-      taskSessionId: session.id,
+      taskSessionId: taskSessionId,
       completionId: result.persistedEvents[0]?.id ?? "",
-      status: session.status,
-      slackNotification,
+      status: result.nextState.status,
     };
 
     if (unresolvedBlocks.length > 0) {

@@ -8,11 +8,6 @@ import { HonoEnv } from "@/types";
 // Common Types
 // ============================================
 
-type SlackNotificationResult = {
-  delivered: boolean;
-  reason?: string;
-};
-
 // ============================================
 // Start Task
 // ============================================
@@ -36,7 +31,6 @@ type StartTaskSuccess = {
   taskSessionId: string;
   status: string;
   issuedAt: Date;
-  slackNotification: SlackNotificationResult;
 };
 
 export type StartTaskOutput =
@@ -64,7 +58,6 @@ type UpdateTaskSuccess = {
   updateId: string;
   status: string;
   summary: string | null;
-  slackNotification: SlackNotificationResult;
 };
 
 export type UpdateTaskOutput =
@@ -90,7 +83,6 @@ export type CompleteTaskSuccess = {
   taskSessionId: string;
   completionId: string;
   status: string;
-  slackNotification: SlackNotificationResult;
   unresolvedBlocks?: Array<{
     blockReportId: string;
     reason: string | null;
@@ -123,7 +115,6 @@ type ReportBlockedSuccess = {
   blockReportId: string;
   status: string;
   reason: string | null;
-  slackNotification: SlackNotificationResult;
 };
 
 export type ReportBlockedOutput =
@@ -151,7 +142,6 @@ type PauseTaskSuccess = {
   pauseReportId: string;
   status: string;
   pausedAt: Date;
-  slackNotification: SlackNotificationResult;
 };
 
 export type PauseTaskOutput =
@@ -178,7 +168,6 @@ type ResumeTaskSuccess = {
   taskSessionId: string;
   status: string;
   resumedAt: Date;
-  slackNotification: SlackNotificationResult;
 };
 
 export type ResumeTaskOutput =
@@ -205,7 +194,6 @@ type ResolveBlockedSuccess = {
   blockReportId: string;
   status: string;
   resolvedAt: Date;
-  slackNotification: SlackNotificationResult;
 };
 
 export type ResolveBlockedOutput =

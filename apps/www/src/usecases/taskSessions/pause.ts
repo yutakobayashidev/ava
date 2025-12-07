@@ -34,33 +34,13 @@ export const createPauseTask = (
       },
     });
 
-    const session = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクの一時休止処理に失敗しました",
-      };
-    }
-
-    // Slack 通知はポリシー outbox に委譲
-    const slackNotification = {
-      delivered: false,
-      reason: "Delegated to policy outbox",
-    } as const;
-
     return {
       success: true,
       data: {
-        taskSessionId: session.id,
+        taskSessionId: taskSessionId,
         pauseReportId: result.persistedEvents[0]?.id ?? "",
-        status: session.status,
-        pausedAt: result.persistedEvents[0]?.createdAt ?? session.updatedAt,
-        slackNotification,
+        status: result.nextState.status,
+        pausedAt: result.persistedEvents[0]?.createdAt ?? new Date(),
       },
     };
   };
