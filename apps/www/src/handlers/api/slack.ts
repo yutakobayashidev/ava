@@ -285,9 +285,13 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           const summary =
             values.summary_block.summary_input.value || "完了しました";
           await constructCompleteTaskWorkflow(ctx)({
-            workspace,
-            user,
-            params: { taskSessionId, summary },
+            kind: "CompleteTaskSessionCommand",
+            input: {
+              workspace,
+              user,
+              taskSessionId,
+              summary,
+            },
           });
           break;
         }
@@ -295,18 +299,26 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           const reason =
             values.reason_block.reason_input.value || "詰まっています";
           await constructReportBlockedWorkflow(ctx)({
-            workspace,
-            user,
-            params: { taskSessionId, reason },
+            kind: "ReportBlockedCommand",
+            input: {
+              workspace,
+              user,
+              taskSessionId,
+              reason,
+            },
           });
           break;
         }
         case "pause_task_modal": {
           const reason = values.reason_block.reason_input.value || "休止します";
           await constructPauseTaskWorkflow(ctx)({
-            workspace,
-            user,
-            params: { taskSessionId, reason },
+            kind: "PauseTaskCommand",
+            input: {
+              workspace,
+              user,
+              taskSessionId,
+              reason,
+            },
           });
           break;
         }
@@ -314,18 +326,23 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           const summary =
             values.summary_block.summary_input.value || "再開しました";
           await constructResumeTaskWorkflow(ctx)({
-            workspace,
-            user,
-            params: { taskSessionId, summary },
+            kind: "ResumeTaskCommand",
+            input: {
+              workspace,
+              user,
+              taskSessionId,
+              summary,
+            },
           });
           break;
         }
         case "resolve_blocked_modal": {
           const metadata = JSON.parse(taskSessionId);
           await constructResolveBlockedWorkflow(ctx)({
-            workspace,
-            user,
-            params: {
+            kind: "ResolveBlockedCommand",
+            input: {
+              workspace,
+              user,
               taskSessionId: metadata.taskSessionId,
               blockReportId: metadata.blockReportId,
             },

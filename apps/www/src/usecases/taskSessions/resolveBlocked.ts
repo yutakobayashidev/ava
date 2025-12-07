@@ -1,7 +1,10 @@
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { InternalServerError } from "@/errors";
-import { createResolvedBlockTaskSession } from "@/models/taskSessions";
+import {
+  createResolvedBlockTaskSession,
+  createFindTaskSessionByIdRequest,
+} from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
@@ -52,14 +55,14 @@ export const createResolveBlockedWorkflow = (
   return (command) => {
     const { workspace, user, taskSessionId, blockReportId } = command.input;
 
-    return okAsync(command)
-      .andThen(() =>
-        taskRepository.findTaskSessionById(
-          taskSessionId,
-          workspace.id,
-          user.id,
-        ),
-      )
+    return okAsync(
+      createFindTaskSessionByIdRequest({
+        taskSessionId,
+        workspaceId: workspace.id,
+        userId: user.id,
+      }),
+    )
+      .andThen((request) => taskRepository.findTaskSessionById({ request }))
       .andThen((currentSession) =>
         currentSession
           ? okAsync(currentSession)

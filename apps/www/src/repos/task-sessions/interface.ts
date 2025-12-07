@@ -9,6 +9,16 @@ import type {
   ResumedTaskSession,
   CompletedTaskSession,
   ResolvedBlockTaskSession,
+  FindTaskSessionByIdRequest,
+  ListTaskSessionsRequest,
+  UpdateSlackThreadRequest,
+  ListEventsRequest,
+  GetUnresolvedBlockReportsRequest,
+  GetBulkUnresolvedBlockReportsRequest,
+  GetBulkLatestEventsRequest,
+  GetLatestEventRequest,
+  GetLatestEventByTypesRequest,
+  GetTodayCompletedTasksRequest,
 } from "@/models/taskSessions";
 
 export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
@@ -76,6 +86,55 @@ export type ResolveBlockReport = (params: {
   DatabaseError
 >;
 
+// Query operation type definitions
+export type FindTaskSessionById = (params: {
+  request: FindTaskSessionByIdRequest;
+}) => ResultAsync<schema.TaskSession | null, DatabaseError>;
+
+export type ListTaskSessions = (params: {
+  request: ListTaskSessionsRequest;
+}) => ResultAsync<schema.TaskSession[], DatabaseError>;
+
+export type UpdateSlackThread = (params: {
+  request: UpdateSlackThreadRequest;
+}) => ResultAsync<schema.TaskSession | null, DatabaseError>;
+
+export type ListEvents = (params: {
+  request: ListEventsRequest;
+}) => ResultAsync<schema.TaskEvent[], DatabaseError>;
+
+export type GetUnresolvedBlockReports = (params: {
+  request: GetUnresolvedBlockReportsRequest;
+}) => ResultAsync<schema.TaskEvent[], DatabaseError>;
+
+export type GetBulkUnresolvedBlockReports = (params: {
+  request: GetBulkUnresolvedBlockReportsRequest;
+}) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
+
+export type GetBulkLatestEvents = (params: {
+  request: GetBulkLatestEventsRequest;
+}) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
+
+export type GetLatestEvent = (params: {
+  request: GetLatestEventRequest;
+}) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
+
+export type GetLatestEventByTypes = (params: {
+  request: GetLatestEventByTypesRequest;
+}) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
+
+export type GetTodayCompletedTasks = (params: {
+  request: GetTodayCompletedTasksRequest;
+}) => ResultAsync<
+  Array<
+    schema.TaskSession & {
+      completedAt: Date;
+      completionSummary: string | null;
+    }
+  >,
+  DatabaseError
+>;
+
 // Repository functions - モデルベース
 export type TaskRepository = {
   // CRUD操作（ドメインモデルを受け取る）
@@ -87,62 +146,15 @@ export type TaskRepository = {
   completeTask: CompleteTask;
   resolveBlockReport: ResolveBlockReport;
 
-  // ユーティリティ関数
-  findTaskSessionById: (
-    taskSessionId: string,
-    workspaceId: string,
-    userId: string,
-  ) => ResultAsync<schema.TaskSession | null, DatabaseError>;
-  listTaskSessions: (params: {
-    userId: string;
-    workspaceId: string;
-    status?: TaskStatus;
-    limit?: number;
-    updatedAfter?: Date;
-    updatedBefore?: Date;
-  }) => ResultAsync<schema.TaskSession[], DatabaseError>;
-  updateSlackThread: (params: {
-    taskSessionId: string;
-    workspaceId: string;
-    userId: string;
-    threadTs: string;
-    channel: string;
-  }) => ResultAsync<schema.TaskSession | null, DatabaseError>;
-  listEvents: (params: {
-    taskSessionId: string;
-    eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
-    limit?: number;
-  }) => ResultAsync<schema.TaskEvent[], DatabaseError>;
-  getUnresolvedBlockReports: (
-    taskSessionId: string,
-  ) => ResultAsync<schema.TaskEvent[], DatabaseError>;
-  getBulkUnresolvedBlockReports: (
-    taskSessionIds: string[],
-  ) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
-  getBulkLatestEvents: (params: {
-    taskSessionIds: string[];
-    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-    limit?: number;
-  }) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
-  getLatestEvent: (params: {
-    taskSessionId: string;
-    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-  }) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
-  getLatestEventByTypes: (
-    taskSessionId: string,
-    eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
-  ) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
-  getTodayCompletedTasks: (params: {
-    userId: string;
-    workspaceId: string;
-    dateRange: { from: Date; to: Date };
-  }) => ResultAsync<
-    Array<
-      schema.TaskSession & {
-        completedAt: Date;
-        completionSummary: string | null;
-      }
-    >,
-    DatabaseError
-  >;
+  // Query operations（すべて { request } パターンを使用）
+  findTaskSessionById: FindTaskSessionById;
+  listTaskSessions: ListTaskSessions;
+  updateSlackThread: UpdateSlackThread;
+  listEvents: ListEvents;
+  getUnresolvedBlockReports: GetUnresolvedBlockReports;
+  getBulkUnresolvedBlockReports: GetBulkUnresolvedBlockReports;
+  getBulkLatestEvents: GetBulkLatestEvents;
+  getLatestEvent: GetLatestEvent;
+  getLatestEventByTypes: GetLatestEventByTypes;
+  getTodayCompletedTasks: GetTodayCompletedTasks;
 };

@@ -1,7 +1,10 @@
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { InternalServerError } from "@/errors";
-import { createResumedTaskSession } from "@/models/taskSessions";
+import {
+  createResumedTaskSession,
+  createFindTaskSessionByIdRequest,
+} from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
@@ -53,14 +56,14 @@ export const createResumeTaskWorkflow = (
     const { workspace, user, taskSessionId, summary, rawContext } =
       command.input;
 
-    return okAsync(command)
-      .andThen(() =>
-        taskRepository.findTaskSessionById(
-          taskSessionId,
-          workspace.id,
-          user.id,
-        ),
-      )
+    return okAsync(
+      createFindTaskSessionByIdRequest({
+        taskSessionId,
+        workspaceId: workspace.id,
+        userId: user.id,
+      }),
+    )
+      .andThen((request) => taskRepository.findTaskSessionById({ request }))
       .andThen((currentSession) =>
         currentSession
           ? okAsync(currentSession)

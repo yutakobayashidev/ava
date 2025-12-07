@@ -1,12 +1,19 @@
 import { generateText } from "@/lib/server/ai";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import {
+  createGetBulkLatestEventsRequest,
+  createGetBulkUnresolvedBlockReportsRequest,
+  createGetTodayCompletedTasksRequest,
+  createListTaskSessionsRequest,
+} from "@/models/taskSessions";
+import {
   createTaskRepository,
   createUserRepository,
   createWorkspaceRepository,
 } from "@/repos";
 import { HonoEnv } from "@/types";
 import { fillPrompt } from "@/utils/prompts";
+import * as schema from "@ava/database/schema";
 
 type BlockReport = {
   reason: string | null;
@@ -142,29 +149,51 @@ export const generateDailyReport = async (
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   // 今日完了したタスクを取得（1回のクエリで完了イベント情報も含む）
-  const todayCompletedTasks = await taskRepository.getTodayCompletedTasks({
-    userId: user.id,
-    workspaceId: workspace.id,
-    dateRange: { from: today, to: tomorrow },
-  });
+  const todayCompletedTasksResult = await taskRepository.getTodayCompletedTasks(
+    {
+      request: createGetTodayCompletedTasksRequest({
+        userId: user.id,
+        workspaceId: workspace.id,
+        dateRange: { from: today, to: tomorrow },
+      }),
+    },
+  );
+
+  const todayCompletedTasks = todayCompletedTasksResult.match(
+    (tasks) => tasks,
+    () => [],
+  );
 
   // 今日更新された進行中・ブロック中タスクを取得（日付フィルタをDBで実行）
-  const inProgressTasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status: "in_progress",
-    updatedAfter: today,
-    updatedBefore: tomorrow,
-    limit: 100,
+  const inProgressTasksResult = await taskRepository.listTaskSessions({
+    request: createListTaskSessionsRequest({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: "in_progress",
+      updatedAfter: today,
+      updatedBefore: tomorrow,
+      limit: 100,
+    }),
   });
-  const blockedTasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    status: "blocked",
-    updatedAfter: today,
-    updatedBefore: tomorrow,
-    limit: 100,
+  const blockedTasksResult = await taskRepository.listTaskSessions({
+    request: createListTaskSessionsRequest({
+      userId: user.id,
+      workspaceId: workspace.id,
+      status: "blocked",
+      updatedAfter: today,
+      updatedBefore: tomorrow,
+      limit: 100,
+    }),
   });
+
+  const inProgressTasks = inProgressTasksResult.match(
+    (tasks) => tasks,
+    () => [],
+  );
+  const blockedTasks = blockedTasksResult.match(
+    (tasks) => tasks,
+    () => [],
+  );
 
   const todayActiveTasks = [...inProgressTasks, ...blockedTasks];
 
@@ -179,13 +208,28 @@ export const generateDailyReport = async (
   ];
 
   // バルクでunresolvedBlocksとupdateEventsを取得
-  const unresolvedBlocksMap =
-    await taskRepository.getBulkUnresolvedBlockReports(allTaskIds);
-  const updateEventsMap = await taskRepository.getBulkLatestEvents({
-    taskSessionIds: todayActiveTasks.map((t) => t.id),
-    eventType: "updated",
-    limit: 5,
+  const unresolvedBlocksMapResult =
+    await taskRepository.getBulkUnresolvedBlockReports({
+      request: createGetBulkUnresolvedBlockReportsRequest({
+        taskSessionIds: allTaskIds,
+      }),
+    });
+  const updateEventsMapResult = await taskRepository.getBulkLatestEvents({
+    request: createGetBulkLatestEventsRequest({
+      taskSessionIds: todayActiveTasks.map((t) => t.id),
+      eventType: "updated",
+      limit: 5,
+    }),
   });
+
+  const unresolvedBlocksMap = unresolvedBlocksMapResult.match(
+    (map) => map,
+    () => new Map(),
+  );
+  const updateEventsMap = updateEventsMapResult.match(
+    (map) => map,
+    () => new Map(),
+  );
 
   // 各完了タスクの詳細情報を構築
   const completedTasksWithDetails = todayCompletedTasks.map((task) => {
@@ -195,7 +239,7 @@ export const generateDailyReport = async (
       initialSummary: task.initialSummary,
       completionSummary: task.completionSummary || "",
       duration: task.completedAt.getTime() - task.createdAt.getTime(),
-      unresolvedBlocks: unresolvedBlocks.map((block) => ({
+      unresolvedBlocks: unresolvedBlocks.map((block: schema.TaskEvent) => ({
         reason: block.reason,
         createdAt: block.createdAt,
       })),
@@ -211,7 +255,7 @@ export const generateDailyReport = async (
       status: task.status,
       initialSummary: task.initialSummary,
       latestUpdate: updateEvents[0]?.summary || "",
-      unresolvedBlocks: unresolvedBlocks.map((block) => ({
+      unresolvedBlocks: unresolvedBlocks.map((block: schema.TaskEvent) => ({
         reason: block.reason,
         createdAt: block.createdAt,
       })),

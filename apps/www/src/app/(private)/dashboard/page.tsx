@@ -11,6 +11,10 @@ import {
 } from "@/components/ui/table";
 import { requireWorkspace } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
+import {
+  createListTaskSessionsRequest,
+  createGetLatestEventRequest,
+} from "@/models/taskSessions";
 import { createTaskRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
@@ -36,11 +40,18 @@ export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository(db);
-  const tasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    limit: 100,
+  const tasksResult = await taskRepository.listTaskSessions({
+    request: createListTaskSessionsRequest({
+      userId: user.id,
+      workspaceId: workspace.id,
+      limit: 100,
+    }),
   });
+
+  const tasks = tasksResult.match(
+    (sessions) => sessions,
+    () => [],
+  );
 
   const tasksWithDuration = await Promise.all(
     tasks.map(async (task) => {
@@ -49,10 +60,18 @@ export default async function DashboardPage() {
 
       // 完了済みタスクのみ所要時間を計算
       if (task.status === "completed") {
-        const completedEvent = await taskRepository.getLatestEvent({
-          taskSessionId: task.id,
-          eventType: "completed",
+        const completedEventResult = await taskRepository.getLatestEvent({
+          request: createGetLatestEventRequest({
+            taskSessionId: task.id,
+            eventType: "completed",
+          }),
         });
+
+        const completedEvent = completedEventResult.match(
+          (event) => event,
+          () => null,
+        );
+
         if (completedEvent) {
           completedAt = completedEvent.createdAt;
           durationMs = completedAt.getTime() - task.createdAt.getTime();

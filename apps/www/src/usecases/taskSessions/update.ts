@@ -1,12 +1,14 @@
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { InternalServerError } from "@/errors";
-import { createUpdatedTaskSession } from "@/models/taskSessions";
+import {
+  createUpdatedTaskSession,
+  createFindTaskSessionByIdRequest,
+} from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
 import type {
-  UpdateTaskSessionCompleted,
   UpdateTaskSessionInput,
   UpdateTaskSessionWorkflow,
 } from "./interface";
@@ -57,8 +59,14 @@ export const createUpdateTaskSessionWorkflow = (
     const { workspace, user, taskSessionId, summary, rawContext } =
       command.input;
 
-    return taskRepository
-      .findTaskSessionById(taskSessionId, workspace.id, user.id)
+    return okAsync(
+      createFindTaskSessionByIdRequest({
+        taskSessionId,
+        workspaceId: workspace.id,
+        userId: user.id,
+      }),
+    )
+      .andThen((request) => taskRepository.findTaskSessionById({ request }))
       .andThen((currentSession) => {
         if (!currentSession) {
           return errAsync(
@@ -109,20 +117,17 @@ export const createUpdateTaskSessionWorkflow = (
             );
           });
       })
-      .map(
-        ({ session, updateEvent, slackNotification }) =>
-          ({
-            kind: "UpdateTaskSessionCompleted" as const,
-            result: {
-              input: command.input,
-              taskSessionId: session.id,
-              updateId: updateEvent.id,
-              status: session.status,
-              summary: updateEvent.summary ?? "",
-              slackNotification,
-            },
-          }) as UpdateTaskSessionCompleted,
-      )
+      .map(({ session, updateEvent, slackNotification }) => ({
+        kind: "UpdateTaskSessionCompleted" as const,
+        result: {
+          input: command.input,
+          taskSessionId: session.id,
+          updateId: updateEvent.id,
+          status: session.status,
+          summary: updateEvent.summary ?? "",
+          slackNotification,
+        },
+      }))
       .mapErr((error) => {
         console.error(error);
         return error;

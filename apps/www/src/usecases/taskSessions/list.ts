@@ -1,4 +1,5 @@
 import type { TaskRepository } from "@/repos";
+import { createListTaskSessionsRequest } from "@/models/taskSessions";
 import { okAsync } from "neverthrow";
 import type { ListTaskSessionsWorkflow } from "./interface";
 
@@ -8,15 +9,15 @@ export const createListTaskSessionsWorkflow = (
   return (command) => {
     const { workspace, user, status, limit } = command.input;
 
-    return okAsync(command)
-      .andThen(() =>
-        taskRepository.listTaskSessions({
-          userId: user.id,
-          workspaceId: workspace.id,
-          status,
-          limit,
-        }),
-      )
+    return okAsync(
+      createListTaskSessionsRequest({
+        userId: user.id,
+        workspaceId: workspace.id,
+        status,
+        limit,
+      }),
+    )
+      .andThen((request) => taskRepository.listTaskSessions({ request }))
       .map((sessions) => {
         return {
           kind: "ListTaskSessionsCompleted" as const,

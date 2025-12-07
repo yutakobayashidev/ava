@@ -180,3 +180,131 @@ export type UpdatableTaskSession =
   | ResumedTaskSession
   | CompletedTaskSession
   | ResolvedBlockTaskSession;
+
+// ============================================
+// Query Request Types
+// ============================================
+
+export type FindTaskSessionByIdRequest = {
+  taskSessionId: string;
+  workspaceId: string;
+  userId: string;
+};
+
+export const createFindTaskSessionByIdRequest = (params: {
+  taskSessionId: string;
+  workspaceId: string;
+  userId: string;
+}): FindTaskSessionByIdRequest => params;
+
+export type ListTaskSessionsRequest = {
+  userId: string;
+  workspaceId: string;
+  status?: (typeof schema.taskStatusEnum.enumValues)[number];
+  limit?: number;
+  updatedAfter?: Date;
+  updatedBefore?: Date;
+};
+
+export const createListTaskSessionsRequest = (params: {
+  userId: string;
+  workspaceId: string;
+  status?: (typeof schema.taskStatusEnum.enumValues)[number];
+  limit?: number;
+  updatedAfter?: Date;
+  updatedBefore?: Date;
+}): ListTaskSessionsRequest => params;
+
+export type UpdateSlackThreadRequest = {
+  taskSessionId: string;
+  workspaceId: string;
+  userId: string;
+  threadTs: string;
+  channel: string;
+};
+
+export const createUpdateSlackThreadRequest = (params: {
+  taskSessionId: string;
+  workspaceId: string;
+  userId: string;
+  threadTs: string;
+  channel: string;
+}): UpdateSlackThreadRequest => params;
+
+export type ListEventsRequest = {
+  taskSessionId: string;
+  eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
+  limit?: number;
+};
+
+export const createListEventsRequest = (params: {
+  taskSessionId: string;
+  eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
+  limit?: number;
+}): ListEventsRequest => params;
+
+export type GetUnresolvedBlockReportsRequest = {
+  taskSessionId: string;
+};
+
+export const createGetUnresolvedBlockReportsRequest = (params: {
+  taskSessionId: string;
+}): GetUnresolvedBlockReportsRequest => params;
+
+export type GetBulkUnresolvedBlockReportsRequest = {
+  taskSessionIds: string[];
+};
+
+export const createGetBulkUnresolvedBlockReportsRequest = (params: {
+  taskSessionIds: string[];
+}): GetBulkUnresolvedBlockReportsRequest => params;
+
+export type GetBulkLatestEventsRequest = {
+  taskSessionIds: string[];
+  eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+  limit?: number;
+};
+
+export const createGetBulkLatestEventsRequest = (params: {
+  taskSessionIds: string[];
+  eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+  limit?: number;
+}): GetBulkLatestEventsRequest => params;
+
+export type GetLatestEventRequest = {
+  taskSessionId: string;
+  eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+};
+
+export const createGetLatestEventRequest = (params: {
+  taskSessionId: string;
+  eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
+}): GetLatestEventRequest => params;
+
+export type GetLatestEventByTypesRequest = {
+  taskSessionId: string;
+  eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][];
+};
+
+export const createGetLatestEventByTypesRequest = (params: {
+  taskSessionId: string;
+  eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][];
+}): GetLatestEventByTypesRequest => params;
+
+export type GetTodayCompletedTasksRequest = {
+  userId: string;
+  workspaceId: string;
+  dateRange: {
+    from: Date;
+    to: Date;
+  };
+};
+
+export const createGetTodayCompletedTasksRequest = (params: {
+  userId: string;
+  workspaceId: string;
+  dateRange: {
+    from: Date;
+    to: Date;
+  };
+}): GetTodayCompletedTasksRequest => params;

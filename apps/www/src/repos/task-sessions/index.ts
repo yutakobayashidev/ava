@@ -8,12 +8,21 @@ import type {
   AddTaskUpdate,
   CompleteTask,
   CreateTaskSession,
+  FindTaskSessionById,
+  GetBulkLatestEvents,
+  GetBulkUnresolvedBlockReports,
+  GetLatestEvent,
+  GetLatestEventByTypes,
+  GetTodayCompletedTasks,
+  GetUnresolvedBlockReports,
+  ListEvents,
+  ListTaskSessions,
   PauseTask,
   ReportBlock,
   ResolveBlockReport,
   ResumeTask,
   TaskRepository,
-  TaskStatus,
+  UpdateSlackThread,
 } from "./interface";
 export type { TaskRepository } from "./interface";
 
@@ -340,8 +349,8 @@ export const resolveBlockReport =
 
 // ユーティリティ関数
 export const findTaskSessionById =
-  (db: Database) =>
-  (taskSessionId: string, workspaceId: string, userId: string) => {
+  (db: Database): FindTaskSessionById =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
         const [session] = await db
@@ -349,9 +358,9 @@ export const findTaskSessionById =
           .from(schema.taskSessions)
           .where(
             and(
-              eq(schema.taskSessions.id, taskSessionId),
-              eq(schema.taskSessions.workspaceId, workspaceId),
-              eq(schema.taskSessions.userId, userId),
+              eq(schema.taskSessions.id, request.taskSessionId),
+              eq(schema.taskSessions.workspaceId, request.workspaceId),
+              eq(schema.taskSessions.userId, request.userId),
             ),
           );
 
@@ -361,37 +370,30 @@ export const findTaskSessionById =
   };
 
 export const listTaskSessions =
-  (db: Database) =>
-  (params: {
-    userId: string;
-    workspaceId: string;
-    status?: TaskStatus;
-    limit?: number;
-    updatedAfter?: Date;
-    updatedBefore?: Date;
-  }) => {
+  (db: Database): ListTaskSessions =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
-        const limit = params.limit ?? 50;
+        const limit = request.limit ?? 50;
 
         const conditions = [
-          eq(schema.taskSessions.userId, params.userId),
-          eq(schema.taskSessions.workspaceId, params.workspaceId),
+          eq(schema.taskSessions.userId, request.userId),
+          eq(schema.taskSessions.workspaceId, request.workspaceId),
         ];
 
-        if (params.status) {
-          conditions.push(eq(schema.taskSessions.status, params.status));
+        if (request.status) {
+          conditions.push(eq(schema.taskSessions.status, request.status));
         }
 
-        if (params.updatedAfter) {
+        if (request.updatedAfter) {
           conditions.push(
-            sql`${schema.taskSessions.updatedAt} >= ${params.updatedAfter}`,
+            sql`${schema.taskSessions.updatedAt} >= ${request.updatedAfter}`,
           );
         }
 
-        if (params.updatedBefore) {
+        if (request.updatedBefore) {
           conditions.push(
-            sql`${schema.taskSessions.updatedAt} < ${params.updatedBefore}`,
+            sql`${schema.taskSessions.updatedAt} < ${request.updatedBefore}`,
           );
         }
 
@@ -406,27 +408,21 @@ export const listTaskSessions =
   };
 
 export const updateSlackThread =
-  (db: Database) =>
-  (params: {
-    taskSessionId: string;
-    workspaceId: string;
-    userId: string;
-    threadTs: string;
-    channel: string;
-  }) => {
+  (db: Database): UpdateSlackThread =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
         const [session] = await db
           .update(schema.taskSessions)
           .set({
-            slackThreadTs: params.threadTs,
-            slackChannel: params.channel,
+            slackThreadTs: request.threadTs,
+            slackChannel: request.channel,
           })
           .where(
             and(
-              eq(schema.taskSessions.id, params.taskSessionId),
-              eq(schema.taskSessions.workspaceId, params.workspaceId),
-              eq(schema.taskSessions.userId, params.userId),
+              eq(schema.taskSessions.id, request.taskSessionId),
+              eq(schema.taskSessions.workspaceId, request.workspaceId),
+              eq(schema.taskSessions.userId, request.userId),
             ),
           )
           .returning();
@@ -437,21 +433,17 @@ export const updateSlackThread =
   };
 
 export const listEvents =
-  (db: Database) =>
-  (params: {
-    taskSessionId: string;
-    eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
-    limit?: number;
-  }) => {
+  (db: Database): ListEvents =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
-        const limit = params.limit ?? 50;
+        const limit = request.limit ?? 50;
         const conditions = [
-          eq(schema.taskEvents.taskSessionId, params.taskSessionId),
+          eq(schema.taskEvents.taskSessionId, request.taskSessionId),
         ];
 
-        if (params.eventType) {
-          conditions.push(eq(schema.taskEvents.eventType, params.eventType));
+        if (request.eventType) {
+          conditions.push(eq(schema.taskEvents.eventType, request.eventType));
         }
 
         return db
@@ -465,7 +457,8 @@ export const listEvents =
   };
 
 export const getUnresolvedBlockReports =
-  (db: Database) => (taskSessionId: string) => {
+  (db: Database): GetUnresolvedBlockReports =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
         const blockedEvents = await db
@@ -473,7 +466,7 @@ export const getUnresolvedBlockReports =
           .from(schema.taskEvents)
           .where(
             and(
-              eq(schema.taskEvents.taskSessionId, taskSessionId),
+              eq(schema.taskEvents.taskSessionId, request.taskSessionId),
               eq(schema.taskEvents.eventType, "blocked"),
             ),
           )
@@ -484,7 +477,7 @@ export const getUnresolvedBlockReports =
           .from(schema.taskEvents)
           .where(
             and(
-              eq(schema.taskEvents.taskSessionId, taskSessionId),
+              eq(schema.taskEvents.taskSessionId, request.taskSessionId),
               eq(schema.taskEvents.eventType, "block_resolved"),
             ),
           );
@@ -501,10 +494,11 @@ export const getUnresolvedBlockReports =
   };
 
 export const getBulkUnresolvedBlockReports =
-  (db: Database) => (taskSessionIds: string[]) => {
+  (db: Database): GetBulkUnresolvedBlockReports =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
-        if (taskSessionIds.length === 0) {
+        if (request.taskSessionIds.length === 0) {
           return new Map<string, schema.TaskEvent[]>();
         }
 
@@ -513,7 +507,7 @@ export const getBulkUnresolvedBlockReports =
           .from(schema.taskEvents)
           .where(
             and(
-              inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+              inArray(schema.taskEvents.taskSessionId, request.taskSessionIds),
               eq(schema.taskEvents.eventType, "blocked"),
             ),
           )
@@ -524,7 +518,7 @@ export const getBulkUnresolvedBlockReports =
           .from(schema.taskEvents)
           .where(
             and(
-              inArray(schema.taskEvents.taskSessionId, taskSessionIds),
+              inArray(schema.taskEvents.taskSessionId, request.taskSessionIds),
               eq(schema.taskEvents.eventType, "block_resolved"),
             ),
           );
@@ -550,27 +544,23 @@ export const getBulkUnresolvedBlockReports =
   };
 
 export const getBulkLatestEvents =
-  (db: Database) =>
-  (params: {
-    taskSessionIds: string[];
-    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-    limit?: number;
-  }) => {
+  (db: Database): GetBulkLatestEvents =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
-        if (params.taskSessionIds.length === 0) {
+        if (request.taskSessionIds.length === 0) {
           return new Map<string, schema.TaskEvent[]>();
         }
 
-        const limit = params.limit ?? 5;
+        const limit = request.limit ?? 5;
 
         const events = await db
           .select()
           .from(schema.taskEvents)
           .where(
             and(
-              inArray(schema.taskEvents.taskSessionId, params.taskSessionIds),
-              eq(schema.taskEvents.eventType, params.eventType),
+              inArray(schema.taskEvents.taskSessionId, request.taskSessionIds),
+              eq(schema.taskEvents.eventType, request.eventType),
             ),
           )
           .orderBy(desc(schema.taskEvents.createdAt));
@@ -590,11 +580,8 @@ export const getBulkLatestEvents =
   };
 
 export const getLatestEvent =
-  (db: Database) =>
-  (params: {
-    taskSessionId: string;
-    eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-  }) => {
+  (db: Database): GetLatestEvent =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
         const [event] = await db
@@ -602,8 +589,8 @@ export const getLatestEvent =
           .from(schema.taskEvents)
           .where(
             and(
-              eq(schema.taskEvents.taskSessionId, params.taskSessionId),
-              eq(schema.taskEvents.eventType, params.eventType),
+              eq(schema.taskEvents.taskSessionId, request.taskSessionId),
+              eq(schema.taskEvents.eventType, request.eventType),
             ),
           )
           .orderBy(desc(schema.taskEvents.createdAt))
@@ -615,18 +602,17 @@ export const getLatestEvent =
   };
 
 export const getLatestEventByTypes =
-  (db: Database) =>
-  (
-    taskSessionId: string,
-    eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
-  ) => {
+  (db: Database): GetLatestEventByTypes =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
-        if (eventTypes.length === 0) return null;
+        if (request.eventTypes.length === 0) return null;
 
         const eventResults = await Promise.all(
-          eventTypes.map((eventType) =>
-            getLatestEvent(db)({ taskSessionId, eventType }),
+          request.eventTypes.map((eventType) =>
+            getLatestEvent(db)({
+              request: { taskSessionId: request.taskSessionId, eventType },
+            }),
           ),
         );
 
@@ -652,12 +638,8 @@ export const getLatestEventByTypes =
   };
 
 export const getTodayCompletedTasks =
-  (db: Database) =>
-  (params: {
-    userId: string;
-    workspaceId: string;
-    dateRange: { from: Date; to: Date };
-  }) => {
+  (db: Database): GetTodayCompletedTasks =>
+  ({ request }) => {
     return wrapDrizzle(
       (async () => {
         const completedAlias = schema.taskEvents;
@@ -677,12 +659,12 @@ export const getTodayCompletedTasks =
           )
           .where(
             and(
-              eq(schema.taskSessions.userId, params.userId),
-              eq(schema.taskSessions.workspaceId, params.workspaceId),
+              eq(schema.taskSessions.userId, request.userId),
+              eq(schema.taskSessions.workspaceId, request.workspaceId),
               eq(schema.taskSessions.status, "completed"),
               and(
-                sql`${completedAlias.createdAt} >= ${params.dateRange.from}`,
-                sql`${completedAlias.createdAt} < ${params.dateRange.to}`,
+                sql`${completedAlias.createdAt} >= ${request.dateRange.from}`,
+                sql`${completedAlias.createdAt} < ${request.dateRange.to}`,
               ),
             ),
           )
@@ -698,7 +680,6 @@ export const getTodayCompletedTasks =
   };
 
 export const createTaskRepository = (db: Database): TaskRepository => ({
-  // CRUD操作（ドメインモデルを受け取る）
   createTaskSession: createTaskSession(db),
   addTaskUpdate: addTaskUpdate(db),
   reportBlock: reportBlock(db),
@@ -706,8 +687,6 @@ export const createTaskRepository = (db: Database): TaskRepository => ({
   resumeTask: resumeTask(db),
   completeTask: completeTask(db),
   resolveBlockReport: resolveBlockReport(db),
-
-  // ユーティリティ関数
   findTaskSessionById: findTaskSessionById(db),
   listTaskSessions: listTaskSessions(db),
   updateSlackThread: updateSlackThread(db),

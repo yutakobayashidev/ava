@@ -3,6 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
+import {
+  createFindTaskSessionByIdRequest,
+  createListEventsRequest,
+  createGetLatestEventRequest,
+} from "@/models/taskSessions";
 import { createTaskRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
@@ -78,10 +83,17 @@ export default async function TaskDetailPage({
   const { user, workspace } = await requireWorkspace(db);
 
   const taskRepository = createTaskRepository(db);
-  const task = await taskRepository.findTaskSessionById(
-    id,
-    workspace.id,
-    user.id,
+  const taskResult = await taskRepository.findTaskSessionById({
+    request: createFindTaskSessionByIdRequest({
+      taskSessionId: id,
+      workspaceId: workspace.id,
+      userId: user.id,
+    }),
+  });
+
+  const task = taskResult.match(
+    (session) => session,
+    () => null,
   );
 
   if (!task) {
@@ -89,10 +101,17 @@ export default async function TaskDetailPage({
   }
 
   // イベントを取得
-  const events = await taskRepository.listEvents({
-    taskSessionId: id,
-    limit: 100,
+  const eventsResult = await taskRepository.listEvents({
+    request: createListEventsRequest({
+      taskSessionId: id,
+      limit: 100,
+    }),
   });
+
+  const events = eventsResult.match(
+    (eventsList) => eventsList,
+    () => [],
+  );
 
   // 完了情報を取得
   let completedAt: Date | null = null;
@@ -100,10 +119,18 @@ export default async function TaskDetailPage({
   let duration: number | null = null;
 
   if (task.status === "completed") {
-    const completedEvent = await taskRepository.getLatestEvent({
-      taskSessionId: id,
-      eventType: "completed",
+    const completedEventResult = await taskRepository.getLatestEvent({
+      request: createGetLatestEventRequest({
+        taskSessionId: id,
+        eventType: "completed",
+      }),
     });
+
+    const completedEvent = completedEventResult.match(
+      (event) => event,
+      () => null,
+    );
+
     if (completedEvent) {
       completedAt = completedEvent.createdAt;
       completionSummary = completedEvent.summary;

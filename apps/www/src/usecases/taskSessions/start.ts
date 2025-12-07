@@ -1,5 +1,8 @@
 import { InternalServerError } from "@/errors";
-import { createStartedTaskSession } from "@/models/taskSessions";
+import {
+  createStartedTaskSession,
+  createUpdateSlackThreadRequest,
+} from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import { createSubscriptionRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
@@ -101,11 +104,13 @@ const notifySlackAndComplete =
           notification.channel
         ) {
           yield* taskRepository.updateSlackThread({
-            taskSessionId: sessionId,
-            workspaceId: workspace.id,
-            userId: user.id,
-            threadTs: notification.threadTs,
-            channel: notification.channel,
+            request: createUpdateSlackThreadRequest({
+              taskSessionId: sessionId,
+              workspaceId: workspace.id,
+              userId: user.id,
+              threadTs: notification.threadTs,
+              channel: notification.channel,
+            }),
           });
         }
 
