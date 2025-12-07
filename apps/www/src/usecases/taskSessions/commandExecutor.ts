@@ -2,6 +2,7 @@ import { replay, decide } from "@/domain/task/decider";
 import type { Command } from "@/domain/task/types";
 import { createEventStore } from "@/repos/event-store";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
+import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
 import type { Database } from "@ava/database/client";
 import type { HonoEnv } from "@/types";
 
@@ -32,6 +33,11 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
     );
 
     await projectTaskEvents(deps.db, streamId, newEvents, {
+      workspaceId: workspace.id,
+      userId: user.id,
+    });
+
+    await queuePolicyEvents(deps.db, streamId, newEvents, {
       workspaceId: workspace.id,
       userId: user.id,
     });
