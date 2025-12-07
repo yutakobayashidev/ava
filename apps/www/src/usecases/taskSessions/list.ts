@@ -6,7 +6,9 @@ import type {
   ListTaskSessionsCompleted,
 } from "./interface";
 
-export const createListTaskSessions = (taskRepository: TaskRepository) => {
+export const createListTaskSessionsWorkflow = (
+  taskRepository: TaskRepository,
+) => {
   return (
     command: ListTaskSessionsCommand,
   ): ResultAsync<ListTaskSessionsCompleted, InternalServerError> => {

@@ -133,7 +133,7 @@ const notifySlackAndComplete =
       });
     });
 
-export const createStartTask = (
+export const createStartTaskWorkflow = (
   taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
   slackNotificationService: SlackNotificationService,

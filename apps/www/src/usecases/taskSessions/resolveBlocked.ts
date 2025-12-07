@@ -47,7 +47,7 @@ const notifySlackForResolveBlocked =
     }));
   };
 
-export const createResolveBlocked = (
+export const createResolveBlockedWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {

@@ -47,7 +47,7 @@ const notifySlackForUpdate =
     }));
   };
 
-export const createUpdateTaskSession = (
+export const createUpdateTaskSessionWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {

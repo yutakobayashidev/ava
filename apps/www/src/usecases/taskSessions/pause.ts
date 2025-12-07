@@ -51,7 +51,7 @@ const notifySlackForPause =
     }));
   };
 
-export const createPauseTask = (
+export const createPauseTaskWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {

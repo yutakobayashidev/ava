@@ -53,7 +53,7 @@ const notifySlackForBlocked =
     }));
   };
 
-export const createReportBlocked = (
+export const createReportBlockedWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {

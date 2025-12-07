@@ -61,7 +61,7 @@ const notifySlackForCompletion =
     );
   };
 
-export const createCompleteTaskSession = (
+export const createCompleteTaskSessionWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {

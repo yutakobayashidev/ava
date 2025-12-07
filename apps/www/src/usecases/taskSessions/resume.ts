@@ -47,7 +47,7 @@ const notifySlackForResume =
     }));
   };
 
-export const createResumeTask = (
+export const createResumeTaskWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {
