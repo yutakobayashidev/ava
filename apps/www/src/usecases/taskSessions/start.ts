@@ -1,14 +1,17 @@
 import type { TaskRepository } from "@/repos";
+import { createTaskCommandExecutor } from "./commandExecutor";
 import { createSubscriptionRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 import type { StartTaskInput, StartTaskOutput } from "./interface";
 import { buildTaskStartedMessage } from "./slackMessages";
+import { uuidv7 } from "uuidv7";
 
 export const createStartTask = (
   taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
   slackNotificationService: SlackNotificationService,
+  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: StartTaskInput): Promise<StartTaskOutput> => {
     const { workspace, user, params } = input;
@@ -26,14 +29,36 @@ export const createStartTask = (
       };
     }
 
-    const session = await taskRepository.createTaskSession({
-      userId: user.id,
-      workspaceId: workspace.id,
-      issueProvider: issue.provider,
-      issueId: issue.id ?? null,
-      issueTitle: issue.title,
-      initialSummary: initialSummary,
+    const streamId = uuidv7();
+
+    const executeCommand = commandExecutorFactory;
+    await executeCommand({
+      streamId,
+      workspace,
+      user,
+      command: {
+        type: "StartTask",
+        payload: {
+          issue,
+          initialSummary,
+        },
+      },
     });
+
+    // 投影後のセッションを取得
+    const session = await taskRepository.findTaskSessionById(
+      streamId,
+      workspace.id,
+      user.id,
+    );
+
+    if (!session) {
+      return {
+        success: false,
+        error: "タスクセッションが見つかりません",
+      };
+    }
+
     // Slack通知
     let slackNotification: { delivered: boolean; reason?: string };
 

@@ -48,10 +48,11 @@ const createTaskSession =
         })
         .returning();
 
-      // started イベントを作成
+      // started イベントを作成（version 0）
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
         taskSessionId: sessionId,
+        version: 0,
         eventType: "started",
         summary: params.initialSummary,
         rawContext: {},
@@ -98,12 +99,21 @@ const addTaskUpdate =
         )
         .returning();
 
+      const [latestVersion] = await tx
+        .select({
+          version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+        })
+        .from(schema.taskEvents)
+        .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+      const nextVersion = (latestVersion?.version ?? -1) + 1;
+
       // updated イベントを作成
       const [updateEvent] = await tx
         .insert(schema.taskEvents)
         .values({
           id: uuidv7(),
           taskSessionId: params.taskSessionId,
+          version: nextVersion,
           eventType: "updated",
           summary: params.summary,
           rawContext: params.rawContext ?? {},
@@ -136,11 +146,20 @@ const reportBlock = (db: Database) => async (params: ReportBlockRequest) => {
       )
       .returning();
 
+    const [latestVersion] = await tx
+      .select({
+        version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+      })
+      .from(schema.taskEvents)
+      .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+    const nextVersion = (latestVersion?.version ?? -1) + 1;
+
     const [blockEvent] = await tx
       .insert(schema.taskEvents)
       .values({
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
+        version: nextVersion,
         eventType: "blocked",
         reason: params.reason,
         rawContext: params.rawContext ?? {},
@@ -208,12 +227,21 @@ const completeTask = (db: Database) => async (params: CompleteTaskRequest) => {
       )
       .returning();
 
+    const [latestVersion] = await tx
+      .select({
+        version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+      })
+      .from(schema.taskEvents)
+      .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+    const nextVersion = (latestVersion?.version ?? -1) + 1;
+
     // completed イベントを作成
     const [completedEvent] = await tx
       .insert(schema.taskEvents)
       .values({
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
+        version: nextVersion,
         eventType: "completed",
         summary: params.summary,
         rawContext: {},
@@ -355,9 +383,18 @@ const resolveBlockReport =
       }
 
       // block_resolved イベントを作成
+      const [latestVersion] = await tx
+        .select({
+          version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+        })
+        .from(schema.taskEvents)
+        .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+      const nextVersion = (latestVersion?.version ?? -1) + 1;
+
       await tx.insert(schema.taskEvents).values({
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
+        version: nextVersion,
         eventType: "block_resolved",
         reason: blockEvent.reason,
         relatedEventId: params.blockReportId,
@@ -466,11 +503,20 @@ const pauseTask = (db: Database) => async (params: PauseTaskRequest) => {
       )
       .returning();
 
+    const [latestVersion] = await tx
+      .select({
+        version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+      })
+      .from(schema.taskEvents)
+      .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+    const nextVersion = (latestVersion?.version ?? -1) + 1;
+
     const [pauseEvent] = await tx
       .insert(schema.taskEvents)
       .values({
         id: uuidv7(),
         taskSessionId: params.taskSessionId,
+        version: nextVersion,
         eventType: "paused",
         reason: params.reason,
         rawContext: params.rawContext ?? {},
@@ -517,9 +563,18 @@ const resumeTask = (db: Database) => async (params: ResumeTaskRequest) => {
       .returning();
 
     // resumed イベントを作成
+    const [latestVersion] = await tx
+      .select({
+        version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+      })
+      .from(schema.taskEvents)
+      .where(eq(schema.taskEvents.taskSessionId, params.taskSessionId));
+    const nextVersion = (latestVersion?.version ?? -1) + 1;
+
     await tx.insert(schema.taskEvents).values({
       id: uuidv7(),
       taskSessionId: params.taskSessionId,
+      version: nextVersion,
       eventType: "resumed",
       summary: params.summary,
       relatedEventId: latestPausedEvent?.id ?? null,

@@ -1,6 +1,6 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
+import { createTaskCommandExecutor } from "./commandExecutor";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { buildTaskResumedMessage } from "./slackMessages";
 import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
@@ -8,40 +8,41 @@ import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
 export const createResumeTask = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
+  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: ResumeTaskInput): Promise<ResumeTaskOutput> => {
     const { workspace, user, params } = input;
     const { taskSessionId, summary, rawContext } = params;
 
-    // 現在のタスクセッションを取得して状態遷移を検証
-    const currentSession = await taskRepository.findTaskSessionById(
+    const existingSession = await taskRepository.findTaskSessionById(
       taskSessionId,
       workspace.id,
       user.id,
     );
 
-    if (!currentSession) {
+    if (!existingSession) {
       return {
         success: false,
         error: "タスクセッションが見つかりません",
       };
     }
 
-    // paused → in_progress への遷移を検証
-    if (!isValidTransition(currentSession.status, "in_progress")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
-
-    const { session } = await taskRepository.resumeTask({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      summary,
-      rawContext: rawContext ?? {},
+    const executeCommand = commandExecutorFactory;
+    const result = await executeCommand({
+      streamId: taskSessionId,
+      workspace,
+      user,
+      command: {
+        type: "ResumeTask",
+        payload: { summary, rawContext },
+      },
     });
+
+    const session = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
 
     if (!session) {
       return {
@@ -86,7 +87,7 @@ export const createResumeTask = (
       data: {
         taskSessionId: session.id,
         status: session.status,
-        resumedAt: session.updatedAt,
+        resumedAt: result.persistedEvents[0]?.createdAt ?? session.updatedAt,
         slackNotification,
       },
     };

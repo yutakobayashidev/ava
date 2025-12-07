@@ -1,6 +1,6 @@
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import type { TaskRepository } from "@/repos";
+import { createTaskCommandExecutor } from "./commandExecutor";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import type { PauseTaskInput, PauseTaskOutput } from "./interface";
 import { buildTaskPausedMessage } from "./slackMessages";
@@ -8,42 +8,43 @@ import { buildTaskPausedMessage } from "./slackMessages";
 export const createPauseTask = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
+  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: PauseTaskInput): Promise<PauseTaskOutput> => {
     const { workspace, user, params } = input;
     const { taskSessionId, reason, rawContext } = params;
 
-    // 現在のタスクセッションを取得して状態遷移を検証
-    const currentSession = await taskRepository.findTaskSessionById(
+    const existingSession = await taskRepository.findTaskSessionById(
       taskSessionId,
       workspace.id,
       user.id,
     );
 
-    if (!currentSession) {
+    if (!existingSession) {
       return {
         success: false,
         error: "タスクセッションが見つかりません",
       };
     }
 
-    // → paused への遷移を検証
-    if (!isValidTransition(currentSession.status, "paused")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → paused. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
-
-    const { session, pauseReport } = await taskRepository.pauseTask({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      reason,
-      rawContext: rawContext ?? {},
+    const executeCommand = commandExecutorFactory;
+    const result = await executeCommand({
+      streamId: taskSessionId,
+      workspace,
+      user,
+      command: {
+        type: "PauseTask",
+        payload: { reason, rawContext },
+      },
     });
 
-    if (!session || !pauseReport) {
+    const session = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
+
+    if (!session) {
       return {
         success: false,
         error: "タスクの一時休止処理に失敗しました",
@@ -88,9 +89,9 @@ export const createPauseTask = (
       success: true,
       data: {
         taskSessionId: session.id,
-        pauseReportId: pauseReport.id,
+        pauseReportId: result.persistedEvents[0]?.id ?? "",
         status: session.status,
-        pausedAt: pauseReport.createdAt,
+        pausedAt: result.persistedEvents[0]?.createdAt ?? session.updatedAt,
         slackNotification,
       },
     };

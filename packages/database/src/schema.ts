@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -295,6 +296,7 @@ export const taskEvents = pgTable(
     taskSessionId: text("task_session_id")
       .references(() => taskSessions.id, { onDelete: "cascade" })
       .notNull(),
+    version: integer("version").notNull(),
     eventType: taskEventTypeEnum("event_type").notNull(),
     reason: text("reason"),
     summary: text("summary"),
@@ -315,6 +317,10 @@ export const taskEvents = pgTable(
     taskSessionEventTypeIdx: index(
       "task_events_task_session_event_type_idx",
     ).on(table.taskSessionId, table.eventType),
+    streamVersionUnique: uniqueIndex("task_events_stream_version_unique").on(
+      table.taskSessionId,
+      table.version,
+    ),
   }),
 );
 

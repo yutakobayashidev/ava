@@ -1,0 +1,2 @@
+ALTER TABLE "task_events" ADD COLUMN "version" integer NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "task_events_stream_version_unique" ON "task_events" USING btree ("task_session_id","version");
