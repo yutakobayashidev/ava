@@ -13,23 +13,61 @@ import {
   buildTaskUpdateMessage,
 } from "@/usecases/taskSessions/slackMessages";
 
-const payloadSchema = z
-  .object({
-    workspaceId: z.string().optional(),
-    channel: z.string().nullable().optional(),
-    threadTs: z.string().nullable().optional(),
-    template: z.string().optional(),
-    summary: z.string().optional(),
-    reason: z.string().optional(),
-    blockId: z.string().optional(),
-    emoji: z.string().optional(),
-  })
-  .passthrough();
+const commonFields = {
+  workspaceId: z.string(),
+  channel: z.string().nullable(),
+  threadTs: z.string().nullable(),
+} as const;
 
-function buildMessage(policy: typeof schema.taskPolicyOutbox.$inferSelect) {
-  const payloadResult = payloadSchema.safeParse(policy.payload);
-  if (!payloadResult.success) return null;
-  const payload = payloadResult.data;
+const notifyPayloadSchema = z.discriminatedUnion("template", [
+  z.object({
+    template: z.literal("started"),
+    summary: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("updated"),
+    summary: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("blocked"),
+    reason: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("block_resolved"),
+    blockId: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("paused"),
+    reason: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("resumed"),
+    summary: z.string().optional(),
+    ...commonFields,
+  }),
+  z.object({
+    template: z.literal("completed"),
+    summary: z.string().optional(),
+    ...commonFields,
+  }),
+]);
+
+const reactionPayloadSchema = z.object({
+  workspaceId: z.string(),
+  channel: z.string().nullable(),
+  threadTs: z.string().nullable(),
+  emoji: z.string().optional(),
+});
+
+function buildMessage(
+  policy: typeof schema.taskPolicyOutbox.$inferSelect,
+  payload: z.infer<typeof notifyPayloadSchema>,
+) {
   const template = payload.template;
   switch (template) {
     case "started":
@@ -80,15 +118,29 @@ export async function processTaskPolicyOutbox(db: Database) {
     .limit(50);
 
   for (const policy of pending) {
-    const payloadResult = payloadSchema.safeParse(policy.payload);
-    if (!payloadResult.success) {
+    const notifyPayload =
+      policy.policyType === "slack_notify"
+        ? notifyPayloadSchema.safeParse(policy.payload)
+        : null;
+    const reactionPayload =
+      policy.policyType === "slack_reaction"
+        ? reactionPayloadSchema.safeParse(policy.payload)
+        : null;
+
+    const payload = notifyPayload?.success
+      ? notifyPayload.data
+      : reactionPayload?.success
+        ? reactionPayload.data
+        : null;
+
+    if (!payload) {
       await db
         .update(schema.taskPolicyOutbox)
         .set({ status: "failed", processedAt: new Date() })
         .where(eq(schema.taskPolicyOutbox.id, policy.id));
       continue;
     }
-    const payload = payloadResult.data;
+
     const workspaceId = payload.workspaceId;
     if (!workspaceId) {
       await db
@@ -107,8 +159,8 @@ export async function processTaskPolicyOutbox(db: Database) {
       continue;
     }
 
-    const channel = readString(payload, "channel");
-    const threadTs = readString(payload, "threadTs");
+    const channel = payload.channel ?? undefined;
+    const threadTs = payload.threadTs ?? undefined;
 
     if (!channel || !threadTs) {
       await db
@@ -122,7 +174,14 @@ export async function processTaskPolicyOutbox(db: Database) {
     let error: string | undefined;
 
     if (policy.policyType === "slack_notify") {
-      const message = buildMessage(policy);
+      if (!notifyPayload?.success) {
+        await db
+          .update(schema.taskPolicyOutbox)
+          .set({ status: "failed", processedAt: new Date() })
+          .where(eq(schema.taskPolicyOutbox.id, policy.id));
+        continue;
+      }
+      const message = buildMessage(policy, notifyPayload.data);
       if (message) {
         const notification = await slackService.postMessage({
           workspace,
@@ -134,7 +193,14 @@ export async function processTaskPolicyOutbox(db: Database) {
         error = notification.error;
       }
     } else if (policy.policyType === "slack_reaction") {
-      const emoji = readString(payload, "emoji") ?? "";
+      if (!reactionPayload?.success) {
+        await db
+          .update(schema.taskPolicyOutbox)
+          .set({ status: "failed", processedAt: new Date() })
+          .where(eq(schema.taskPolicyOutbox.id, policy.id));
+        continue;
+      }
+      const emoji = reactionPayload.data.emoji ?? "";
       try {
         await slackService.addReaction({
           workspace,
