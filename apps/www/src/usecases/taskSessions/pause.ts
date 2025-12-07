@@ -1,9 +1,9 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
-import { buildTaskPausedMessage } from "./slackMessages";
 import type { PauseTaskInput, PauseTaskOutput } from "./interface";
+import { buildTaskPausedMessage } from "./slackMessages";
 
 export const createPauseTask = (
   taskRepository: TaskRepository,

@@ -1,13 +1,13 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
-import { buildTaskCompletedMessage } from "./slackMessages";
 import type {
   CompleteTaskInput,
   CompleteTaskOutput,
   CompleteTaskSuccess,
 } from "./interface";
+import { buildTaskCompletedMessage } from "./slackMessages";
 
 export const createCompleteTask = (
   taskRepository: TaskRepository,

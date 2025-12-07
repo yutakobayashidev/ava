@@ -2,8 +2,8 @@ import type { TaskRepository } from "@/repos";
 import { createSubscriptionRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
-import { buildTaskStartedMessage } from "./slackMessages";
 import type { StartTaskInput, StartTaskOutput } from "./interface";
+import { buildTaskStartedMessage } from "./slackMessages";
 
 export const createStartTask = (
   taskRepository: TaskRepository,
@@ -34,14 +34,6 @@ export const createStartTask = (
       issueTitle: issue.title,
       initialSummary: initialSummary,
     });
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクセッションの作成に失敗しました",
-      };
-    }
-
     // Slack通知
     let slackNotification: { delivered: boolean; reason?: string };
 

@@ -57,7 +57,7 @@ export const createTaskSession =
         rawContext: {},
       });
 
-      return session ?? null;
+      return session;
     });
   };
 
@@ -111,8 +111,8 @@ export const addTaskUpdate =
         .returning();
 
       return {
-        session: session ?? null,
-        updateEvent: updateEvent ?? null,
+        session,
+        updateEvent,
       };
     });
   };
@@ -149,8 +149,8 @@ export const reportBlock =
         .returning();
 
       return {
-        session: session ?? null,
-        blockReport: blockEvent ?? null,
+        session,
+        blockReport: blockEvent,
       };
     });
   };
@@ -223,8 +223,8 @@ export const completeTask =
         .returning();
 
       return {
-        session: session ?? null,
-        completedEvent: completedEvent ?? null,
+        session,
+        completedEvent,
         unresolvedBlocks,
       };
     });
@@ -383,7 +383,7 @@ export const resolveBlockReport =
         .returning();
 
       return {
-        session: session ?? null,
+        session,
         blockReport: blockEvent,
       };
     });
@@ -446,7 +446,7 @@ export const updateSlackThread =
       )
       .returning();
 
-    return session ?? null;
+    return session;
   };
 
 export const pauseTask = (db: Database) => async (params: PauseTaskRequest) => {
