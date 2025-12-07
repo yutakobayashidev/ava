@@ -3,6 +3,7 @@ import type { Command } from "@/domain/task/types";
 import { createEventStore } from "@/repos/event-store";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
 import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
+import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
 import type { Database } from "@ava/database/client";
 import type { HonoEnv } from "@/types";
 
@@ -35,6 +36,13 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
     await projectTaskEvents(deps.db, streamId, newEvents, {
       workspaceId: workspace.id,
       userId: user.id,
+    });
+
+    await queuePolicyEvents(deps.db, streamId, newEvents, {
+      workspaceId: workspace.id,
+      userId: user.id,
+      channel: workspace.notificationChannelId ?? null,
+      threadTs: state.slackThread?.threadTs ?? null,
     });
 
     await queuePolicyEvents(deps.db, streamId, newEvents, {

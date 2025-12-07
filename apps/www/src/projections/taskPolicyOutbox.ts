@@ -8,15 +8,33 @@ const POLICY_TYPES = {
   slackReaction: "slack_reaction",
 } as const;
 
-function toPolicyPayload(
-  event: Event,
-): Array<{ policyType: string; payload: Record<string, unknown> }> {
+type Envelope = {
+  workspaceId: string;
+  userId: string;
+  channel?: string | null;
+  threadTs?: string | null;
+};
+
+type PolicyPayload = {
+  policyType: string;
+  payload: Record<string, unknown>;
+};
+
+function toPolicyPayload(event: Event, envelope: Envelope): PolicyPayload[] {
+  const basePayload = {
+    workspaceId: envelope.workspaceId,
+    userId: envelope.userId,
+    channel: envelope.channel ?? null,
+    threadTs: envelope.threadTs ?? null,
+  } as const;
+
   switch (event.type) {
     case "TaskStarted":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
           payload: {
+            ...basePayload,
             template: "started",
             summary: event.payload.initialSummary,
           },
@@ -26,14 +44,22 @@ function toPolicyPayload(
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "updated", summary: event.payload.summary },
+          payload: {
+            ...basePayload,
+            template: "updated",
+            summary: event.payload.summary,
+          },
         },
       ];
     case "TaskBlocked":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "blocked", reason: event.payload.reason },
+          payload: {
+            ...basePayload,
+            template: "blocked",
+            reason: event.payload.reason,
+          },
         },
       ];
     case "BlockResolved":
@@ -41,6 +67,7 @@ function toPolicyPayload(
         {
           policyType: POLICY_TYPES.slackNotify,
           payload: {
+            ...basePayload,
             template: "block_resolved",
             blockId: event.payload.blockId,
           },
@@ -50,25 +77,40 @@ function toPolicyPayload(
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "paused", reason: event.payload.reason },
+          payload: {
+            ...basePayload,
+            template: "paused",
+            reason: event.payload.reason,
+          },
         },
       ];
     case "TaskResumed":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "resumed", summary: event.payload.summary },
+          payload: {
+            ...basePayload,
+            template: "resumed",
+            summary: event.payload.summary,
+          },
         },
       ];
     case "TaskCompleted":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "completed", summary: event.payload.summary },
+          payload: {
+            ...basePayload,
+            template: "completed",
+            summary: event.payload.summary,
+          },
         },
         {
           policyType: POLICY_TYPES.slackReaction,
-          payload: { emoji: "white_check_mark" },
+          payload: {
+            ...basePayload,
+            emoji: "white_check_mark",
+          },
         },
       ];
     default:
@@ -80,10 +122,10 @@ export async function queuePolicyEvents(
   db: Database,
   streamId: string,
   events: Event[],
-  _context: { workspaceId: string; userId: string },
+  envelope: Envelope,
 ) {
   const rows = events.flatMap((event) =>
-    toPolicyPayload(event).map((policy) => ({
+    toPolicyPayload(event, envelope).map((policy) => ({
       id: uuidv7(),
       taskSessionId: streamId,
       policyType: policy.policyType,
