@@ -16,6 +16,7 @@ import type {
   CreateTaskSessionCommand,
   CreateTaskSessionCompleted,
   CreateTaskSessionCreated,
+  CreateTaskSessionWorkflow,
 } from "./interface";
 import { buildTaskStartedMessage } from "./slackMessages";
 
@@ -137,15 +138,13 @@ export const createStartTaskWorkflow = (
   taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
   slackNotificationService: SlackNotificationService,
-) => {
+): CreateTaskSessionWorkflow => {
   const notifyAndComplete = notifySlackAndComplete(
     taskRepository,
     slackNotificationService,
   );
 
-  return (
-    command: CreateTaskSessionCommand,
-  ): ResultAsync<CreateTaskSessionCompleted, InternalServerError> => {
+  return (command) => {
     return okAsync(command)
       .andThrough((command) =>
         checkFreePlanLimit(command.input.user.id, subscriptionRepository),

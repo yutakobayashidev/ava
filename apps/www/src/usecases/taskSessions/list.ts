@@ -1,17 +1,11 @@
-import { InternalServerError } from "@/errors";
 import type { TaskRepository } from "@/repos";
-import { type ResultAsync, okAsync } from "neverthrow";
-import type {
-  ListTaskSessionsCommand,
-  ListTaskSessionsCompleted,
-} from "./interface";
+import { okAsync } from "neverthrow";
+import type { ListTaskSessionsWorkflow } from "./interface";
 
 export const createListTaskSessionsWorkflow = (
   taskRepository: TaskRepository,
-) => {
-  return (
-    command: ListTaskSessionsCommand,
-  ): ResultAsync<ListTaskSessionsCompleted, InternalServerError> => {
+): ListTaskSessionsWorkflow => {
+  return (command) => {
     const { workspace, user, status, limit } = command.input;
 
     return okAsync(command)

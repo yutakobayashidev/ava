@@ -5,11 +5,7 @@ import { createResumedTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
-import type {
-  ResumeTaskCommand,
-  ResumeTaskCompleted,
-  ResumeTaskInput,
-} from "./interface";
+import type { ResumeTaskInput, ResumeTaskWorkflow } from "./interface";
 import { buildTaskResumedMessage } from "./slackMessages";
 
 const notifySlackForResume =
@@ -50,12 +46,10 @@ const notifySlackForResume =
 export const createResumeTaskWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): ResumeTaskWorkflow => {
   const notifySlack = notifySlackForResume(slackNotificationService);
 
-  return (
-    command: ResumeTaskCommand,
-  ): ResultAsync<ResumeTaskCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, summary, rawContext } =
       command.input;
 

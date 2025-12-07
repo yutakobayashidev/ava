@@ -5,11 +5,7 @@ import { createBlockedTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
-import type {
-  ReportBlockedCommand,
-  ReportBlockedCompleted,
-  ReportBlockedInput,
-} from "./interface";
+import type { ReportBlockedInput, ReportBlockedWorkflow } from "./interface";
 import { buildTaskBlockedMessage } from "./slackMessages";
 
 const notifySlackForBlocked =
@@ -56,12 +52,10 @@ const notifySlackForBlocked =
 export const createReportBlockedWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): ReportBlockedWorkflow => {
   const notifySlack = notifySlackForBlocked(slackNotificationService);
 
-  return (
-    command: ReportBlockedCommand,
-  ): ResultAsync<ReportBlockedCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, reason, rawContext } =
       command.input;
 

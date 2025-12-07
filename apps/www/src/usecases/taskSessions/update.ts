@@ -6,9 +6,9 @@ import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
 import type {
-  UpdateTaskSessionCommand,
   UpdateTaskSessionCompleted,
   UpdateTaskSessionInput,
+  UpdateTaskSessionWorkflow,
 } from "./interface";
 import { buildTaskUpdateMessage } from "./slackMessages";
 
@@ -50,12 +50,10 @@ const notifySlackForUpdate =
 export const createUpdateTaskSessionWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): UpdateTaskSessionWorkflow => {
   const notifySlack = notifySlackForUpdate(slackNotificationService);
 
-  return (
-    command: UpdateTaskSessionCommand,
-  ): ResultAsync<UpdateTaskSessionCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, summary, rawContext } =
       command.input;
 

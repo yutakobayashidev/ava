@@ -6,9 +6,8 @@ import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
 import type {
-  CompleteTaskSessionCommand,
-  CompleteTaskSessionCompleted,
   CompleteTaskSessionInput,
+  CompleteTaskSessionWorkflow,
 } from "./interface";
 import { buildTaskCompletedMessage } from "./slackMessages";
 
@@ -64,12 +63,10 @@ const notifySlackForCompletion =
 export const createCompleteTaskSessionWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): CompleteTaskSessionWorkflow => {
   const notifySlack = notifySlackForCompletion(slackNotificationService);
 
-  return (
-    command: CompleteTaskSessionCommand,
-  ): ResultAsync<CompleteTaskSessionCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, summary } = command.input;
 
     return okAsync(command)

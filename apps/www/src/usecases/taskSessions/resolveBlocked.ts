@@ -7,9 +7,10 @@ import { buildBlockResolvedMessage } from "./slackMessages";
 import { createResolvedBlockTaskSession } from "@/models/taskSessions";
 import { type ResultAsync, okAsync, errAsync, fromPromise } from "neverthrow";
 import type {
-  ResolveBlockedCommand,
+   
   ResolveBlockedCompleted,
   ResolveBlockedInput,
+  ResolveBlockedWorkflow,
 } from "./interface";
 
 const notifySlackForResolveBlocked =
@@ -50,12 +51,10 @@ const notifySlackForResolveBlocked =
 export const createResolveBlockedWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): ResolveBlockedWorkflow => {
   const notifySlack = notifySlackForResolveBlocked(slackNotificationService);
 
-  return (
-    command: ResolveBlockedCommand,
-  ): ResultAsync<ResolveBlockedCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, blockReportId } = command.input;
 
     return okAsync(command)

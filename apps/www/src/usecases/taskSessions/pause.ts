@@ -5,11 +5,7 @@ import { createPausedTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
-import type {
-  PauseTaskCommand,
-  PauseTaskCompleted,
-  PauseTaskInput,
-} from "./interface";
+import type { PauseTaskInput, PauseTaskWorkflow } from "./interface";
 import { buildTaskPausedMessage } from "./slackMessages";
 
 const notifySlackForPause =
@@ -54,12 +50,10 @@ const notifySlackForPause =
 export const createPauseTaskWorkflow = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
-) => {
+): PauseTaskWorkflow => {
   const notifySlack = notifySlackForPause(slackNotificationService);
 
-  return (
-    command: PauseTaskCommand,
-  ): ResultAsync<PauseTaskCompleted, InternalServerError> => {
+  return (command) => {
     const { workspace, user, taskSessionId, reason, rawContext } =
       command.input;
 
