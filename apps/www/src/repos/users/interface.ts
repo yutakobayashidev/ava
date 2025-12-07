@@ -1,4 +1,4 @@
-export type UserProvider = "slack";
+type UserProvider = "slack";
 
 export type CreateUserRequest = {
   provider: UserProvider;

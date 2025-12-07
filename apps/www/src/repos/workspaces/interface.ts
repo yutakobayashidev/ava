@@ -1,6 +1,6 @@
 import type * as schema from "@ava/database/schema";
 
-export type WorkspaceProvider =
+type WorkspaceProvider =
   (typeof schema.workspaceProviderEnum.enumValues)[number];
 
 export type CreateWorkspaceRequest = {

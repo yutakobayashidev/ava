@@ -7,24 +7,23 @@ import type { CreateUserRequest } from "./interface";
 export * from "./interface";
 
 // 高階関数として定義
-export const createUser =
-  (db: Database) => async (request: CreateUserRequest) => {
-    const [user] = await db
-      .insert(users)
-      .values({
-        id: uuidv7(),
-        name: request.name,
-        email: request.email,
-        slackId: request.slackId,
-        slackTeamId: request.slackTeamId,
-        image: request.image,
-      })
-      .returning();
+const createUser = (db: Database) => async (request: CreateUserRequest) => {
+  const [user] = await db
+    .insert(users)
+    .values({
+      id: uuidv7(),
+      name: request.name,
+      email: request.email,
+      slackId: request.slackId,
+      slackTeamId: request.slackTeamId,
+      image: request.image,
+    })
+    .returning();
 
-    return user;
-  };
+  return user;
+};
 
-export const findUserBySlackIdAndTeamId =
+const findUserBySlackIdAndTeamId =
   (db: Database) => async (slackId: string, slackTeamId: string) => {
     const [user] = await db
       .select()

@@ -1,7 +1,6 @@
 import type * as schema from "@ava/database/schema";
 
-export type IssueProvider =
-  (typeof schema.issueProviderEnum.enumValues)[number];
+type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
 
 export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
 

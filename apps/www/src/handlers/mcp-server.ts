@@ -9,27 +9,18 @@ import {
   constructStartTaskWorkflow,
   constructUpdateTaskWorkflow,
 } from "@/usecases/taskSessions/constructor";
+import {
+  completeTaskInputSchema,
+  formatSuccessResponse,
+  listTasksInputSchema,
+  pauseTaskInputSchema,
+  reportBlockedInputSchema,
+  resolveBlockedInputSchema,
+  resumeTaskInputSchema,
+  startTaskInputSchema,
+  updateTaskInputSchema,
+} from "@/usecases/taskSessions/controller";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod/v3";
-
-// プレゼンテーション層: データオブジェクトをJSON文字列化してメッセージを追加
-function formatSuccessResponse(data: object, message: string) {
-  return JSON.stringify({ ...data, message }, null, 2);
-}
-
-const rawContextSchema = z
-  .record(z.string(), z.unknown())
-  .default({})
-  .describe("Slackへ共有可能な抽象的メタデータ");
-
-const issueSchema = z.object({
-  provider: z.enum(["github", "manual"]).describe("課題の取得元"),
-  id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
-  title: z
-    .string()
-    .min(1, "タイトルは必須です")
-    .describe("タスクの簡潔なタイトル"),
-});
 
 export function createMcpServer(ctx: Context) {
   const server = new McpServer({
@@ -42,13 +33,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "startTask",
       description: "開始サマリをSlackに共有するための入力仕様。",
-      inputSchema: z.object({
-        issue: issueSchema,
-        initialSummary: z
-          .string()
-          .min(1, "初期サマリは必須です")
-          .describe("着手時点の抽象的な状況や方針"),
-      }),
+      inputSchema: startTaskInputSchema,
     },
     async (params) => {
       const result = await constructStartTaskWorkflow(ctx)({
@@ -77,17 +62,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "updateTask",
       description: "進捗の抽象的サマリを共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("進捗の抽象的説明"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: updateTaskInputSchema,
     },
     async (params) => {
       const result = await constructUpdateTaskWorkflow(ctx)({
@@ -113,17 +88,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "reportBlocked",
       description: "ブロッキング情報を共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("詰まっている理由の要約"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: reportBlockedInputSchema,
     },
     async (params) => {
       const result = await constructReportBlockedWorkflow(ctx)({
@@ -152,17 +117,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "pauseTask",
       description: "タスクを一時休止するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("休止理由の要約"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: pauseTaskInputSchema,
     },
     async (params) => {
       const result = await constructPauseTaskWorkflow(ctx)({
@@ -188,17 +143,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "resumeTask",
       description: "一時休止したタスクを再開するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("再開時のコメント"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: resumeTaskInputSchema,
     },
     async (params) => {
       const result = await constructResumeTaskWorkflow(ctx)({
@@ -224,16 +169,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "completeTask",
       description: "完了報告を共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("完了内容の抽象的サマリ"),
-      }),
+      inputSchema: completeTaskInputSchema,
     },
     async (params) => {
       const result = await constructCompleteTaskWorkflow(ctx)({
@@ -265,18 +201,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "resolveBlocked",
       description: "ブロッキングが解決したことを報告する入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        blockReportId: z
-          .string()
-          .min(1, "blockReportIdは必須です")
-          .describe(
-            "解決したブロッキングのID（completeTaskレスポンスやreportBlockedレスポンスから取得）",
-          ),
-      }),
+      inputSchema: resolveBlockedInputSchema,
     },
     async (params) => {
       const result = await constructResolveBlockedWorkflow(ctx)({
@@ -305,18 +230,7 @@ export function createMcpServer(ctx: Context) {
     {
       title: "listTasks",
       description: "ユーザーのタスク一覧を取得する。",
-      inputSchema: z.object({
-        status: z
-          .enum(["inProgress", "blocked", "paused", "completed"])
-          .optional()
-          .describe("フィルタリングするステータス（省略時は全ステータス）"),
-        limit: z
-          .number()
-          .positive()
-          .max(100)
-          .optional()
-          .describe("取得する最大件数（デフォルト: 50）"),
-      }),
+      inputSchema: listTasksInputSchema,
     },
     async (params) => {
       const result = await constructListTasksWorkflow(ctx)({

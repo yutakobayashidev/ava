@@ -7,26 +7,22 @@ export * from "./interface";
 /**
  * ユーザーのアクティブなサブスクリプションを取得
  */
-export const getActiveSubscription =
-  (db: Database) => async (userId: string) => {
-    const activeSubscriptions = await db
-      .select()
-      .from(subscriptions)
-      .where(
-        and(
-          eq(subscriptions.userId, userId),
-          eq(subscriptions.status, "active"),
-        ),
-      )
-      .limit(1);
+const getActiveSubscription = (db: Database) => async (userId: string) => {
+  const activeSubscriptions = await db
+    .select()
+    .from(subscriptions)
+    .where(
+      and(eq(subscriptions.userId, userId), eq(subscriptions.status, "active")),
+    )
+    .limit(1);
 
-    return activeSubscriptions[0] ?? null;
-  };
+  return activeSubscriptions[0] ?? null;
+};
 
 /**
  * ユーザーが作成したタスクセッション数をカウント
  */
-export const countUserTaskSessions =
+const countUserTaskSessions =
   (db: Database) =>
   async (userId: string): Promise<number> => {
     const result = await db

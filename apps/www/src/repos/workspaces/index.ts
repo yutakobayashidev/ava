@@ -14,7 +14,7 @@ import type {
 export * from "./interface";
 
 // 高階関数として定義
-export const createWorkspace =
+const createWorkspace =
   (db: Database) => async (request: CreateWorkspaceRequest) => {
     const [workspace] = await db
       .insert(schema.workspaces)
@@ -38,17 +38,16 @@ export const createWorkspace =
     return workspace;
   };
 
-export const findWorkspaceById =
-  (db: Database) => async (workspaceId: string) => {
-    const [workspace] = await db
-      .select()
-      .from(schema.workspaces)
-      .where(eq(schema.workspaces.id, workspaceId));
+const findWorkspaceById = (db: Database) => async (workspaceId: string) => {
+  const [workspace] = await db
+    .select()
+    .from(schema.workspaces)
+    .where(eq(schema.workspaces.id, workspaceId));
 
-    return workspace ?? null;
-  };
+  return workspace ?? null;
+};
 
-export const updateNotificationChannel =
+const updateNotificationChannel =
   (db: Database) => async (request: UpdateNotificationChannelRequest) => {
     const [workspace] = await db
       .update(schema.workspaces)
@@ -62,7 +61,7 @@ export const updateNotificationChannel =
     return workspace ?? null;
   };
 
-export const findWorkspaceByExternalId =
+const findWorkspaceByExternalId =
   (db: Database) =>
   async ({ provider, externalId }: FindByExternalIdRequest) => {
     const [workspace] = await db
@@ -78,7 +77,7 @@ export const findWorkspaceByExternalId =
     return workspace ?? null;
   };
 
-export const findWorkspaceByUser = (db: Database) => async (userId: string) => {
+const findWorkspaceByUser = (db: Database) => async (userId: string) => {
   const [user] = await db
     .select()
     .from(schema.users)
@@ -91,7 +90,7 @@ export const findWorkspaceByUser = (db: Database) => async (userId: string) => {
   return findWorkspaceById(db)(user.workspaceId);
 };
 
-export const setUserWorkspace =
+const setUserWorkspace =
   (db: Database) => async (userId: string, workspaceId: string) => {
     await db
       .update(schema.users)
@@ -99,7 +98,7 @@ export const setUserWorkspace =
       .where(eq(schema.users.id, userId));
   };
 
-export const setWorkspaceForAllTeamUsers =
+const setWorkspaceForAllTeamUsers =
   (db: Database) => async (slackTeamId: string, workspaceId: string) => {
     await db
       .update(schema.users)
@@ -107,7 +106,7 @@ export const setWorkspaceForAllTeamUsers =
       .where(eq(schema.users.slackTeamId, slackTeamId));
   };
 
-export const updateWorkspaceCredentials =
+const updateWorkspaceCredentials =
   (db: Database) => async (request: UpdateCredentialsRequest) => {
     const updates: Partial<schema.NewWorkspace> = {};
 
