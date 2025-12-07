@@ -1,6 +1,6 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
+import { createTaskCommandExecutor } from "./commandExecutor";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { buildTaskBlockedMessage } from "./slackMessages";
 import type { ReportBlockedInput, ReportBlockedOutput } from "./interface";
@@ -8,12 +8,12 @@ import type { ReportBlockedInput, ReportBlockedOutput } from "./interface";
 export const createReportBlocked = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
+  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: ReportBlockedInput): Promise<ReportBlockedOutput> => {
     const { workspace, user, params } = input;
     const { taskSessionId, reason, rawContext } = params;
 
-    // 現在のタスクセッションを取得して状態遷移を検証
     const currentSession = await taskRepository.findTaskSessionById(
       taskSessionId,
       workspace.id,
@@ -27,23 +27,24 @@ export const createReportBlocked = (
       };
     }
 
-    // → blocked への遷移を検証
-    if (!isValidTransition(currentSession.status, "blocked")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → blocked. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
-
-    const { session, blockReport } = await taskRepository.reportBlock({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      reason,
-      rawContext: rawContext ?? {},
+    const executeCommand = commandExecutorFactory;
+    const result = await executeCommand({
+      streamId: taskSessionId,
+      workspace,
+      user,
+      command: {
+        type: "ReportBlock",
+        payload: { reason, rawContext },
+      },
     });
 
-    if (!session || !blockReport) {
+    const session = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
+
+    if (!session) {
       return {
         success: false,
         error: "ブロッキング情報の登録に失敗しました",
@@ -63,7 +64,7 @@ export const createReportBlocked = (
       const message = buildTaskBlockedMessage({
         session: { id: session.id },
         reason,
-        blockReportId: blockReport.id,
+        blockReportId: result.persistedEvents[0]?.id ?? "",
       });
 
       // Slack通知（インフラ層への委譲）
@@ -89,9 +90,9 @@ export const createReportBlocked = (
       success: true,
       data: {
         taskSessionId: session.id,
-        blockReportId: blockReport.id,
+        blockReportId: result.persistedEvents[0]?.id ?? "",
         status: session.status,
-        reason: blockReport.reason,
+        reason,
         slackNotification,
       },
     };

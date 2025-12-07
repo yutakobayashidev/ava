@@ -1,6 +1,6 @@
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import type { TaskRepository } from "@/repos";
+import { createTaskCommandExecutor } from "./commandExecutor";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
 import type {
   CompleteTaskInput,
@@ -12,12 +12,12 @@ import { buildTaskCompletedMessage } from "./slackMessages";
 export const createCompleteTask = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
+  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: CompleteTaskInput): Promise<CompleteTaskOutput> => {
     const { workspace, user, params } = input;
     const { taskSessionId, summary } = params;
 
-    // 現在のタスクセッションを取得して状態遷移を検証
     const currentSession = await taskRepository.findTaskSessionById(
       taskSessionId,
       workspace.id,
@@ -31,23 +31,24 @@ export const createCompleteTask = (
       };
     }
 
-    // → completed への遷移を検証
-    if (!isValidTransition(currentSession.status, "completed")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → completed. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
+    const executeCommand = commandExecutorFactory;
+    const result = await executeCommand({
+      streamId: taskSessionId,
+      workspace,
+      user,
+      command: {
+        type: "CompleteTask",
+        payload: { summary },
+      },
+    });
 
-    const { session, completedEvent, unresolvedBlocks } =
-      await taskRepository.completeTask({
-        taskSessionId: taskSessionId,
-        workspaceId: workspace.id,
-        userId: user.id,
-        summary,
-      });
+    const session = await taskRepository.findTaskSessionById(
+      taskSessionId,
+      workspace.id,
+      user.id,
+    );
 
-    if (!session || !completedEvent) {
+    if (!session) {
       return {
         success: false,
         error: "タスクの完了処理に失敗しました",
@@ -95,9 +96,12 @@ export const createCompleteTask = (
       };
     }
 
+    const unresolvedBlocks =
+      (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
+
     const data: CompleteTaskSuccess = {
       taskSessionId: session.id,
-      completionId: completedEvent.id,
+      completionId: result.persistedEvents[0]?.id ?? "",
       status: session.status,
       slackNotification,
     };
