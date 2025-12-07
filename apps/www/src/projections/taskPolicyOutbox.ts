@@ -16,49 +16,55 @@ function toPolicyPayload(
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "started" },
+          payload: {
+            template: "started",
+            summary: event.payload.initialSummary,
+          },
         },
       ];
     case "TaskUpdated":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "updated" },
+          payload: { template: "updated", summary: event.payload.summary },
         },
       ];
     case "TaskBlocked":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "blocked" },
+          payload: { template: "blocked", reason: event.payload.reason },
         },
       ];
     case "BlockResolved":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "block_resolved" },
+          payload: {
+            template: "block_resolved",
+            blockId: event.payload.blockId,
+          },
         },
       ];
     case "TaskPaused":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "paused" },
+          payload: { template: "paused", reason: event.payload.reason },
         },
       ];
     case "TaskResumed":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "resumed" },
+          payload: { template: "resumed", summary: event.payload.summary },
         },
       ];
     case "TaskCompleted":
       return [
         {
           policyType: POLICY_TYPES.slackNotify,
-          payload: { template: "completed" },
+          payload: { template: "completed", summary: event.payload.summary },
         },
         {
           policyType: POLICY_TYPES.slackReaction,
