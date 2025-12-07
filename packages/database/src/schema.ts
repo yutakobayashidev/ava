@@ -289,6 +289,32 @@ export const taskSessions = pgTable(
   }),
 );
 
+export const taskPolicyOutbox = pgTable(
+  "task_policy_outbox",
+  {
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
+      .references(() => taskSessions.id, { onDelete: "cascade" })
+      .notNull(),
+    policyType: text("policy_type").notNull(),
+    payload: jsonb("payload")
+      .$type<Record<string, unknown>>()
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => ({
+    taskSessionIdx: index("task_policy_outbox_task_session_idx").on(
+      table.taskSessionId,
+    ),
+    statusIdx: index("task_policy_outbox_status_idx").on(table.status),
+  }),
+);
+
 export const taskEvents = pgTable(
   "task_events",
   {
