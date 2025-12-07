@@ -1,97 +1,132 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { InternalServerError } from "@/errors";
+import { createResumedTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
+import type {
+  ResumeTaskCommand,
+  ResumeTaskCompleted,
+  ResumeTaskInput,
+} from "./interface";
 import { buildTaskResumedMessage } from "./slackMessages";
-import { createResumedTaskSession } from "@/models/taskSessions";
-import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
+
+const notifySlackForResume =
+  (slackNotificationService: SlackNotificationService) =>
+  (params: {
+    workspace: ResumeTaskInput["workspace"];
+    slackThread: { channel: string; threadTs: string } | null;
+    summary: string;
+  }): ResultAsync<
+    { delivered: boolean; reason?: string },
+    InternalServerError
+  > => {
+    const { workspace, slackThread, summary } = params;
+
+    if (!slackThread) {
+      return okAsync({
+        delivered: false,
+        reason: "Slack thread not configured",
+      });
+    }
+
+    const message = buildTaskResumedMessage({ summary });
+
+    return fromPromise(
+      slackNotificationService.postMessage({
+        workspace,
+        channel: slackThread.channel,
+        message,
+        threadTs: slackThread.threadTs,
+      }),
+      (error) => new InternalServerError("Slack notification failed", error),
+    ).map((notification) => ({
+      delivered: notification.delivered,
+      reason: notification.error,
+    }));
+  };
 
 export const createResumeTask = (
   taskRepository: TaskRepository,
   slackNotificationService: SlackNotificationService,
 ) => {
-  return async (input: ResumeTaskInput): Promise<ResumeTaskOutput> => {
-    const { workspace, user, params } = input;
-    const { taskSessionId, summary, rawContext } = params;
+  const notifySlack = notifySlackForResume(slackNotificationService);
 
-    // 現在のタスクセッションを取得して状態遷移を検証
-    const currentSession = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
+  return (
+    command: ResumeTaskCommand,
+  ): ResultAsync<ResumeTaskCompleted, InternalServerError> => {
+    const { workspace, user, taskSessionId, summary, rawContext } =
+      command.input;
 
-    if (!currentSession) {
-      return {
-        success: false,
-        error: "タスクセッションが見つかりません",
-      };
-    }
+    return okAsync(command)
+      .andThen(() =>
+        taskRepository.findTaskSessionById(
+          taskSessionId,
+          workspace.id,
+          user.id,
+        ),
+      )
+      .andThen((currentSession) =>
+        currentSession
+          ? okAsync(currentSession)
+          : errAsync(
+              new InternalServerError("タスクセッションが見つかりません"),
+            ),
+      )
+      .andThen((currentSession) =>
+        isValidTransition(currentSession.status, "in_progress")
+          ? okAsync(currentSession)
+          : errAsync(
+              new InternalServerError(
+                `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+              ),
+            ),
+      )
+      .andThen(() =>
+        taskRepository
+          .resumeTask({
+            request: createResumedTaskSession({
+              taskSessionId,
+              workspaceId: workspace.id,
+              userId: user.id,
+              summary,
+              rawContext: rawContext ?? {},
+            }),
+          })
+          .andThen(({ session }) => {
+            if (!session) {
+              return errAsync(
+                new InternalServerError("タスクの再開処理に失敗しました"),
+              );
+            }
 
-    // paused → in_progress への遷移を検証
-    if (!isValidTransition(currentSession.status, "in_progress")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
+            const slackThread = createSlackThreadInfo({
+              channel: session.slackChannel,
+              threadTs: session.slackThreadTs,
+            });
 
-    const { session } = await taskRepository.resumeTask({
-      request: createResumedTaskSession({
-        taskSessionId: taskSessionId,
-        workspaceId: workspace.id,
-        userId: user.id,
-        summary,
-        rawContext: rawContext ?? {},
-      }),
-    });
-
-    if (!session) {
-      return {
-        success: false,
-        error: "タスクの再開処理に失敗しました",
-      };
-    }
-
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
-
-    const slackThread = createSlackThreadInfo({
-      channel: session.slackChannel,
-      threadTs: session.slackThreadTs,
-    });
-
-    if (slackThread) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskResumedMessage({ summary });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
-        workspace,
-        channel: slackThread.channel,
-        message,
-        threadTs: slackThread.threadTs,
+            return notifySlack({ workspace, slackThread, summary }).map(
+              (slackNotification) => ({
+                session,
+                slackNotification,
+              }),
+            );
+          }),
+      )
+      .map(({ session, slackNotification }) => ({
+        kind: "ResumeTaskCompleted" as const,
+        result: {
+          input: command.input,
+          taskSessionId: session.id,
+          status: "in_progress" as const,
+          resumedAt: session.updatedAt,
+          slackNotification,
+        },
+      }))
+      .mapErr((error) => {
+        console.error(error);
+        return error;
       });
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Slack thread not configured",
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        taskSessionId: session.id,
-        status: session.status,
-        resumedAt: session.updatedAt,
-        slackNotification,
-      },
-    };
   };
 };

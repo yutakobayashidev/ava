@@ -1,100 +1,133 @@
-import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
 import { createSlackThreadInfo } from "@/domain/slack-thread-info";
+import { ALLOWED_TRANSITIONS, isValidTransition } from "@/domain/task-status";
+import { InternalServerError } from "@/errors";
+import { createUpdatedTaskSession } from "@/models/taskSessions";
 import type { TaskRepository } from "@/repos";
 import type { SlackNotificationService } from "@/services/slackNotificationService";
-import { createUpdatedTaskSession } from "@/models/taskSessions";
+import { type ResultAsync, errAsync, fromPromise, okAsync } from "neverthrow";
+import type {
+  UpdateTaskSessionCommand,
+  UpdateTaskSessionCompleted,
+  UpdateTaskSessionInput,
+} from "./interface";
 import { buildTaskUpdateMessage } from "./slackMessages";
-import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
 
-export const createUpdateTask = (
-  taskRepository: TaskRepository,
-  slackNotificationService: SlackNotificationService,
-) => {
-  return async (input: UpdateTaskInput): Promise<UpdateTaskOutput> => {
-    const { workspace, user, params } = input;
-    const { taskSessionId, summary, rawContext } = params;
+const notifySlackForUpdate =
+  (slackNotificationService: SlackNotificationService) =>
+  (params: {
+    workspace: UpdateTaskSessionInput["workspace"];
+    slackThread: { channel: string; threadTs: string } | null;
+    summary: string;
+  }): ResultAsync<
+    { delivered: boolean; reason?: string },
+    InternalServerError
+  > => {
+    const { workspace, slackThread, summary } = params;
 
-    // 現在のタスクセッションを取得して状態遷移を検証
-    const currentSession = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!currentSession) {
-      return {
-        success: false,
-        error: "タスクセッションが見つかりません",
-      };
+    if (!slackThread) {
+      return okAsync({
+        delivered: false,
+        reason: "Slack thread not configured",
+      });
     }
 
-    // blocked/paused → in_progress への遷移を検証
-    if (!isValidTransition(currentSession.status, "in_progress")) {
-      return {
-        success: false,
-        error: `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
-      };
-    }
+    const message = buildTaskUpdateMessage({ summary });
 
-    const updatedTask = createUpdatedTaskSession({
-      taskSessionId: taskSessionId,
-      workspaceId: workspace.id,
-      userId: user.id,
-      summary,
-      rawContext: rawContext ?? {},
-    });
-
-    const { session, updateEvent } = await taskRepository.addTaskUpdate({
-      request: updatedTask,
-    });
-
-    if (!session || !updateEvent) {
-      return {
-        success: false,
-        error: "タスクの更新に失敗しました",
-      };
-    }
-
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
-
-    const slackThread = createSlackThreadInfo({
-      channel: session.slackChannel,
-      threadTs: session.slackThreadTs,
-    });
-
-    if (slackThread) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskUpdateMessage({ summary });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
+    return fromPromise(
+      slackNotificationService.postMessage({
         workspace,
         channel: slackThread.channel,
         message,
         threadTs: slackThread.threadTs,
+      }),
+      (error) => new InternalServerError("Slack notification failed", error),
+    ).map((notification) => ({
+      delivered: notification.delivered,
+      reason: notification.error,
+    }));
+  };
+
+export const createUpdateTaskSession = (
+  taskRepository: TaskRepository,
+  slackNotificationService: SlackNotificationService,
+) => {
+  const notifySlack = notifySlackForUpdate(slackNotificationService);
+
+  return (
+    command: UpdateTaskSessionCommand,
+  ): ResultAsync<UpdateTaskSessionCompleted, InternalServerError> => {
+    const { workspace, user, taskSessionId, summary, rawContext } =
+      command.input;
+
+    return taskRepository
+      .findTaskSessionById(taskSessionId, workspace.id, user.id)
+      .andThen((currentSession) => {
+        if (!currentSession) {
+          return errAsync(
+            new InternalServerError("タスクセッションが見つかりません"),
+          );
+        }
+        return okAsync(currentSession);
+      })
+      .andThen((currentSession) => {
+        if (!isValidTransition(currentSession.status, "in_progress")) {
+          return errAsync(
+            new InternalServerError(
+              `Invalid status transition: ${currentSession.status} → in_progress. Allowed transitions from ${currentSession.status}: [${ALLOWED_TRANSITIONS[currentSession.status].join(", ")}]`,
+            ),
+          );
+        }
+        return okAsync(currentSession);
+      })
+      .andThen(() => {
+        const updatedTask = createUpdatedTaskSession({
+          taskSessionId,
+          workspaceId: workspace.id,
+          userId: user.id,
+          summary,
+          rawContext: rawContext ?? {},
+        });
+
+        return taskRepository
+          .addTaskUpdate({ request: updatedTask })
+          .andThen(({ session, updateEvent }) => {
+            if (!session || !updateEvent) {
+              return errAsync(
+                new InternalServerError("タスクの更新に失敗しました"),
+              );
+            }
+
+            const slackThread = createSlackThreadInfo({
+              channel: session.slackChannel,
+              threadTs: session.slackThreadTs,
+            });
+
+            return notifySlack({ workspace, slackThread, summary }).map(
+              (slackNotification) => ({
+                session,
+                updateEvent,
+                slackNotification,
+              }),
+            );
+          });
+      })
+      .map(
+        ({ session, updateEvent, slackNotification }) =>
+          ({
+            kind: "UpdateTaskSessionCompleted" as const,
+            result: {
+              input: command.input,
+              taskSessionId: session.id,
+              updateId: updateEvent.id,
+              status: session.status,
+              summary: updateEvent.summary ?? "",
+              slackNotification,
+            },
+          }) as UpdateTaskSessionCompleted,
+      )
+      .mapErr((error) => {
+        console.error(error);
+        return error;
       });
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Slack thread not configured",
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        taskSessionId: session.id,
-        updateId: updateEvent.id,
-        status: session.status,
-        summary: updateEvent.summary,
-        slackNotification,
-      },
-    };
   };
 };

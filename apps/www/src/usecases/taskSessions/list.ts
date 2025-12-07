@@ -1,42 +1,42 @@
+import { InternalServerError } from "@/errors";
 import type { TaskRepository } from "@/repos";
-import type { ListTasksInput, ListTasksOutput } from "./interface";
+import { type ResultAsync, okAsync } from "neverthrow";
+import type {
+  ListTaskSessionsCommand,
+  ListTaskSessionsCompleted,
+} from "./interface";
 
-// ステータスをDBの形式に変換
-function convertStatusToDb(
-  status?: string,
-): "in_progress" | "blocked" | "paused" | "completed" | undefined {
-  if (status === "inProgress") return "in_progress";
-  if (status === "blocked" || status === "paused" || status === "completed")
-    return status;
-  return undefined;
-}
+export const createListTaskSessions = (taskRepository: TaskRepository) => {
+  return (
+    command: ListTaskSessionsCommand,
+  ): ResultAsync<ListTaskSessionsCompleted, InternalServerError> => {
+    const { workspace, user, status, limit } = command.input;
 
-export const createListTasks = (taskRepository: TaskRepository) => {
-  return async (input: ListTasksInput): Promise<ListTasksOutput> => {
-    const { workspace, user, params } = input;
-    const { status, limit } = params;
-
-    const sessions = await taskRepository.listTaskSessions({
-      userId: user.id,
-      workspaceId: workspace.id,
-      status: convertStatusToDb(status),
-      limit,
-    });
-
-    return {
-      success: true,
-      data: {
-        total: sessions.length,
-        tasks: sessions.map((session) => ({
-          taskSessionId: session.id,
-          issueProvider: session.issueProvider,
-          issueId: session.issueId,
-          issueTitle: session.issueTitle,
-          status: session.status,
-          createdAt: session.createdAt,
-          updatedAt: session.updatedAt,
-        })),
-      },
-    };
+    return okAsync(command)
+      .andThen(() =>
+        taskRepository.listTaskSessions({
+          userId: user.id,
+          workspaceId: workspace.id,
+          status,
+          limit,
+        }),
+      )
+      .map((sessions) => {
+        return {
+          kind: "ListTaskSessionsCompleted" as const,
+          result: {
+            input: command.input,
+            tasks: sessions.map((session) => ({
+              taskSessionId: session.id,
+              issueProvider: session.issueProvider,
+              issueId: session.issueId,
+              issueTitle: session.issueTitle,
+              status: session.status,
+              createdAt: session.createdAt,
+              updatedAt: session.updatedAt,
+            })),
+          },
+        };
+      });
   };
 };

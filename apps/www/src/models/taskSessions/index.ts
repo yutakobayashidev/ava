@@ -5,6 +5,7 @@
 
 import type * as schema from "@ava/database/schema";
 import { uuidv7 } from "uuidv7";
+import { ok, type Result } from "neverthrow";
 
 type IssueProvider = (typeof schema.issueProviderEnum.enumValues)[number];
 
@@ -26,8 +27,8 @@ export const createStartedTaskSession = (params: {
   issueId?: string | null;
   issueTitle: string;
   initialSummary: string;
-}): StartedTaskSession => {
-  return {
+}): Result<StartedTaskSession, never> => {
+  return ok({
     id: uuidv7(),
     userId: params.userId,
     workspaceId: params.workspaceId,
@@ -35,7 +36,7 @@ export const createStartedTaskSession = (params: {
     issueId: params.issueId,
     issueTitle: params.issueTitle,
     initialSummary: params.initialSummary,
-  };
+  });
 };
 
 // 更新可能なタスク（blocked/paused → in_progress）

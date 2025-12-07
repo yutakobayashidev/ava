@@ -1,4 +1,7 @@
-import { HonoEnv } from "@/types";
+import type { HonoEnv } from "@/types";
+import type { StartedTaskSession } from "@/models/taskSessions";
+import type { InternalServerError } from "@/errors";
+import type { ResultAsync } from "neverthrow";
 
 /**
  * タスクセッション関連のユースケースの入出力型定義
@@ -8,240 +11,290 @@ import { HonoEnv } from "@/types";
 // Common Types
 // ============================================
 
-type SlackNotificationResult = {
+export type SlackNotificationResult = {
   delivered: boolean;
   reason?: string;
 };
 
 // ============================================
-// Start Task
+// Start Task - Command/Event Pattern
 // ============================================
 
-type StartTaskParams = {
+export interface CreateTaskSessionInput {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
   issue: {
     provider: "github" | "manual";
     id?: string;
     title: string;
   };
   initialSummary: string;
-};
+}
 
-export type StartTaskInput = {
+export interface CreateTaskSessionCommand {
+  kind: "CreateTaskSessionCommand";
+  input: CreateTaskSessionInput;
+}
+
+export interface CreateTaskSessionCreated {
+  kind: "CreateTaskSessionCreated";
+  input: CreateTaskSessionInput;
+  request: StartedTaskSession;
+}
+
+export interface CreateTaskSessionCompleted {
+  kind: "CreateTaskSessionCompleted";
+  result:
+    | {
+        success: true;
+        input: CreateTaskSessionInput;
+        session: StartedTaskSession;
+        slackNotification: SlackNotificationResult;
+      }
+    | {
+        success: false;
+        input: CreateTaskSessionInput;
+        error: string;
+      };
+}
+
+export type CreateTaskSessionWorkflow = (
+  command: CreateTaskSessionCommand,
+) => ResultAsync<CreateTaskSessionCompleted, InternalServerError>;
+
+// ============================================
+// Update Task - Command/Event Pattern
+// ============================================
+
+export interface UpdateTaskSessionInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: StartTaskParams;
-};
-
-type StartTaskSuccess = {
-  taskSessionId: string;
-  status: string;
-  issuedAt: Date;
-  slackNotification: SlackNotificationResult;
-};
-
-export type StartTaskOutput =
-  | { success: true; data: StartTaskSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// Update Task
-// ============================================
-
-type UpdateTaskParams = {
   taskSessionId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
-};
+}
 
-export type UpdateTaskInput = {
+export interface UpdateTaskSessionCommand {
+  kind: "UpdateTaskSessionCommand";
+  input: UpdateTaskSessionInput;
+}
+
+export interface UpdateTaskSessionCompleted {
+  kind: "UpdateTaskSessionCompleted";
+  result: {
+    input: UpdateTaskSessionInput;
+    taskSessionId: string;
+    updateId: string;
+    status: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
+    summary: string;
+    slackNotification: SlackNotificationResult;
+  };
+}
+
+export type UpdateTaskSessionWorkflow = (
+  command: UpdateTaskSessionCommand,
+) => ResultAsync<UpdateTaskSessionCompleted, InternalServerError>;
+
+// ============================================
+// Complete Task - Command/Event Pattern
+// ============================================
+
+export interface CompleteTaskSessionInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: UpdateTaskParams;
-};
-
-type UpdateTaskSuccess = {
-  taskSessionId: string;
-  updateId: string;
-  status: string;
-  summary: string | null;
-  slackNotification: SlackNotificationResult;
-};
-
-export type UpdateTaskOutput =
-  | { success: true; data: UpdateTaskSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// Complete Task
-// ============================================
-
-type CompleteTaskParams = {
   taskSessionId: string;
   summary: string;
-};
+}
 
-export type CompleteTaskInput = {
+export interface CompleteTaskSessionCommand {
+  kind: "CompleteTaskSessionCommand";
+  input: CompleteTaskSessionInput;
+}
+
+export interface CompleteTaskSessionCompleted {
+  kind: "CompleteTaskSessionCompleted";
+  result: {
+    input: CompleteTaskSessionInput;
+    taskSessionId: string;
+    completionId: string;
+    status: "completed";
+    slackNotification: SlackNotificationResult;
+    unresolvedBlocks: Array<{
+      blockReportId: string;
+      reason: string | null;
+      createdAt: Date;
+    }>;
+  };
+}
+
+export type CompleteTaskSessionWorkflow = (
+  command: CompleteTaskSessionCommand,
+) => ResultAsync<CompleteTaskSessionCompleted, InternalServerError>;
+
+// ============================================
+// Report Blocked - Command/Event Pattern
+// ============================================
+
+export interface ReportBlockedInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: CompleteTaskParams;
-};
-
-export type CompleteTaskSuccess = {
   taskSessionId: string;
-  completionId: string;
-  status: string;
-  slackNotification: SlackNotificationResult;
-  unresolvedBlocks?: Array<{
+  reason: string;
+  rawContext?: Record<string, unknown>;
+}
+
+export interface ReportBlockedCommand {
+  kind: "ReportBlockedCommand";
+  input: ReportBlockedInput;
+}
+
+export interface ReportBlockedCompleted {
+  kind: "ReportBlockedCompleted";
+  result: {
+    input: ReportBlockedInput;
+    taskSessionId: string;
     blockReportId: string;
-    reason: string | null;
-    createdAt: Date;
-  }>;
-};
+    status: "blocked";
+    reason: string;
+    slackNotification: SlackNotificationResult;
+  };
+}
 
-export type CompleteTaskOutput =
-  | { success: true; data: CompleteTaskSuccess }
-  | { success: false; error: string };
+export type ReportBlockedWorkflow = (
+  command: ReportBlockedCommand,
+) => ResultAsync<ReportBlockedCompleted, InternalServerError>;
 
 // ============================================
-// Report Blocked
+// Pause Task - Command/Event Pattern
 // ============================================
 
-type ReportBlockedParams = {
+export interface PauseTaskInput {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
   taskSessionId: string;
   reason: string;
   rawContext?: Record<string, unknown>;
-};
+}
 
-export type ReportBlockedInput = {
+export interface PauseTaskCommand {
+  kind: "PauseTaskCommand";
+  input: PauseTaskInput;
+}
+
+export interface PauseTaskCompleted {
+  kind: "PauseTaskCompleted";
+  result: {
+    input: PauseTaskInput;
+    taskSessionId: string;
+    pauseReportId: string;
+    status: "paused";
+    pausedAt: Date;
+    slackNotification: SlackNotificationResult;
+  };
+}
+
+export type PauseTaskWorkflow = (
+  command: PauseTaskCommand,
+) => ResultAsync<PauseTaskCompleted, InternalServerError>;
+
+// ============================================
+// Resume Task - Command/Event Pattern
+// ============================================
+
+export interface ResumeTaskInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: ReportBlockedParams;
-};
-
-type ReportBlockedSuccess = {
-  taskSessionId: string;
-  blockReportId: string;
-  status: string;
-  reason: string | null;
-  slackNotification: SlackNotificationResult;
-};
-
-export type ReportBlockedOutput =
-  | { success: true; data: ReportBlockedSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// Pause Task
-// ============================================
-
-type PauseTaskParams = {
-  taskSessionId: string;
-  reason: string;
-  rawContext?: Record<string, unknown>;
-};
-
-export type PauseTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: PauseTaskParams;
-};
-
-type PauseTaskSuccess = {
-  taskSessionId: string;
-  pauseReportId: string;
-  status: string;
-  pausedAt: Date;
-  slackNotification: SlackNotificationResult;
-};
-
-export type PauseTaskOutput =
-  | { success: true; data: PauseTaskSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// Resume Task
-// ============================================
-
-type ResumeTaskParams = {
   taskSessionId: string;
   summary: string;
   rawContext?: Record<string, unknown>;
-};
+}
 
-export type ResumeTaskInput = {
+export interface ResumeTaskCommand {
+  kind: "ResumeTaskCommand";
+  input: ResumeTaskInput;
+}
+
+export interface ResumeTaskCompleted {
+  kind: "ResumeTaskCompleted";
+  result: {
+    input: ResumeTaskInput;
+    taskSessionId: string;
+    status: "in_progress";
+    resumedAt: Date;
+    slackNotification: SlackNotificationResult;
+  };
+}
+
+export type ResumeTaskWorkflow = (
+  command: ResumeTaskCommand,
+) => ResultAsync<ResumeTaskCompleted, InternalServerError>;
+
+// ============================================
+// Resolve Blocked - Command/Event Pattern
+// ============================================
+
+export interface ResolveBlockedInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: ResumeTaskParams;
-};
-
-type ResumeTaskSuccess = {
-  taskSessionId: string;
-  status: string;
-  resumedAt: Date;
-  slackNotification: SlackNotificationResult;
-};
-
-export type ResumeTaskOutput =
-  | { success: true; data: ResumeTaskSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// Resolve Blocked
-// ============================================
-
-type ResolveBlockedParams = {
   taskSessionId: string;
   blockReportId: string;
-};
+}
 
-export type ResolveBlockedInput = {
+export interface ResolveBlockedCommand {
+  kind: "ResolveBlockedCommand";
+  input: ResolveBlockedInput;
+}
+
+export interface ResolveBlockedCompleted {
+  kind: "ResolveBlockedCompleted";
+  result: {
+    input: ResolveBlockedInput;
+    taskSessionId: string;
+    blockReportId: string;
+    status: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
+    resolvedAt: Date;
+    slackNotification: SlackNotificationResult;
+  };
+}
+
+export type ResolveBlockedWorkflow = (
+  command: ResolveBlockedCommand,
+) => ResultAsync<ResolveBlockedCompleted, InternalServerError>;
+
+// ============================================
+// List Tasks - Command/Event Pattern
+// ============================================
+
+export interface ListTaskSessionsInput {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: ResolveBlockedParams;
-};
-
-type ResolveBlockedSuccess = {
-  taskSessionId: string;
-  blockReportId: string;
-  status: string;
-  resolvedAt: Date;
-  slackNotification: SlackNotificationResult;
-};
-
-export type ResolveBlockedOutput =
-  | { success: true; data: ResolveBlockedSuccess }
-  | { success: false; error: string };
-
-// ============================================
-// List Tasks
-// ============================================
-
-type ListTasksParams = {
-  status?: "inProgress" | "blocked" | "paused" | "completed";
+  status?: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
   limit?: number;
-};
+}
 
-export type ListTasksInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ListTasksParams;
-};
+export interface ListTaskSessionsCommand {
+  kind: "ListTaskSessionsCommand";
+  input: ListTaskSessionsInput;
+}
 
-type TaskSummary = {
+export type TaskSessionSummary = {
   taskSessionId: string;
-  issueProvider: string;
+  issueProvider: "github" | "manual";
   issueId: string | null;
   issueTitle: string;
-  status: string;
+  status: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
   createdAt: Date;
   updatedAt: Date;
 };
 
-type ListTasksSuccess = {
-  total: number;
-  tasks: TaskSummary[];
-};
+export interface ListTaskSessionsCompleted {
+  kind: "ListTaskSessionsCompleted";
+  result: {
+    input: ListTaskSessionsInput;
+    tasks: TaskSessionSummary[];
+  };
+}
 
-export type ListTasksOutput =
-  | { success: true; data: ListTasksSuccess }
-  | { success: false; error: string };
+export type ListTaskSessionsWorkflow = (
+  command: ListTaskSessionsCommand,
+) => ResultAsync<ListTaskSessionsCompleted, InternalServerError>;

@@ -5,14 +5,14 @@ import {
 } from "@/repos";
 import { createSlackNotificationService } from "@/services/slackNotificationService";
 import { Context } from "@/types";
-import { createCompleteTask } from "./complete";
-import { createListTasks } from "./list";
+import { createCompleteTaskSession } from "./complete";
+import { createListTaskSessions } from "./list";
 import { createPauseTask } from "./pause";
 import { createReportBlocked } from "./reportBlocked";
 import { createResolveBlocked } from "./resolveBlocked";
 import { createResumeTask } from "./resume";
 import { createStartTask } from "./start";
-import { createUpdateTask } from "./update";
+import { createUpdateTaskSession } from "./update";
 
 export const constructStartTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
@@ -36,7 +36,7 @@ export const constructUpdateTaskWorkflow = (ctx: Context) => {
   const slackNotificationService =
     createSlackNotificationService(workspaceRepository);
 
-  const updateTaskWorkflow = createUpdateTask(
+  const updateTaskWorkflow = createUpdateTaskSession(
     taskRepository,
     slackNotificationService,
   );
@@ -103,7 +103,7 @@ export const constructResumeTaskWorkflow = (ctx: Context) => {
 export const constructListTasksWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
 
-  const listTasksWorkflow = createListTasks(taskRepository);
+  const listTasksWorkflow = createListTaskSessions(taskRepository);
 
   return listTasksWorkflow;
 };
@@ -114,7 +114,7 @@ export const constructCompleteTaskWorkflow = (ctx: Context) => {
   const slackNotificationService =
     createSlackNotificationService(workspaceRepository);
 
-  const completeTaskWorkflow = createCompleteTask(
+  const completeTaskWorkflow = createCompleteTaskSession(
     taskRepository,
     slackNotificationService,
   );

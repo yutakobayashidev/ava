@@ -1,4 +1,6 @@
 import type * as schema from "@ava/database/schema";
+import type { ResultAsync } from "neverthrow";
+import type { DatabaseError } from "@/lib/database";
 import type {
   StartedTaskSession,
   UpdatedTaskSession,
@@ -14,43 +16,65 @@ export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
 // CRUD操作の個別型定義
 export type CreateTaskSession = (params: {
   request: StartedTaskSession;
-}) => Promise<schema.TaskSession>;
+}) => ResultAsync<schema.TaskSession, DatabaseError>;
 
 export type AddTaskUpdate = (params: {
   request: UpdatedTaskSession;
-}) => Promise<{
-  session: schema.TaskSession | null;
-  updateEvent: schema.TaskEvent | null;
-}>;
+}) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+    updateEvent: schema.TaskEvent | null;
+  },
+  DatabaseError
+>;
 
-export type ReportBlock = (params: { request: BlockedTaskSession }) => Promise<{
-  session: schema.TaskSession | null;
-  blockReport: schema.TaskEvent | null;
-}>;
+export type ReportBlock = (params: {
+  request: BlockedTaskSession;
+}) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+    blockReport: schema.TaskEvent | null;
+  },
+  DatabaseError
+>;
 
-export type PauseTask = (params: { request: PausedTaskSession }) => Promise<{
-  session: schema.TaskSession | null;
-  pauseReport: schema.TaskEvent | null;
-}>;
+export type PauseTask = (params: { request: PausedTaskSession }) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+    pauseReport: schema.TaskEvent | null;
+  },
+  DatabaseError
+>;
 
-export type ResumeTask = (params: { request: ResumedTaskSession }) => Promise<{
-  session: schema.TaskSession | null;
-}>;
+export type ResumeTask = (params: {
+  request: ResumedTaskSession;
+}) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+  },
+  DatabaseError
+>;
 
 export type CompleteTask = (params: {
   request: CompletedTaskSession;
-}) => Promise<{
-  session: schema.TaskSession | null;
-  completedEvent: schema.TaskEvent | null;
-  unresolvedBlocks: schema.TaskEvent[];
-}>;
+}) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+    completedEvent: schema.TaskEvent | null;
+    unresolvedBlocks: schema.TaskEvent[];
+  },
+  DatabaseError
+>;
 
 export type ResolveBlockReport = (params: {
   request: ResolvedBlockTaskSession;
-}) => Promise<{
-  session: schema.TaskSession | null;
-  blockReport: schema.TaskEvent | null;
-}>;
+}) => ResultAsync<
+  {
+    session: schema.TaskSession | null;
+    blockReport: schema.TaskEvent | null;
+  },
+  DatabaseError
+>;
 
 // Repository functions - モデルベース
 export type TaskRepository = {
@@ -68,7 +92,7 @@ export type TaskRepository = {
     taskSessionId: string,
     workspaceId: string,
     userId: string,
-  ) => Promise<schema.TaskSession | null>;
+  ) => ResultAsync<schema.TaskSession | null, DatabaseError>;
   listTaskSessions: (params: {
     userId: string;
     workspaceId: string;
@@ -76,48 +100,49 @@ export type TaskRepository = {
     limit?: number;
     updatedAfter?: Date;
     updatedBefore?: Date;
-  }) => Promise<schema.TaskSession[]>;
+  }) => ResultAsync<schema.TaskSession[], DatabaseError>;
   updateSlackThread: (params: {
     taskSessionId: string;
     workspaceId: string;
     userId: string;
     threadTs: string;
     channel: string;
-  }) => Promise<schema.TaskSession | null>;
+  }) => ResultAsync<schema.TaskSession | null, DatabaseError>;
   listEvents: (params: {
     taskSessionId: string;
     eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
-  }) => Promise<schema.TaskEvent[]>;
+  }) => ResultAsync<schema.TaskEvent[], DatabaseError>;
   getUnresolvedBlockReports: (
     taskSessionId: string,
-  ) => Promise<schema.TaskEvent[]>;
+  ) => ResultAsync<schema.TaskEvent[], DatabaseError>;
   getBulkUnresolvedBlockReports: (
     taskSessionIds: string[],
-  ) => Promise<Map<string, schema.TaskEvent[]>>;
+  ) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
   getBulkLatestEvents: (params: {
     taskSessionIds: string[];
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
-  }) => Promise<Map<string, schema.TaskEvent[]>>;
+  }) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
   getLatestEvent: (params: {
     taskSessionId: string;
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-  }) => Promise<schema.TaskEvent | null>;
+  }) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
   getLatestEventByTypes: (
     taskSessionId: string,
     eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
-  ) => Promise<schema.TaskEvent | null>;
+  ) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
   getTodayCompletedTasks: (params: {
     userId: string;
     workspaceId: string;
     dateRange: { from: Date; to: Date };
-  }) => Promise<
+  }) => ResultAsync<
     Array<
       schema.TaskSession & {
         completedAt: Date;
         completionSummary: string | null;
       }
-    >
+    >,
+    DatabaseError
   >;
 };

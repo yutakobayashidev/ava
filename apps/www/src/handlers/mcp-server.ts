@@ -9,27 +9,18 @@ import {
   constructStartTaskWorkflow,
   constructUpdateTaskWorkflow,
 } from "@/usecases/taskSessions/constructor";
+import {
+  CompleteTaskRequestSchema,
+  ListTasksRequestSchema,
+  PauseTaskRequestSchema,
+  ReportBlockedRequestSchema,
+  ResolveBlockedRequestSchema,
+  ResumeTaskRequestSchema,
+  StartTaskRequestSchema,
+  UpdateTaskRequestSchema,
+  convertResultToMcpResponse,
+} from "@/usecases/taskSessions/controller";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod/v3";
-
-// プレゼンテーション層: データオブジェクトをJSON文字列化してメッセージを追加
-function formatSuccessResponse(data: object, message: string) {
-  return JSON.stringify({ ...data, message }, null, 2);
-}
-
-const rawContextSchema = z
-  .record(z.string(), z.unknown())
-  .default({})
-  .describe("Slackへ共有可能な抽象的メタデータ");
-
-const issueSchema = z.object({
-  provider: z.enum(["github", "manual"]).describe("課題の取得元"),
-  id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
-  title: z
-    .string()
-    .min(1, "タイトルは必須です")
-    .describe("タスクの簡潔なタイトル"),
-});
 
 export function createMcpServer(ctx: Context) {
   const server = new McpServer({
@@ -42,30 +33,26 @@ export function createMcpServer(ctx: Context) {
     {
       title: "startTask",
       description: "開始サマリをSlackに共有するための入力仕様。",
-      inputSchema: z.object({
-        issue: issueSchema,
-        initialSummary: z
-          .string()
-          .min(1, "初期サマリは必須です")
-          .describe("着手時点の抽象的な状況や方針"),
-      }),
+      inputSchema: StartTaskRequestSchema,
     },
     async (params) => {
-      const result = await constructStartTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "CreateTaskSessionCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructStartTaskWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "タスクの追跡を開始しました。",
-                )
-              : result.error,
+            text: convertResultToMcpResponse(
+              result,
+              "タスクの追跡を開始しました。",
+            ),
           },
         ],
       };
@@ -77,31 +64,23 @@ export function createMcpServer(ctx: Context) {
     {
       title: "updateTask",
       description: "進捗の抽象的サマリを共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("進捗の抽象的説明"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: UpdateTaskRequestSchema,
     },
     async (params) => {
-      const result = await constructUpdateTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "UpdateTaskSessionCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructUpdateTaskWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "進捗を保存しました。")
-              : result.error,
+            text: convertResultToMcpResponse(result, "進捗を保存しました。"),
           },
         ],
       };
@@ -113,34 +92,26 @@ export function createMcpServer(ctx: Context) {
     {
       title: "reportBlocked",
       description: "ブロッキング情報を共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("詰まっている理由の要約"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: ReportBlockedRequestSchema,
     },
     async (params) => {
-      const result = await constructReportBlockedWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "ReportBlockedCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructReportBlockedWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "ブロッキング情報を登録しました。",
-                )
-              : result.error,
+            text: convertResultToMcpResponse(
+              result,
+              "ブロッキング情報を登録しました。",
+            ),
           },
         ],
       };
@@ -152,31 +123,26 @@ export function createMcpServer(ctx: Context) {
     {
       title: "pauseTask",
       description: "タスクを一時休止するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        reason: z
-          .string()
-          .min(1, "reasonは必須です")
-          .describe("休止理由の要約"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: PauseTaskRequestSchema,
     },
     async (params) => {
-      const result = await constructPauseTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "PauseTaskCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructPauseTaskWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "タスクを一時休止しました。")
-              : result.error,
+            text: convertResultToMcpResponse(
+              result,
+              "タスクを一時休止しました。",
+            ),
           },
         ],
       };
@@ -188,31 +154,23 @@ export function createMcpServer(ctx: Context) {
     {
       title: "resumeTask",
       description: "一時休止したタスクを再開するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("再開時のコメント"),
-        rawContext: rawContextSchema,
-      }),
+      inputSchema: ResumeTaskRequestSchema,
     },
     async (params) => {
-      const result = await constructResumeTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "ResumeTaskCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructResumeTaskWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "タスクを再開しました。")
-              : result.error,
+            text: convertResultToMcpResponse(result, "タスクを再開しました。"),
           },
         ],
       };
@@ -224,36 +182,34 @@ export function createMcpServer(ctx: Context) {
     {
       title: "completeTask",
       description: "完了報告を共有するための入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        summary: z
-          .string()
-          .min(1, "summaryは必須です")
-          .describe("完了内容の抽象的サマリ"),
-      }),
+      inputSchema: CompleteTaskRequestSchema,
     },
     async (params) => {
-      const result = await constructCompleteTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "CompleteTaskSessionCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructCompleteTaskWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  result.data.unresolvedBlocks &&
-                    result.data.unresolvedBlocks.length > 0
-                    ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
-                    : "完了報告を保存しました。",
-                )
-              : result.error,
+            text: result.match(
+              (completed) => {
+                const hasUnresolvedBlocks =
+                  completed.result.unresolvedBlocks &&
+                  completed.result.unresolvedBlocks.length > 0;
+                const message = hasUnresolvedBlocks
+                  ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
+                  : "完了報告を保存しました。";
+                return convertResultToMcpResponse(result, message);
+              },
+              () => convertResultToMcpResponse(result),
+            ),
           },
         ],
       };
@@ -265,35 +221,26 @@ export function createMcpServer(ctx: Context) {
     {
       title: "resolveBlocked",
       description: "ブロッキングが解決したことを報告する入力仕様。",
-      inputSchema: z.object({
-        taskSessionId: z
-          .string()
-          .min(1, "taskSessionIdは必須です")
-          .describe("startTaskで払い出されたタスクID"),
-        blockReportId: z
-          .string()
-          .min(1, "blockReportIdは必須です")
-          .describe(
-            "解決したブロッキングのID（completeTaskレスポンスやreportBlockedレスポンスから取得）",
-          ),
-      }),
+      inputSchema: ResolveBlockedRequestSchema,
     },
     async (params) => {
-      const result = await constructResolveBlockedWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "ResolveBlockedCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructResolveBlockedWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "ブロッキングの解決を報告しました。",
-                )
-              : result.error,
+            text: convertResultToMcpResponse(
+              result,
+              "ブロッキングの解決を報告しました。",
+            ),
           },
         ],
       };
@@ -305,32 +252,23 @@ export function createMcpServer(ctx: Context) {
     {
       title: "listTasks",
       description: "ユーザーのタスク一覧を取得する。",
-      inputSchema: z.object({
-        status: z
-          .enum(["inProgress", "blocked", "paused", "completed"])
-          .optional()
-          .describe("フィルタリングするステータス（省略時は全ステータス）"),
-        limit: z
-          .number()
-          .positive()
-          .max(100)
-          .optional()
-          .describe("取得する最大件数（デフォルト: 50）"),
-      }),
+      inputSchema: ListTasksRequestSchema,
     },
     async (params) => {
-      const result = await constructListTasksWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        params,
-      });
+      const command = {
+        kind: "ListTaskSessionsCommand" as const,
+        input: {
+          workspace: ctx.get("workspace"),
+          user: ctx.get("user"),
+          ...params,
+        },
+      };
+      const result = await constructListTasksWorkflow(ctx)(command);
       return {
         content: [
           {
             type: "text",
-            text: result.success
-              ? JSON.stringify(result.data, null, 2)
-              : result.error,
+            text: convertResultToMcpResponse(result),
           },
         ],
       };
