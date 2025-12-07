@@ -1,10 +1,5 @@
-import {
-  createSubscriptionRepository,
-  createTaskRepository,
-  createWorkspaceRepository,
-} from "@/repos";
+import { createSubscriptionRepository, createTaskRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
-import { createSlackNotificationService } from "@/services/slackNotificationService";
 import { Context } from "@/types";
 import { createCompleteTask } from "./complete";
 import { createListTasks } from "./list";
@@ -18,15 +13,11 @@ import { createUpdateTask } from "./update";
 export const constructStartTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
   const subscriptionRepository = createSubscriptionRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const startTaskWorkflow = createStartTask(
     taskRepository,
     subscriptionRepository,
-    slackNotificationService,
     commandExecutor,
   );
 
@@ -35,32 +26,19 @@ export const constructStartTaskWorkflow = (ctx: Context) => {
 
 export const constructUpdateTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
-  const eventStore = createEventStore(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const updateTaskWorkflow = createUpdateTask(
-    taskRepository,
-    slackNotificationService,
-    eventStore,
-    commandExecutor,
-  );
+  const updateTaskWorkflow = createUpdateTask(taskRepository, commandExecutor);
 
   return updateTaskWorkflow;
 };
 
 export const constructReportBlockedWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const reportBlockedWorkflow = createReportBlocked(
     taskRepository,
-    slackNotificationService,
     commandExecutor,
   );
 
@@ -69,14 +47,10 @@ export const constructReportBlockedWorkflow = (ctx: Context) => {
 
 export const constructResolveBlockedWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const resolveBlockedWorkflow = createResolveBlocked(
     taskRepository,
-    slackNotificationService,
     commandExecutor,
   );
 
@@ -85,36 +59,18 @@ export const constructResolveBlockedWorkflow = (ctx: Context) => {
 
 export const constructPauseTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
-  const eventStore = createEventStore(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const pauseTaskWorkflow = createPauseTask(
-    taskRepository,
-    slackNotificationService,
-    eventStore,
-    commandExecutor,
-  );
+  const pauseTaskWorkflow = createPauseTask(taskRepository, commandExecutor);
 
   return pauseTaskWorkflow;
 };
 
 export const constructResumeTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
-  const eventStore = createEventStore(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const resumeTaskWorkflow = createResumeTask(
-    taskRepository,
-    slackNotificationService,
-    eventStore,
-    commandExecutor,
-  );
+  const resumeTaskWorkflow = createResumeTask(taskRepository, commandExecutor);
 
   return resumeTaskWorkflow;
 };
@@ -129,14 +85,10 @@ export const constructListTasksWorkflow = (ctx: Context) => {
 
 export const constructCompleteTaskWorkflow = (ctx: Context) => {
   const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const completeTaskWorkflow = createCompleteTask(
     taskRepository,
-    slackNotificationService,
     commandExecutor,
   );
 

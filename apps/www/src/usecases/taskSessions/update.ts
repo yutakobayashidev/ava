@@ -1,13 +1,9 @@
-import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
-import type { SlackNotificationService } from "@/services/slackNotificationService";
-import { buildTaskUpdateMessage } from "./slackMessages";
 import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
 
 export const createUpdateTask = (
   taskRepository: TaskRepository,
-  slackNotificationService: SlackNotificationService,
   commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: UpdateTaskInput): Promise<UpdateTaskOutput> => {
@@ -51,36 +47,11 @@ export const createUpdateTask = (
       };
     }
 
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
-
-    const slackThread = createSlackThreadInfo({
-      channel: session.slackChannel,
-      threadTs: session.slackThreadTs,
-    });
-
-    if (slackThread) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskUpdateMessage({ summary });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
-        workspace,
-        channel: slackThread.channel,
-        message,
-        threadTs: slackThread.threadTs,
-      });
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Slack thread not configured",
-      };
-    }
+    // Slack 通知はポリシー outbox に委譲
+    const slackNotification = {
+      delivered: false,
+      reason: "Delegated to policy outbox",
+    } as const;
 
     return {
       success: true,

@@ -1,16 +1,13 @@
 import type { TaskRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import { createSubscriptionRepository } from "@/repos";
-import type { SlackNotificationService } from "@/services/slackNotificationService";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 import type { StartTaskInput, StartTaskOutput } from "./interface";
-import { buildTaskStartedMessage } from "./slackMessages";
 import { uuidv7 } from "uuidv7";
 
 export const createStartTask = (
   taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
-  slackNotificationService: SlackNotificationService,
   commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: StartTaskInput): Promise<StartTaskOutput> => {
@@ -59,58 +56,11 @@ export const createStartTask = (
       };
     }
 
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
-
-    if (workspace.notificationChannelId) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskStartedMessage({
-        session: { id: session.id },
-        issue: {
-          title: issue.title,
-          provider: issue.provider,
-          id: issue.id ?? null,
-        },
-        initialSummary,
-        user: {
-          name: user.name,
-          email: user.email,
-          slackId: user.slackId,
-        },
-      });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
-        workspace,
-        channel: workspace.notificationChannelId,
-        message,
-      });
-
-      // スレッド情報を保存
-      if (
-        notification.delivered &&
-        notification.threadTs &&
-        notification.channel
-      ) {
-        await taskRepository.updateSlackThread({
-          taskSessionId: session.id,
-          workspaceId: workspace.id,
-          userId: user.id,
-          threadTs: notification.threadTs,
-          channel: notification.channel,
-        });
-      }
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Notification channel not configured",
-      };
-    }
+    // Slack 通知はポリシー outbox に委譲（ここでは通知しない）
+    const slackNotification = {
+      delivered: false,
+      reason: "Delegated to policy outbox",
+    } as const;
 
     return {
       success: true,

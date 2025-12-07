@@ -734,8 +734,9 @@ const getTodayCompletedTasks =
   };
 
 export const createTaskRepository = (db: Database): TaskRepository => ({
-  createTaskSession: createTaskSession(db),
   findTaskSessionById: findTaskSessionById(db),
+  // 以下は decider 経由に移行済みのため、新規利用禁止（互換のため残置）
+  createTaskSession: createTaskSession(db),
   addTaskUpdate: addTaskUpdate(db),
   reportBlock: reportBlock(db),
   pauseTask: pauseTask(db),

@@ -1,17 +1,13 @@
-import { createSlackThreadInfo } from "@/domain/slack-thread-info";
 import type { TaskRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
-import type { SlackNotificationService } from "@/services/slackNotificationService";
 import type {
   CompleteTaskInput,
   CompleteTaskOutput,
   CompleteTaskSuccess,
 } from "./interface";
-import { buildTaskCompletedMessage } from "./slackMessages";
 
 export const createCompleteTask = (
   taskRepository: TaskRepository,
-  slackNotificationService: SlackNotificationService,
   commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: CompleteTaskInput): Promise<CompleteTaskOutput> => {
@@ -55,46 +51,11 @@ export const createCompleteTask = (
       };
     }
 
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
-
-    const slackThread = createSlackThreadInfo({
-      channel: session.slackChannel,
-      threadTs: session.slackThreadTs,
-    });
-
-    if (slackThread) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskCompletedMessage({ summary });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
-        workspace,
-        channel: slackThread.channel,
-        message,
-        threadTs: slackThread.threadTs,
-      });
-
-      // リアクションを追加
-      if (notification.delivered) {
-        await slackNotificationService.addReaction({
-          workspace,
-          channel: slackThread.channel,
-          timestamp: slackThread.threadTs,
-          emoji: "white_check_mark",
-        });
-      }
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Slack thread not configured",
-      };
-    }
+    // Slack 通知はポリシー outbox に委譲
+    const slackNotification = {
+      delivered: false,
+      reason: "Delegated to policy outbox",
+    } as const;
 
     const unresolvedBlocks =
       (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
