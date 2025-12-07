@@ -18,6 +18,7 @@ export type SlackNotificationResult = {
 
 // ============================================
 // Start Task - Command/Event Pattern
+// State Transition: (none) → in_progress
 // ============================================
 
 export interface CreateTaskSessionInput {
@@ -64,6 +65,7 @@ export type CreateTaskSessionWorkflow = (
 
 // ============================================
 // Update Task - Command/Event Pattern
+// State Transition: (any) → in_progress
 // ============================================
 
 export interface UpdateTaskSessionInput {
@@ -85,7 +87,7 @@ export interface UpdateTaskSessionCompleted {
     input: UpdateTaskSessionInput;
     taskSessionId: string;
     updateId: string;
-    status: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
+    status: "in_progress";
     summary: string;
     slackNotification: SlackNotificationResult;
   };
@@ -97,6 +99,7 @@ export type UpdateTaskSessionWorkflow = (
 
 // ============================================
 // Complete Task - Command/Event Pattern
+// State Transition: (any) → completed
 // ============================================
 
 export interface CompleteTaskSessionInput {
@@ -133,6 +136,7 @@ export type CompleteTaskSessionWorkflow = (
 
 // ============================================
 // Report Blocked - Command/Event Pattern
+// State Transition: (any) → blocked
 // ============================================
 
 export interface ReportBlockedInput {
@@ -166,6 +170,7 @@ export type ReportBlockedWorkflow = (
 
 // ============================================
 // Pause Task - Command/Event Pattern
+// State Transition: (any) → paused
 // ============================================
 
 export interface PauseTaskInput {
@@ -199,6 +204,7 @@ export type PauseTaskWorkflow = (
 
 // ============================================
 // Resume Task - Command/Event Pattern
+// State Transition: paused → in_progress
 // ============================================
 
 export interface ResumeTaskInput {
@@ -231,6 +237,7 @@ export type ResumeTaskWorkflow = (
 
 // ============================================
 // Resolve Blocked - Command/Event Pattern
+// State Transition: blocked → in_progress
 // ============================================
 
 export interface ResolveBlockedInput {
@@ -251,7 +258,7 @@ export interface ResolveBlockedCompleted {
     input: ResolveBlockedInput;
     taskSessionId: string;
     blockReportId: string;
-    status: "in_progress" | "blocked" | "paused" | "completed" | "cancelled";
+    status: "in_progress";
     resolvedAt: Date;
     slackNotification: SlackNotificationResult;
   };
@@ -263,6 +270,7 @@ export type ResolveBlockedWorkflow = (
 
 // ============================================
 // List Tasks - Command/Event Pattern
+// State Transition: (read-only, no state change)
 // ============================================
 
 export interface ListTaskSessionsInput {
