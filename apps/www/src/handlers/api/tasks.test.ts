@@ -249,11 +249,28 @@ describe("api/tasks", () => {
       expect(await res.json()).toEqual({ error: "Unauthorized" });
     });
 
-    it("should return 404 for non-existent task", async () => {
+    it("should return 400 for invalid UUID", async () => {
       const { user } = await createTestUserAndWorkspace();
       const token = await createValidSession(user.id);
 
-      const res = await tasksApp.request("/non-existent-id", {
+      const res = await tasksApp.request("/invalid-uuid", {
+        method: "GET",
+        headers: {
+          Cookie: `session=${token}`,
+        },
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 404 for non-existent task with valid UUID", async () => {
+      const { user } = await createTestUserAndWorkspace();
+      const token = await createValidSession(user.id);
+
+      // 有効なUUIDだが存在しないタスク
+      const nonExistentId = "019b0000-0000-7000-8000-000000000000";
+
+      const res = await tasksApp.request(`/${nonExistentId}`, {
         method: "GET",
         headers: {
           Cookie: `session=${token}`,
