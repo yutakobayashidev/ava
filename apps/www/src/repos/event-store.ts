@@ -18,7 +18,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "started" as const,
         summary: event.payload.initialSummary,
-        rawContext: {},
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskUpdated":
@@ -28,7 +27,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "updated" as const,
         summary: event.payload.summary,
-        rawContext: event.payload.rawContext,
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskBlocked":
@@ -38,7 +36,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "blocked" as const,
         reason: event.payload.reason,
-        rawContext: event.payload.rawContext,
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "BlockResolved":
@@ -49,7 +46,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "block_resolved" as const,
         reason: event.payload.reason,
         relatedEventId: event.payload.blockId,
-        rawContext: {},
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskPaused":
@@ -59,7 +55,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "paused" as const,
         reason: event.payload.reason,
-        rawContext: event.payload.rawContext,
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskResumed":
@@ -70,7 +65,6 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "resumed" as const,
         summary: event.payload.summary,
         relatedEventId: event.payload.resumedFromPauseId ?? null,
-        rawContext: event.payload.rawContext,
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskCompleted":
@@ -80,11 +74,31 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "completed" as const,
         summary: event.payload.summary,
-        rawContext: {},
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
-    default:
-      throw new Error(`Unsupported event type for persistence: ${event.type}`);
+    case "TaskCancelled":
+      return {
+        id: uuidv7(),
+        taskSessionId: streamId,
+        version,
+        eventType: "cancelled" as const,
+        reason: event.payload.reason,
+        createdAt: event.payload.occurredAt,
+      } satisfies schema.NewTaskEvent;
+    case "SlackThreadLinked":
+      return {
+        id: uuidv7(),
+        taskSessionId: streamId,
+        version,
+        eventType: "slack_thread_linked" as const,
+        summary: event.payload.threadTs,
+        reason: event.payload.channel,
+        createdAt: event.payload.occurredAt,
+      } satisfies schema.NewTaskEvent;
+    default: {
+      const _: never = event;
+      throw new Error("Unsupported event type for persistence");
+    }
   }
 }
 
@@ -118,7 +132,6 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         type: "TaskUpdated",
         payload: {
           summary: event.summary ?? "",
-          rawContext: {},
           occurredAt: event.createdAt,
         },
       };
@@ -128,7 +141,6 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         payload: {
           blockId: event.id,
           reason: event.reason ?? "",
-          rawContext: {},
           occurredAt: event.createdAt,
         },
       };
@@ -147,7 +159,6 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         payload: {
           pauseId: event.id,
           reason: event.reason ?? "",
-          rawContext: {},
           occurredAt: event.createdAt,
         },
       };
@@ -156,7 +167,6 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         type: "TaskResumed",
         payload: {
           summary: event.summary ?? "",
-          rawContext: {},
           resumedFromPauseId: event.relatedEventId ?? undefined,
           occurredAt: event.createdAt,
         },
@@ -166,6 +176,23 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         type: "TaskCompleted",
         payload: {
           summary: event.summary ?? "",
+          occurredAt: event.createdAt,
+        },
+      };
+    case "cancelled":
+      return {
+        type: "TaskCancelled",
+        payload: {
+          reason: event.reason ?? undefined,
+          occurredAt: event.createdAt,
+        },
+      };
+    case "slack_thread_linked":
+      return {
+        type: "SlackThreadLinked",
+        payload: {
+          channel: event.reason ?? "",
+          threadTs: event.summary ?? "",
           occurredAt: event.createdAt,
         },
       };

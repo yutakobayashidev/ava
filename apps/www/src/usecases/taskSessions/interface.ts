@@ -44,7 +44,6 @@ export type StartTaskOutput =
 type UpdateTaskParams = {
   taskSessionId: string;
   summary: string;
-  rawContext?: Record<string, unknown>;
 };
 
 export type UpdateTaskInput = {
@@ -101,7 +100,6 @@ export type CompleteTaskOutput =
 type ReportBlockedParams = {
   taskSessionId: string;
   reason: string;
-  rawContext?: Record<string, unknown>;
 };
 
 export type ReportBlockedInput = {
@@ -128,7 +126,6 @@ export type ReportBlockedOutput =
 type PauseTaskParams = {
   taskSessionId: string;
   reason: string;
-  rawContext?: Record<string, unknown>;
 };
 
 export type PauseTaskInput = {
@@ -155,7 +152,6 @@ export type PauseTaskOutput =
 type ResumeTaskParams = {
   taskSessionId: string;
   summary: string;
-  rawContext?: Record<string, unknown>;
 };
 
 export type ResumeTaskInput = {

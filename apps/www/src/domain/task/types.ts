@@ -17,20 +17,20 @@ export type Command =
   | { type: "StartTask"; payload: { issue: Issue; initialSummary: string } }
   | {
       type: "AddProgress";
-      payload: { summary: string; rawContext?: Record<string, unknown> };
+      payload: { summary: string };
     }
   | {
       type: "ReportBlock";
-      payload: { reason: string; rawContext?: Record<string, unknown> };
+      payload: { reason: string };
     }
   | { type: "ResolveBlock"; payload: { blockId: string } }
   | {
       type: "PauseTask";
-      payload: { reason: string; rawContext?: Record<string, unknown> };
+      payload: { reason: string };
     }
   | {
       type: "ResumeTask";
-      payload: { summary: string; rawContext?: Record<string, unknown> };
+      payload: { summary: string };
     }
   | { type: "CompleteTask"; payload: { summary: string } }
   | { type: "CancelTask"; payload: { reason?: string } };
@@ -44,7 +44,6 @@ export type Event =
       type: "TaskUpdated";
       payload: {
         summary: string;
-        rawContext: Record<string, unknown>;
         occurredAt: Date;
       };
     }
@@ -53,7 +52,6 @@ export type Event =
       payload: {
         blockId: string;
         reason: string;
-        rawContext: Record<string, unknown>;
         occurredAt: Date;
       };
     }
@@ -66,7 +64,6 @@ export type Event =
       payload: {
         pauseId: string;
         reason: string;
-        rawContext: Record<string, unknown>;
         occurredAt: Date;
       };
     }
@@ -74,7 +71,6 @@ export type Event =
       type: "TaskResumed";
       payload: {
         summary: string;
-        rawContext: Record<string, unknown>;
         resumedFromPauseId?: string;
         occurredAt: Date;
       };
@@ -83,7 +79,7 @@ export type Event =
   | { type: "TaskCancelled"; payload: { reason?: string; occurredAt: Date } }
   | {
       type: "SlackThreadLinked";
-      payload: { channel: string; threadTs: string };
+      payload: { channel: string; threadTs: string; occurredAt: Date };
     };
 
 export type TaskState = {

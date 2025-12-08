@@ -6,7 +6,7 @@ export const createPauseTask = (
 ) => {
   return async (input: PauseTaskInput): Promise<PauseTaskOutput> => {
     const { workspace, user, params } = input;
-    const { taskSessionId, reason, rawContext } = params;
+    const { taskSessionId, reason } = params;
 
     const executeCommand = commandExecutorFactory;
     try {
@@ -16,7 +16,7 @@ export const createPauseTask = (
         user,
         command: {
           type: "PauseTask",
-          payload: { reason, rawContext },
+          payload: { reason },
         },
       });
 

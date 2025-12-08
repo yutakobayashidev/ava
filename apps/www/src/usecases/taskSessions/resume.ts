@@ -6,7 +6,7 @@ export const createResumeTask = (
 ) => {
   return async (input: ResumeTaskInput): Promise<ResumeTaskOutput> => {
     const { workspace, user, params } = input;
-    const { taskSessionId, summary, rawContext } = params;
+    const { taskSessionId, summary } = params;
 
     const executeCommand = commandExecutorFactory;
     try {
@@ -16,7 +16,7 @@ export const createResumeTask = (
         user,
         command: {
           type: "ResumeTask",
-          payload: { summary, rawContext },
+          payload: { summary },
         },
       });
 

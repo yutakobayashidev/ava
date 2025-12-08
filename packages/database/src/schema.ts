@@ -21,6 +21,8 @@ export const taskEventTypeEnum = pgEnum("task_event_type", [
   "paused",
   "resumed",
   "completed",
+  "cancelled",
+  "slack_thread_linked",
 ]);
 
 export const taskStatusEnum = pgEnum("task_status", [
@@ -327,10 +329,6 @@ export const taskEvents = pgTable(
     reason: text("reason"),
     summary: text("summary"),
     relatedEventId: text("related_event_id"),
-    rawContext: jsonb("raw_context")
-      .$type<Record<string, unknown>>()
-      .default(sql`'{}'::jsonb`)
-      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -1,220 +1,190 @@
 import type { SlackMessage } from "@/services/slackNotificationService";
 
-/**
- * タスク開始メッセージを構築
- */
+type SessionRef = { id: string };
+type IssueRef = {
+  title: string;
+  provider: string;
+  id?: string | null;
+};
+type UserRef = {
+  name?: string | null;
+  email?: string | null;
+  slackId?: string | null;
+};
+
+type ButtonStyle = "primary" | "danger" | undefined;
+
+type ButtonParams = {
+  label: string;
+  actionId: string;
+  value: string;
+  style?: ButtonStyle;
+};
+
+const joinLines = (...lines: Array<string | null | undefined>) =>
+  lines.filter((line) => line !== null && line !== undefined).join("\n");
+
+const button = ({ label, actionId, value, style }: ButtonParams) => ({
+  type: "button",
+  text: { type: "plain_text", text: label },
+  action_id: actionId,
+  value,
+  ...(style ? { style } : {}),
+});
+
+const section = (text: string) => ({
+  type: "section" as const,
+  text: { type: "mrkdwn" as const, text },
+});
+
+const actions = (elements: unknown[]) => ({
+  type: "actions" as const,
+  elements,
+});
+
+const formatUser = (user: UserRef) => {
+  if (user.slackId) return `<@${user.slackId}>`;
+  return user.name ?? user.email ?? "unknown user";
+};
+
+const formatIssue = (issue: IssueRef) => {
+  const issueIdText = issue.id ? ` (${issue.id})` : "";
+  return {
+    title: `${issue.title}${issueIdText}`,
+    provider: issue.provider,
+  };
+};
+
 export function buildTaskStartedMessage(params: {
-  session: { id: string };
-  issue: {
-    title: string;
-    provider: string;
-    id?: string | null;
-  };
+  session: SessionRef;
+  issue: IssueRef;
   initialSummary: string;
-  user: {
-    name?: string | null;
-    email?: string | null;
-    slackId?: string | null;
-  };
+  user: UserRef;
 }): SlackMessage {
   const { session, issue, initialSummary, user } = params;
+  const { title, provider } = formatIssue(issue);
+  const userLabel = formatUser(user);
 
-  const issueIdText = issue.id ? ` (${issue.id})` : "";
-  const userLabel = user.slackId
-    ? `<@${user.slackId}>`
-    : (user.name ?? user.email ?? "unknown user");
-
-  const text = [
+  const text = joinLines(
     ":rocket: Task started",
-    `Title: ${issue.title}${issueIdText}`,
+    `Title: ${title}`,
     `Session ID: ${session.id}`,
-    `Issue Provider: ${issue.provider}`,
+    `Issue Provider: ${provider}`,
     `Started by: ${userLabel}`,
     "",
     `Summary: ${initialSummary}`,
-  ].join("\n");
+  );
 
   const blocks = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text,
-      },
-    },
-    {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "✅ 完了",
-          },
-          style: "primary",
-          value: session.id,
-          action_id: "complete_task",
-        },
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "⚠️ ブロッキング報告",
-          },
-          style: "danger",
-          value: session.id,
-          action_id: "report_blocked",
-        },
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "⏸️ 休止",
-          },
-          value: session.id,
-          action_id: "pause_task",
-        },
-      ],
-    },
+    section(text),
+    actions([
+      button({
+        label: "✅ 完了",
+        actionId: "complete_task",
+        value: session.id,
+        style: "primary",
+      }),
+      button({
+        label: "⚠️ ブロッキング報告",
+        actionId: "report_blocked",
+        value: session.id,
+        style: "danger",
+      }),
+      button({
+        label: "⏸️ 休止",
+        actionId: "pause_task",
+        value: session.id,
+      }),
+    ]),
   ];
 
   return { text, blocks };
 }
 
-/**
- * タスク更新メッセージを構築
- */
 export function buildTaskUpdateMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = [
+  const text = joinLines(
     ":arrow_forward: Progress update",
     `Summary: ${params.summary}`,
-  ].join("\n");
-
+  );
   return { text };
 }
 
-/**
- * タスクブロッキングメッセージを構築
- */
 export function buildTaskBlockedMessage(params: {
-  session: { id: string };
+  session: SessionRef;
   reason: string;
   blockReportId: string;
 }): SlackMessage {
   const { session, reason, blockReportId } = params;
 
-  const text = [":warning: Task blocked", `Reason: ${reason}`].join("\n");
-
+  const text = joinLines(":warning: Task blocked", `Reason: ${reason}`);
   const blocks = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text,
-      },
-    },
-    {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "✅ 解決",
-          },
-          style: "primary",
-          value: JSON.stringify({
-            taskSessionId: session.id,
-            blockReportId,
-          }),
-          action_id: "resolve_blocked",
-        },
-      ],
-    },
+    section(text),
+    actions([
+      button({
+        label: "✅ 解決",
+        actionId: "resolve_blocked",
+        style: "primary",
+        value: JSON.stringify({
+          taskSessionId: session.id,
+          blockReportId,
+        }),
+      }),
+    ]),
   ];
 
   return { text, blocks };
 }
 
-/**
- * ブロッキング解決メッセージを構築
- */
 export function buildBlockResolvedMessage(params: {
   blockReason: string;
 }): SlackMessage {
-  const text = [
+  const text = joinLines(
     ":white_check_mark: Block resolved",
     `Previous issue: ${params.blockReason}`,
-  ].join("\n");
-
+  );
   return { text };
 }
 
-/**
- * タスク休止メッセージを構築
- */
 export function buildTaskPausedMessage(params: {
-  session: { id: string };
+  session: SessionRef;
   reason: string;
 }): SlackMessage {
   const { session, reason } = params;
 
-  const text = [":pause_button: Task paused", `Reason: ${reason}`].join("\n");
-
+  const text = joinLines(":pause_button: Task paused", `Reason: ${reason}`);
   const blocks = [
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text,
-      },
-    },
-    {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "▶️ 再開",
-          },
-          style: "primary",
-          value: session.id,
-          action_id: "resume_task",
-        },
-      ],
-    },
+    section(text),
+    actions([
+      button({
+        label: "▶️ 再開",
+        actionId: "resume_task",
+        style: "primary",
+        value: session.id,
+      }),
+    ]),
   ];
 
   return { text, blocks };
 }
 
-/**
- * タスク再開メッセージを構築
- */
 export function buildTaskResumedMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = [
+  const text = joinLines(
     ":arrow_forward: Task resumed",
     `Summary: ${params.summary}`,
-  ].join("\n");
-
+  );
   return { text };
 }
 
-/**
- * タスク完了メッセージを構築
- */
 export function buildTaskCompletedMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = [
+  const text = joinLines(
     ":white_check_mark: Task completed",
     `Summary: ${params.summary}`,
-  ].join("\n");
-
+  );
   return { text };
 }

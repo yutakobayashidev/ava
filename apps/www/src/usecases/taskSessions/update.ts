@@ -6,7 +6,7 @@ export const createUpdateTask = (
 ) => {
   return async (input: UpdateTaskInput): Promise<UpdateTaskOutput> => {
     const { workspace, user, params } = input;
-    const { taskSessionId, summary, rawContext } = params;
+    const { taskSessionId, summary } = params;
 
     const executeCommand = commandExecutorFactory;
     try {
@@ -16,7 +16,7 @@ export const createUpdateTask = (
         user,
         command: {
           type: "AddProgress",
-          payload: { summary, rawContext },
+          payload: { summary },
         },
       });
 

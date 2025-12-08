@@ -26,7 +26,7 @@ export const createResolveBlocked = (
           taskSessionId: taskSessionId,
           blockReportId: blockReportId,
           status: result.nextState.status,
-          resolvedAt: result.persistedEvents[0]?.createdAt ?? new Date(),
+          resolvedAt: result.persistedEvents[0].createdAt,
         },
       };
     } catch (err) {

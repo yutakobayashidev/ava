@@ -41,7 +41,8 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
     await queuePolicyEvents(deps.db, streamId, newEvents, {
       workspaceId: workspace.id,
       userId: user.id,
-      channel: workspace.notificationChannelId ?? null,
+      channel:
+        state.slackThread?.channel ?? workspace.notificationChannelId ?? null,
       threadTs: state.slackThread?.threadTs ?? null,
     });
 

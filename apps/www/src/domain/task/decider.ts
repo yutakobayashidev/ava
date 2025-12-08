@@ -78,7 +78,11 @@ export function evolve(state: TaskState, event: Event): TaskState {
     case "SlackThreadLinked":
       return {
         ...state,
-        slackThread: event.payload,
+        slackThread: {
+          channel: event.payload.channel,
+          threadTs: event.payload.threadTs,
+        },
+        updatedAt: event.payload.occurredAt,
       };
     default:
       return state;
@@ -90,6 +94,8 @@ export function decide(
   command: Command,
   now = new Date(),
 ): Event[] {
+  const hasUnresolvedBlocks = state.unresolvedBlocks.length > 0;
+
   if (!state.createdAt && command.type !== "StartTask") {
     throw new Error("タスクセッションが見つかりません");
   }
@@ -105,13 +111,15 @@ export function decide(
       ];
     }
     case "AddProgress": {
+      if (hasUnresolvedBlocks) {
+        throw new Error("Resolve blocking issues before updating progress");
+      }
       validateTransition(state.status, "in_progress");
       return [
         {
           type: "TaskUpdated",
           payload: {
             summary: command.payload.summary,
-            rawContext: command.payload.rawContext ?? {},
             occurredAt: now,
           },
         },
@@ -125,7 +133,6 @@ export function decide(
           payload: {
             blockId: newBlockId(),
             reason: command.payload.reason,
-            rawContext: command.payload.rawContext ?? {},
             occurredAt: now,
           },
         },
@@ -160,20 +167,21 @@ export function decide(
           payload: {
             pauseId: newPauseId(),
             reason: command.payload.reason,
-            rawContext: command.payload.rawContext ?? {},
             occurredAt: now,
           },
         },
       ];
     }
     case "ResumeTask": {
+      if (hasUnresolvedBlocks) {
+        throw new Error("Resolve blocking issues before resuming");
+      }
       validateTransition(state.status, "in_progress");
       return [
         {
           type: "TaskResumed",
           payload: {
             summary: command.payload.summary,
-            rawContext: command.payload.rawContext ?? {},
             resumedFromPauseId: state.lastPausedId,
             occurredAt: now,
           },

@@ -6,7 +6,7 @@ export const createReportBlocked = (
 ) => {
   return async (input: ReportBlockedInput): Promise<ReportBlockedOutput> => {
     const { workspace, user, params } = input;
-    const { taskSessionId, reason, rawContext } = params;
+    const { taskSessionId, reason } = params;
 
     const executeCommand = commandExecutorFactory;
     try {
@@ -16,7 +16,7 @@ export const createReportBlocked = (
         user,
         command: {
           type: "ReportBlock",
-          payload: { reason, rawContext },
+          payload: { reason },
         },
       });
 

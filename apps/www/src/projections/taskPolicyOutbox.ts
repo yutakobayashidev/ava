@@ -70,6 +70,7 @@ function toPolicyPayload(event: Event, envelope: Envelope): PolicyPayload[] {
             ...basePayload,
             template: "block_resolved",
             blockId: event.payload.blockId,
+            reason: event.payload.reason,
           },
         },
       ];
