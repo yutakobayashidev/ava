@@ -26,7 +26,7 @@ type StartTaskParams = {
   initialSummary: string;
 };
 
-export type StartTaskCommand = BaseCommand<StartTaskParams>;
+type StartTaskCommand = BaseCommand<StartTaskParams>;
 
 type StartTaskSuccess = {
   taskSessionId: string;
@@ -34,7 +34,7 @@ type StartTaskSuccess = {
   issuedAt: Date;
 };
 
-export type StartTaskOutput = Result<StartTaskSuccess>;
+type StartTaskOutput = Result<StartTaskSuccess>;
 
 export type StartTaskWorkflow = (
   command: StartTaskCommand,
@@ -49,7 +49,7 @@ type UpdateTaskParams = {
   summary: string;
 };
 
-export type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
+type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
 
 type UpdateTaskSuccess = {
   taskSessionId: string;
@@ -58,7 +58,7 @@ type UpdateTaskSuccess = {
   summary: string | null;
 };
 
-export type UpdateTaskOutput = Result<UpdateTaskSuccess>;
+type UpdateTaskOutput = Result<UpdateTaskSuccess>;
 
 export type UpdateTaskWorkflow = (
   command: UpdateTaskCommand,
@@ -73,7 +73,7 @@ type CompleteTaskParams = {
   summary: string;
 };
 
-export type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
+type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
 
 export type CompleteTaskSuccess = {
   taskSessionId: string;
@@ -86,7 +86,7 @@ export type CompleteTaskSuccess = {
   }>;
 };
 
-export type CompleteTaskOutput = Result<CompleteTaskSuccess>;
+type CompleteTaskOutput = Result<CompleteTaskSuccess>;
 
 export type CompleteTaskWorkflow = (
   command: CompleteTaskCommand,
@@ -101,7 +101,7 @@ type CancelTaskParams = {
   reason?: string;
 };
 
-export type CancelTaskCommand = BaseCommand<CancelTaskParams>;
+type CancelTaskCommand = BaseCommand<CancelTaskParams>;
 
 type CancelTaskSuccess = {
   taskSessionId: string;
@@ -110,7 +110,7 @@ type CancelTaskSuccess = {
   cancelledAt: Date;
 };
 
-export type CancelTaskOutput = Result<CancelTaskSuccess>;
+type CancelTaskOutput = Result<CancelTaskSuccess>;
 
 export type CancelTaskWorkflow = (
   command: CancelTaskCommand,
@@ -125,7 +125,7 @@ type ReportBlockedParams = {
   reason: string;
 };
 
-export type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
+type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
 
 type ReportBlockedSuccess = {
   taskSessionId: string;
@@ -134,7 +134,7 @@ type ReportBlockedSuccess = {
   reason: string | null;
 };
 
-export type ReportBlockedOutput = Result<ReportBlockedSuccess>;
+type ReportBlockedOutput = Result<ReportBlockedSuccess>;
 
 export type ReportBlockedWorkflow = (
   command: ReportBlockedCommand,
@@ -149,7 +149,7 @@ type PauseTaskParams = {
   reason: string;
 };
 
-export type PauseTaskCommand = BaseCommand<PauseTaskParams>;
+type PauseTaskCommand = BaseCommand<PauseTaskParams>;
 
 type PauseTaskSuccess = {
   taskSessionId: string;
@@ -158,7 +158,7 @@ type PauseTaskSuccess = {
   pausedAt: Date;
 };
 
-export type PauseTaskOutput = Result<PauseTaskSuccess>;
+type PauseTaskOutput = Result<PauseTaskSuccess>;
 
 export type PauseTaskWorkflow = (
   command: PauseTaskCommand,
@@ -173,7 +173,7 @@ type ResumeTaskParams = {
   summary: string;
 };
 
-export type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
+type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
 
 type ResumeTaskSuccess = {
   taskSessionId: string;
@@ -181,7 +181,7 @@ type ResumeTaskSuccess = {
   resumedAt: Date;
 };
 
-export type ResumeTaskOutput = Result<ResumeTaskSuccess>;
+type ResumeTaskOutput = Result<ResumeTaskSuccess>;
 
 export type ResumeTaskWorkflow = (
   command: ResumeTaskCommand,
@@ -196,7 +196,7 @@ type ResolveBlockedParams = {
   blockReportId: string;
 };
 
-export type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
+type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
 
 type ResolveBlockedSuccess = {
   taskSessionId: string;
@@ -205,7 +205,7 @@ type ResolveBlockedSuccess = {
   resolvedAt: Date;
 };
 
-export type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
+type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
 
 export type ResolveBlockedWorkflow = (
   command: ResolveBlockedCommand,
@@ -220,7 +220,7 @@ type ListTasksParams = {
   limit?: number;
 };
 
-export type ListTasksCommand = BaseCommand<ListTasksParams>;
+type ListTasksCommand = BaseCommand<ListTasksParams>;
 
 type TaskSummary = {
   taskSessionId: string;
@@ -237,7 +237,7 @@ type ListTasksSuccess = {
   tasks: TaskSummary[];
 };
 
-export type ListTasksOutput = Result<ListTasksSuccess>;
+type ListTasksOutput = Result<ListTasksSuccess>;
 
 export type ListTasksWorkflow = (
   command: ListTasksCommand,

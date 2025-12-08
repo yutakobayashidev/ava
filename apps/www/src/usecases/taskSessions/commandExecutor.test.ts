@@ -1,10 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@ava/database/schema";
-import {
-  createTaskCommandExecutor,
-  type TaskCommandExecutor,
-} from "./commandExecutor";
+import { createTaskCommandExecutor, type TaskCommandExecutor } from "./index";
 import { setup } from "../../../tests/vitest.helper";
 
 const { db, createTestUserAndWorkspace } = await setup();
