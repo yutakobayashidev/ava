@@ -6,7 +6,6 @@ import { projectTaskEvents } from "@/projections/taskSessionProjector";
 import { createEventStore } from "@/repos/event-store";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
-import * as schema from "@ava/database/schema";
 
 type TaskCommandExecutorDeps = {
   db: Database;
@@ -24,26 +23,6 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
     const { streamId, workspace, user, command } = params;
     const history = await eventStore.load(streamId);
     const state = replay(streamId, history);
-
-    // FK制約を満たすため、初回のStartTaskでは先にタスクセッション行を作成しておく
-    if (history.length === 0 && command.type === "StartTask") {
-      const now = new Date();
-      await deps.db
-        .insert(schema.taskSessions)
-        .values({
-          id: streamId,
-          userId: user.id,
-          workspaceId: workspace.id,
-          issueProvider: command.payload.issue.provider,
-          issueId: command.payload.issue.id ?? null,
-          issueTitle: command.payload.issue.title,
-          initialSummary: command.payload.initialSummary,
-          status: "in_progress",
-          createdAt: now,
-          updatedAt: now,
-        })
-        .onConflictDoNothing();
-    }
 
     const newEvents = decide(state, command, new Date());
     const expectedVersion = history.length - 1;

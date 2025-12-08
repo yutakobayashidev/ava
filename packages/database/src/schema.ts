@@ -321,9 +321,7 @@ export const taskEvents = pgTable(
   "task_events",
   {
     id: text("id").primaryKey().notNull(),
-    taskSessionId: text("task_session_id")
-      .references(() => taskSessions.id, { onDelete: "cascade" })
-      .notNull(),
+    taskSessionId: text("task_session_id").notNull(),
     version: integer("version").notNull(),
     eventType: taskEventTypeEnum("event_type").notNull(),
     reason: text("reason"),

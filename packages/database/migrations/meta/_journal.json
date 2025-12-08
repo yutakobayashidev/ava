@@ -43,6 +43,13 @@
       "when": 1765156892318,
       "tag": "0005_furry_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765192750623,
+      "tag": "0006_modern_the_watchers",
+      "breakpoints": true
     }
   ]
 }
