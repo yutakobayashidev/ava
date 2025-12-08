@@ -40,7 +40,8 @@ export type NotifyPayload =
   | { template: "block_resolved"; blockId: string; reason: string }
   | { template: "paused"; pauseId: string; reason: string }
   | { template: "resumed"; summary: string }
-  | { template: "completed"; summary: string };
+  | { template: "completed"; summary: string }
+  | { template: "cancelled"; reason?: string | null };
 
 type ReactionPayload = {
   emoji: string;
@@ -151,6 +152,17 @@ function toPolicyPayload(event: Event, envelope: Envelope): PolicyPayload[] {
           policyType: POLICY_TYPES.slackReaction,
           data: {
             emoji: "white_check_mark",
+          },
+        },
+      ];
+    case "TaskCancelled":
+      return [
+        {
+          ...baseEnvelope,
+          policyType: POLICY_TYPES.slackNotify,
+          data: {
+            template: "cancelled",
+            reason: event.payload.reason ?? null,
           },
         },
       ];

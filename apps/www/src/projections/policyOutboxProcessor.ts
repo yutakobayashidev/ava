@@ -12,6 +12,7 @@ import { createSlackNotificationService } from "@/services/slackNotificationServ
 import {
   buildBlockResolvedMessage,
   buildTaskBlockedMessage,
+  buildTaskCancelledMessage,
   buildTaskCompletedMessage,
   buildTaskPausedMessage,
   buildTaskResumedMessage,
@@ -42,6 +43,7 @@ type NotifyBuilderMap = {
     | typeof buildTaskPausedMessage
     | typeof buildTaskResumedMessage
     | typeof buildTaskCompletedMessage
+    | typeof buildTaskCancelledMessage
   >;
 };
 
@@ -132,6 +134,10 @@ const notifyMessageBuilders: NotifyBuilderMap = {
     buildTaskCompletedMessage({
       summary: payload.summary,
     }),
+  cancelled: (_policy, payload) =>
+    buildTaskCancelledMessage({
+      reason: payload.reason,
+    }),
 };
 
 function buildNotifyMessage(
@@ -153,6 +159,8 @@ function buildNotifyMessage(
       return notifyMessageBuilders.resumed(policy, payload);
     case "completed":
       return notifyMessageBuilders.completed(policy, payload);
+    case "cancelled":
+      return notifyMessageBuilders.cancelled(policy, payload);
     default:
       return null;
   }

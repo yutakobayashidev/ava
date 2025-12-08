@@ -166,7 +166,7 @@ export function buildTaskPausedMessage(params: {
   const { session, reason } = params;
 
   const blocks = [
-    section("*Task paused :pause_button:*"),
+    section("*Task paused :double_vertical_bar:*"),
     section(`*Reason*\n${reason}`),
 
     actions([
@@ -206,5 +206,21 @@ export function buildTaskCompletedMessage(params: {
       section("*Task completed :white_check_mark:*"),
       section(`*Summary*\n${params.summary}`),
     ],
+  };
+}
+
+export function buildTaskCancelledMessage(params: {
+  reason?: string | null;
+}): SlackMessage {
+  const { reason } = params;
+  const blocks = [section("*Task cancelled :x:*")];
+
+  if (reason) {
+    blocks.push(section(`*Reason*\n${reason}`));
+  }
+
+  return {
+    text: `Task cancelled${reason ? `: ${reason}` : ""}`,
+    blocks,
   };
 }

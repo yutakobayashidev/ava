@@ -61,6 +61,11 @@ export const notifyPayloadSchema = z.discriminatedUnion("template", [
     summary: z.string().min(1),
     ...commonFields,
   }),
+  z.object({
+    template: z.literal("cancelled"),
+    reason: z.string().nullable().optional(),
+    ...commonFields,
+  }),
 ]);
 
 export const reactionPayloadSchema = z.object({
