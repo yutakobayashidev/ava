@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
@@ -189,6 +189,7 @@ const listEvents =
     taskSessionId: string;
     eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
+    includeTechnicalEvents?: boolean;
   }) => {
     const limit = params.limit ?? 50;
     const conditions = [
@@ -197,6 +198,11 @@ const listEvents =
 
     if (params.eventType) {
       conditions.push(eq(schema.taskEvents.eventType, params.eventType));
+    }
+
+    // hide system events from general lists unless explicitly requested
+    if (!params.includeTechnicalEvents && !params.eventType) {
+      conditions.push(ne(schema.taskEvents.eventType, "slack_thread_linked"));
     }
 
     return db

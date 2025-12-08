@@ -38,6 +38,7 @@ export type TaskQueryRepository = {
     taskSessionId: string;
     eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
+    includeTechnicalEvents?: boolean;
   }) => Promise<schema.TaskEvent[]>;
   getBulkLatestEvents: (params: {
     taskSessionIds: string[];
