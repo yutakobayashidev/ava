@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decide, replay } from "./decider";
+import { apply, decide, replay } from "./decider";
 import { initialState } from "./types";
 
 describe("Task decider", () => {
@@ -31,7 +31,8 @@ describe("Task decider", () => {
       now,
     );
 
-    const finalState = replay(streamId, [...started, ...updated, ...completed]);
+    const stateAfterUpdate = replay(streamId, [...started, ...updated]);
+    const finalState = apply(stateAfterUpdate, completed);
     expect(finalState.status).toBe("completed");
     expect(finalState.initialSummary).toBe("init");
   });
@@ -62,8 +63,11 @@ describe("Task decider", () => {
     const blockId = blockEvent.payload.blockId;
 
     const resolved = decide(
-      replay(streamId, [...started, ...blocked]),
-      { type: "ResolveBlock", payload: { blockId } },
+      apply(replay(streamId, started), blocked),
+      {
+        type: "ResolveBlock",
+        payload: { blockId },
+      },
       now,
     );
 
@@ -99,5 +103,43 @@ describe("Task decider", () => {
         now,
       ),
     ).toThrowError(/Invalid status transition/);
+  });
+  it("applies new events incrementally", () => {
+    const now = new Date();
+    const streamId = "task-apply";
+    const started = decide(
+      { ...initialState, streamId },
+      {
+        type: "StartTask",
+        payload: {
+          issue: { provider: "manual", title: "Test" },
+          initialSummary: "init",
+        },
+      },
+      now,
+    );
+    const stateAfterStart = replay(streamId, started);
+
+    const blocked = decide(
+      stateAfterStart,
+      { type: "ReportBlock", payload: { reason: "blocked" } },
+      now,
+    );
+    const blockEvent = blocked[0];
+    if (!blockEvent || blockEvent.type !== "TaskBlocked") {
+      throw new Error("TaskBlocked event not emitted");
+    }
+    const blockId = blockEvent.payload.blockId;
+
+    const resolved = decide(
+      apply(stateAfterStart, blocked),
+      { type: "ResolveBlock", payload: { blockId } },
+      now,
+    );
+
+    const incremental = apply(stateAfterStart, [...blocked, ...resolved]);
+    const replayed = replay(streamId, [...started, ...blocked, ...resolved]);
+
+    expect(incremental).toEqual(replayed);
   });
 });

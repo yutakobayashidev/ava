@@ -211,6 +211,10 @@ export function decide(
   }
 }
 
+export function apply(state: TaskState, events: Event[]): TaskState {
+  return events.reduce((current, event) => evolve(current, event), state);
+}
+
 export function replay(streamId: string, events: Event[]): TaskState {
   return events.reduce((state, event) => evolve(state, event), {
     ...initialState,
