@@ -14,6 +14,7 @@ import {
   completeTaskInputSchema,
   cancelTaskInputSchema,
   formatSuccessResponse,
+  formatErrorResponse,
   listTasksInputSchema,
   pauseTaskInputSchema,
   reportBlockedInputSchema,
@@ -38,24 +39,15 @@ export function createMcpServer(ctx: Context) {
       inputSchema: startTaskInputSchema,
     },
     async (params) => {
-      const result = await constructStartTaskWorkflow(ctx)({
+      const result = constructStartTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "タスクの追跡を開始しました。",
-                )
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => formatSuccessResponse(data, "タスクの追跡を開始しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -67,21 +59,15 @@ export function createMcpServer(ctx: Context) {
       inputSchema: updateTaskInputSchema,
     },
     async (params) => {
-      const result = await constructUpdateTaskWorkflow(ctx)({
+      const result = constructUpdateTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "進捗を保存しました。")
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => formatSuccessResponse(data, "進捗を保存しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -93,24 +79,16 @@ export function createMcpServer(ctx: Context) {
       inputSchema: reportBlockedInputSchema,
     },
     async (params) => {
-      const result = await constructReportBlockedWorkflow(ctx)({
+      const result = constructReportBlockedWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "ブロッキング情報を登録しました。",
-                )
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) =>
+          formatSuccessResponse(data, "ブロッキング情報を登録しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -122,21 +100,15 @@ export function createMcpServer(ctx: Context) {
       inputSchema: pauseTaskInputSchema,
     },
     async (params) => {
-      const result = await constructPauseTaskWorkflow(ctx)({
+      const result = constructPauseTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "タスクを一時休止しました。")
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => formatSuccessResponse(data, "タスクを一時休止しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -148,21 +120,15 @@ export function createMcpServer(ctx: Context) {
       inputSchema: resumeTaskInputSchema,
     },
     async (params) => {
-      const result = await constructResumeTaskWorkflow(ctx)({
+      const result = constructResumeTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "タスクを再開しました。")
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => formatSuccessResponse(data, "タスクを再開しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -174,27 +140,21 @@ export function createMcpServer(ctx: Context) {
       inputSchema: completeTaskInputSchema,
     },
     async (params) => {
-      const result = await constructCompleteTaskWorkflow(ctx)({
+      const result = constructCompleteTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  result.data.unresolvedBlocks &&
-                    result.data.unresolvedBlocks.length > 0
-                    ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
-                    : "完了報告を保存しました。",
-                )
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) =>
+          formatSuccessResponse(
+            data,
+            data.unresolvedBlocks && data.unresolvedBlocks.length > 0
+              ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
+              : "完了報告を保存しました。",
+          ),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -206,21 +166,15 @@ export function createMcpServer(ctx: Context) {
       inputSchema: cancelTaskInputSchema,
     },
     async (params) => {
-      const result = await constructCancelTaskWorkflow(ctx)({
+      const result = constructCancelTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(result.data, "タスクを中止しました。")
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => formatSuccessResponse(data, "タスクを中止しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -232,24 +186,16 @@ export function createMcpServer(ctx: Context) {
       inputSchema: resolveBlockedInputSchema,
     },
     async (params) => {
-      const result = await constructResolveBlockedWorkflow(ctx)({
+      const result = constructResolveBlockedWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? formatSuccessResponse(
-                  result.data,
-                  "ブロッキングの解決を報告しました。",
-                )
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) =>
+          formatSuccessResponse(data, "ブロッキングの解決を報告しました。"),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 
@@ -261,21 +207,22 @@ export function createMcpServer(ctx: Context) {
       inputSchema: listTasksInputSchema,
     },
     async (params) => {
-      const result = await constructListTasksWorkflow(ctx)({
+      const result = constructListTasksWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         params,
       });
-      return {
-        content: [
-          {
-            type: "text",
-            text: result.success
-              ? JSON.stringify(result.data, null, 2)
-              : result.error,
-          },
-        ],
-      };
+      return result.match(
+        (data) => ({
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(data, null, 2),
+            },
+          ],
+        }),
+        (error) => formatErrorResponse(error),
+      );
     },
   );
 

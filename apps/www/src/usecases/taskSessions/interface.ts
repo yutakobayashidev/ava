@@ -1,5 +1,6 @@
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
+import type { ResultAsync } from "neverthrow";
 
 /**
  * 共通型
@@ -10,8 +11,6 @@ type BaseCommand<Params> = {
   user: HonoEnv["Variables"]["user"];
   params: Params;
 };
-
-type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 /**
  * Start Task
@@ -34,11 +33,9 @@ type StartTaskSuccess = {
   issuedAt: Date;
 };
 
-type StartTaskOutput = Result<StartTaskSuccess>;
-
 export type StartTaskWorkflow = (
   command: StartTaskCommand,
-) => Promise<StartTaskOutput>;
+) => ResultAsync<StartTaskSuccess, string>;
 
 /**
  * Update Task
@@ -58,11 +55,9 @@ type UpdateTaskSuccess = {
   summary: string | null;
 };
 
-type UpdateTaskOutput = Result<UpdateTaskSuccess>;
-
 export type UpdateTaskWorkflow = (
   command: UpdateTaskCommand,
-) => Promise<UpdateTaskOutput>;
+) => ResultAsync<UpdateTaskSuccess, string>;
 
 /**
  * Complete Task
@@ -86,11 +81,9 @@ export type CompleteTaskSuccess = {
   }>;
 };
 
-type CompleteTaskOutput = Result<CompleteTaskSuccess>;
-
 export type CompleteTaskWorkflow = (
   command: CompleteTaskCommand,
-) => Promise<CompleteTaskOutput>;
+) => ResultAsync<CompleteTaskSuccess, string>;
 
 /**
  * Cancel Task
@@ -110,11 +103,9 @@ type CancelTaskSuccess = {
   cancelledAt: Date;
 };
 
-type CancelTaskOutput = Result<CancelTaskSuccess>;
-
 export type CancelTaskWorkflow = (
   command: CancelTaskCommand,
-) => Promise<CancelTaskOutput>;
+) => ResultAsync<CancelTaskSuccess, string>;
 
 /**
  * Report Blocked
@@ -134,11 +125,9 @@ type ReportBlockedSuccess = {
   reason: string | null;
 };
 
-type ReportBlockedOutput = Result<ReportBlockedSuccess>;
-
 export type ReportBlockedWorkflow = (
   command: ReportBlockedCommand,
-) => Promise<ReportBlockedOutput>;
+) => ResultAsync<ReportBlockedSuccess, string>;
 
 /**
  * Pause Task
@@ -158,11 +147,9 @@ type PauseTaskSuccess = {
   pausedAt: Date;
 };
 
-type PauseTaskOutput = Result<PauseTaskSuccess>;
-
 export type PauseTaskWorkflow = (
   command: PauseTaskCommand,
-) => Promise<PauseTaskOutput>;
+) => ResultAsync<PauseTaskSuccess, string>;
 
 /**
  * Resume Task
@@ -181,11 +168,9 @@ type ResumeTaskSuccess = {
   resumedAt: Date;
 };
 
-type ResumeTaskOutput = Result<ResumeTaskSuccess>;
-
 export type ResumeTaskWorkflow = (
   command: ResumeTaskCommand,
-) => Promise<ResumeTaskOutput>;
+) => ResultAsync<ResumeTaskSuccess, string>;
 
 /**
  * Resolve Blocked
@@ -205,11 +190,9 @@ type ResolveBlockedSuccess = {
   resolvedAt: Date;
 };
 
-type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
-
 export type ResolveBlockedWorkflow = (
   command: ResolveBlockedCommand,
-) => Promise<ResolveBlockedOutput>;
+) => ResultAsync<ResolveBlockedSuccess, string>;
 
 /**
  * List Tasks
@@ -237,8 +220,6 @@ type ListTasksSuccess = {
   tasks: TaskSummary[];
 };
 
-type ListTasksOutput = Result<ListTasksSuccess>;
-
 export type ListTasksWorkflow = (
   command: ListTasksCommand,
-) => Promise<ListTasksOutput>;
+) => ResultAsync<ListTasksSuccess, string>;
