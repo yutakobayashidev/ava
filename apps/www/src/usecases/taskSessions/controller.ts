@@ -1,10 +1,5 @@
 import { z } from "zod/v3";
 
-// プレゼンテーション層: データオブジェクトをJSON文字列化してメッセージを追加
-export function formatSuccessResponse(data: object, message: string) {
-  return JSON.stringify({ ...data, message }, null, 2);
-}
-
 const issueSchema = z.object({
   provider: z.enum(["github", "manual"]).describe("課題の取得元"),
   id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
@@ -90,3 +85,27 @@ export const listTasksInputSchema = z.object({
     .optional()
     .describe("取得する最大件数（デフォルト: 50）"),
 });
+
+// MCP レスポンス: 成功時
+export function formatSuccessResponse(data: object, message: string) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify({ ...data, message }, null, 2),
+      },
+    ],
+  };
+}
+
+// MCP レスポンス: エラー時
+export function formatErrorResponse(error: string) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: error,
+      },
+    ],
+  };
+}
