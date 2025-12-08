@@ -67,7 +67,7 @@ type CompleteTaskParams = {
 
 export type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
 
-type CompleteTaskSuccess = {
+export type CompleteTaskSuccess = {
   taskSessionId: string;
   completionId: string;
   status: string;
