@@ -21,7 +21,7 @@
     "db:push": "dotenv-flow -e .env --  pnpm --filter @ava/database db:push",
     "db:migrate": "dotenv-flow -e .env -- pnpm --filter @ava/database db:migrate",
     "db:reset": "tsx ./reset.ts",
-    "db:studio": "pnpm --filter @ava/database db:studio",
+    "db:studio": "dotenv-flow -e .env -- pnpm --filter @ava/database db:studio",
     "typecheck": "next typegen && pnpm tsc --noEmit",
     "lint": "eslint --fix",
     "lint:i": "eslint --inspect-config"
