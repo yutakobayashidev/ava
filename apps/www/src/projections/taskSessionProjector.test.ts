@@ -21,6 +21,7 @@ describe("projectTaskEvents", () => {
       [
         {
           type: "TaskStarted",
+          schemaVersion: 1,
           payload: {
             issue: {
               provider: "manual",
@@ -63,6 +64,7 @@ describe("projectTaskEvents", () => {
       [
         {
           type: "TaskStarted",
+          schemaVersion: 1,
           payload: {
             issue: { provider: "manual", id: null, title: "flow" },
             initialSummary: "flow start",
@@ -71,6 +73,7 @@ describe("projectTaskEvents", () => {
         },
         {
           type: "TaskPaused",
+          schemaVersion: 1,
           payload: {
             pauseId: "pause-1",
             reason: "break",
@@ -79,6 +82,7 @@ describe("projectTaskEvents", () => {
         },
         {
           type: "TaskResumed",
+          schemaVersion: 1,
           payload: {
             summary: "back",
             resumedFromPauseId: "pause-1",
@@ -87,6 +91,7 @@ describe("projectTaskEvents", () => {
         },
         {
           type: "TaskCompleted",
+          schemaVersion: 1,
           payload: { summary: "done", occurredAt: completedAt },
         },
       ],

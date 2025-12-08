@@ -43,6 +43,7 @@ describe("event-store", () => {
 
     const startEvent = {
       type: "TaskStarted" as const,
+      schemaVersion: 1 as const,
       payload: {
         issue: { provider: "manual" as const, title: "kickoff" },
         initialSummary: "kickoff",
@@ -51,6 +52,7 @@ describe("event-store", () => {
     };
     const updateEvent = {
       type: "TaskUpdated" as const,
+      schemaVersion: 1 as const,
       payload: {
         summary: "progressing",
         occurredAt: new Date(base.getTime() + 1000),
@@ -58,6 +60,7 @@ describe("event-store", () => {
     };
     const completedEvent = {
       type: "TaskCompleted" as const,
+      schemaVersion: 1 as const,
       payload: {
         summary: "done",
         occurredAt: new Date(base.getTime() + 2000),
@@ -111,6 +114,7 @@ describe("event-store", () => {
     await store.append(streamId, -1, [
       {
         type: "TaskStarted" as const,
+        schemaVersion: 1 as const,
         payload: {
           issue: { provider: "manual" as const, title: "kickoff" },
           initialSummary: "kickoff",
@@ -123,6 +127,7 @@ describe("event-store", () => {
       store.append(streamId, -1, [
         {
           type: "TaskUpdated" as const,
+          schemaVersion: 1 as const,
           payload: {
             summary: "late update",
             occurredAt: new Date(base.getTime() + 1000),
@@ -142,10 +147,12 @@ describe("event-store", () => {
     await store.append(streamId, -1, [
       {
         type: "TaskBlocked" as const,
+        schemaVersion: 1 as const,
         payload: { blockId, reason: "db down", occurredAt: base },
       },
       {
         type: "BlockResolved" as const,
+        schemaVersion: 1 as const,
         payload: {
           blockId,
           reason: "fixed",
@@ -154,6 +161,7 @@ describe("event-store", () => {
       },
       {
         type: "TaskPaused" as const,
+        schemaVersion: 1 as const,
         payload: {
           pauseId,
           reason: "break",
@@ -162,6 +170,7 @@ describe("event-store", () => {
       },
       {
         type: "TaskResumed" as const,
+        schemaVersion: 1 as const,
         payload: {
           summary: "back",
           resumedFromPauseId: pauseId,
@@ -170,6 +179,7 @@ describe("event-store", () => {
       },
       {
         type: "SlackThreadLinked" as const,
+        schemaVersion: 1 as const,
         payload: {
           channel: "C123",
           threadTs: "thread-123",
@@ -178,6 +188,7 @@ describe("event-store", () => {
       },
       {
         type: "TaskCancelled" as const,
+        schemaVersion: 1 as const,
         payload: {
           reason: "canceled",
           occurredAt: new Date(base.getTime() + 5000),

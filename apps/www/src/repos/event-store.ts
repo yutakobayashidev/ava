@@ -1,4 +1,5 @@
 import type { Event, Issue } from "@/objects/task/types";
+import { upcastEvent } from "@/objects/task/upcaster";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { asc, eq, sql } from "drizzle-orm";
@@ -19,6 +20,7 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "started" as const,
         summary: event.payload.initialSummary,
         metadata: {
+          schemaVersion: event.schemaVersion,
           issue: event.payload.issue,
         },
         createdAt: event.payload.occurredAt,
@@ -30,6 +32,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "updated" as const,
         summary: event.payload.summary,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskBlocked":
@@ -39,6 +44,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "blocked" as const,
         reason: event.payload.reason,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "BlockResolved":
@@ -49,6 +57,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "block_resolved" as const,
         reason: event.payload.reason,
         relatedEventId: event.payload.blockId,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskPaused":
@@ -58,6 +69,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "paused" as const,
         reason: event.payload.reason,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskResumed":
@@ -68,6 +82,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "resumed" as const,
         summary: event.payload.summary,
         relatedEventId: event.payload.resumedFromPauseId ?? null,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskCompleted":
@@ -77,6 +94,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "completed" as const,
         summary: event.payload.summary,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskCancelled":
@@ -86,6 +106,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "cancelled" as const,
         reason: event.payload.reason,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "SlackThreadLinked":
@@ -96,6 +119,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         eventType: "slack_thread_linked" as const,
         summary: event.payload.threadTs,
         reason: event.payload.channel,
+        metadata: {
+          schemaVersion: event.schemaVersion,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     default: {
@@ -115,6 +141,11 @@ type EventStore = {
 };
 
 function mapDbToDomain(event: schema.TaskEvent): Event {
+  // All events are currently version 1. When version 2+ is introduced,
+  // the upcaster will handle conversion from older versions.
+  // Legacy events without schemaVersion are also treated as version 1.
+  let domainEvent: Event;
+
   switch (event.eventType) {
     case "started": {
       const issue: Issue = event.metadata?.issue ?? {
@@ -122,89 +153,110 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
         id: null,
         title: event.summary ?? "",
       };
-      return {
+      domainEvent = {
         type: "TaskStarted",
+        schemaVersion: 1,
         payload: {
           issue,
           initialSummary: event.summary ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     }
     case "updated":
-      return {
+      domainEvent = {
         type: "TaskUpdated",
+        schemaVersion: 1,
         payload: {
           summary: event.summary ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "blocked":
-      return {
+      domainEvent = {
         type: "TaskBlocked",
+        schemaVersion: 1,
         payload: {
           blockId: event.id,
           reason: event.reason ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "block_resolved":
-      return {
+      domainEvent = {
         type: "BlockResolved",
+        schemaVersion: 1,
         payload: {
           blockId: event.relatedEventId ?? "",
           reason: event.reason ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "paused":
-      return {
+      domainEvent = {
         type: "TaskPaused",
+        schemaVersion: 1,
         payload: {
           pauseId: event.id,
           reason: event.reason ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "resumed":
-      return {
+      domainEvent = {
         type: "TaskResumed",
+        schemaVersion: 1,
         payload: {
           summary: event.summary ?? "",
           resumedFromPauseId: event.relatedEventId ?? undefined,
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "completed":
-      return {
+      domainEvent = {
         type: "TaskCompleted",
+        schemaVersion: 1,
         payload: {
           summary: event.summary ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "cancelled":
-      return {
+      domainEvent = {
         type: "TaskCancelled",
+        schemaVersion: 1,
         payload: {
           reason: event.reason ?? undefined,
           occurredAt: event.createdAt,
         },
       };
+      break;
     case "slack_thread_linked":
-      return {
+      domainEvent = {
         type: "SlackThreadLinked",
+        schemaVersion: 1,
         payload: {
           channel: event.reason ?? "",
           threadTs: event.summary ?? "",
           occurredAt: event.createdAt,
         },
       };
+      break;
     default:
       throw new Error(
         `Unsupported event type when loading: ${event.eventType}`,
       );
   }
+
+  // Apply upcasting to convert old schema versions to latest
+  return upcastEvent(domainEvent);
 }
 
 export const createEventStore = (db: Database): EventStore => {

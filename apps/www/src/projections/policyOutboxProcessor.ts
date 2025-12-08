@@ -158,6 +158,50 @@ function buildNotifyMessage(
   }
 }
 
+/**
+ * Retries an async operation with exponential backoff on concurrency conflicts.
+ * This is a common pattern in event sourcing with optimistic concurrency control.
+ */
+async function retryOnConcurrencyConflict<T>(
+  operation: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    initialDelayMs?: number;
+    maxDelayMs?: number;
+  } = {},
+): Promise<T> {
+  const maxRetries = options.maxRetries ?? 5;
+  const initialDelayMs = options.initialDelayMs ?? 10;
+  const maxDelayMs = options.maxDelayMs ?? 1000;
+
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (err) {
+      const isConcurrencyConflict =
+        err instanceof Error && err.message.includes("Concurrency conflict");
+
+      if (!isConcurrencyConflict || attempt === maxRetries) {
+        throw err;
+      }
+
+      lastError = err instanceof Error ? err : new Error(String(err));
+
+      // Exponential backoff with jitter
+      const delay = Math.min(
+        initialDelayMs * Math.pow(2, attempt) + Math.random() * initialDelayMs,
+        maxDelayMs,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError ?? new Error("Retry failed");
+}
+
 async function appendSlackThreadLink(params: {
   db: Database;
   taskSessionId: string;
@@ -176,6 +220,7 @@ async function appendSlackThreadLink(params: {
     const expectedVersion = history.length - 1;
     const event = {
       type: "SlackThreadLinked",
+      schemaVersion: 1,
       payload: { channel, threadTs, occurredAt: new Date() },
     } as const;
 
@@ -194,25 +239,13 @@ async function appendSlackThreadLink(params: {
   };
 
   try {
-    await tryAppend();
+    await retryOnConcurrencyConflict(tryAppend, {
+      maxRetries: 5,
+      initialDelayMs: 10,
+      maxDelayMs: 1000,
+    });
     return { success: true };
   } catch (err) {
-    const isConcurrencyConflict =
-      err instanceof Error && err.message.includes("Concurrency conflict");
-    if (isConcurrencyConflict) {
-      try {
-        await tryAppend();
-        return { success: true };
-      } catch (retryErr) {
-        return {
-          success: false,
-          error:
-            retryErr instanceof Error
-              ? retryErr.message
-              : "failed_to_link_slack_thread",
-        };
-      }
-    }
     return {
       success: false,
       error: err instanceof Error ? err.message : "failed_to_link_slack_thread",

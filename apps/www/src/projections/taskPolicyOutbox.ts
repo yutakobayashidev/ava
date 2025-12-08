@@ -28,7 +28,7 @@ type Envelope = {
   threadTs?: string | null;
 };
 
-type NotifyPayload =
+export type NotifyPayload =
   | {
       template: "started";
       issue: Issue;

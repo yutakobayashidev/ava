@@ -44,6 +44,7 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
     const events: Event[] = [
       {
         type: "TaskStarted",
+        schemaVersion: 1,
         payload: {
           issue: { provider: "manual", id: "ISSUE-1", title: "CQRS" },
           initialSummary: "init",
@@ -52,6 +53,7 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
       },
       {
         type: "TaskCompleted",
+        schemaVersion: 1,
         payload: {
           summary: "done",
           occurredAt: new Date(base.getTime() + 1000),
@@ -115,6 +117,7 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
 
     const startEvent: Event = {
       type: "TaskStarted",
+      schemaVersion: 1,
       payload: {
         issue: { provider: "manual", id: null, title: "Start only" },
         initialSummary: "init",

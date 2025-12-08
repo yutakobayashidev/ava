@@ -106,7 +106,12 @@ export function decide(
       return [
         {
           type: "TaskStarted",
-          payload: { ...command.payload, occurredAt: now },
+          schemaVersion: 1,
+          payload: {
+            issue: command.payload.issue,
+            initialSummary: command.payload.initialSummary,
+            occurredAt: now,
+          },
         },
       ];
     }
@@ -118,6 +123,7 @@ export function decide(
       return [
         {
           type: "TaskUpdated",
+          schemaVersion: 1,
           payload: {
             summary: command.payload.summary,
             occurredAt: now,
@@ -130,6 +136,7 @@ export function decide(
       return [
         {
           type: "TaskBlocked",
+          schemaVersion: 1,
           payload: {
             blockId: newBlockId(),
             reason: command.payload.reason,
@@ -151,6 +158,7 @@ export function decide(
       return [
         {
           type: "BlockResolved",
+          schemaVersion: 1,
           payload: {
             blockId: command.payload.blockId,
             reason: block.reason,
@@ -164,6 +172,7 @@ export function decide(
       return [
         {
           type: "TaskPaused",
+          schemaVersion: 1,
           payload: {
             pauseId: newPauseId(),
             reason: command.payload.reason,
@@ -180,6 +189,7 @@ export function decide(
       return [
         {
           type: "TaskResumed",
+          schemaVersion: 1,
           payload: {
             summary: command.payload.summary,
             resumedFromPauseId: state.lastPausedId,
@@ -193,6 +203,7 @@ export function decide(
       return [
         {
           type: "TaskCompleted",
+          schemaVersion: 1,
           payload: { summary: command.payload.summary, occurredAt: now },
         },
       ];
@@ -202,6 +213,7 @@ export function decide(
       return [
         {
           type: "TaskCancelled",
+          schemaVersion: 1,
           payload: { reason: command.payload.reason, occurredAt: now },
         },
       ];

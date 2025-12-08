@@ -38,10 +38,12 @@ export type Command =
 export type Event =
   | {
       type: "TaskStarted";
+      schemaVersion: 1;
       payload: { issue: Issue; initialSummary: string; occurredAt: Date };
     }
   | {
       type: "TaskUpdated";
+      schemaVersion: 1;
       payload: {
         summary: string;
         occurredAt: Date;
@@ -49,6 +51,7 @@ export type Event =
     }
   | {
       type: "TaskBlocked";
+      schemaVersion: 1;
       payload: {
         blockId: string;
         reason: string;
@@ -57,10 +60,12 @@ export type Event =
     }
   | {
       type: "BlockResolved";
+      schemaVersion: 1;
       payload: { blockId: string; reason: string; occurredAt: Date };
     }
   | {
       type: "TaskPaused";
+      schemaVersion: 1;
       payload: {
         pauseId: string;
         reason: string;
@@ -69,16 +74,26 @@ export type Event =
     }
   | {
       type: "TaskResumed";
+      schemaVersion: 1;
       payload: {
         summary: string;
         resumedFromPauseId?: string;
         occurredAt: Date;
       };
     }
-  | { type: "TaskCompleted"; payload: { summary: string; occurredAt: Date } }
-  | { type: "TaskCancelled"; payload: { reason?: string; occurredAt: Date } }
+  | {
+      type: "TaskCompleted";
+      schemaVersion: 1;
+      payload: { summary: string; occurredAt: Date };
+    }
+  | {
+      type: "TaskCancelled";
+      schemaVersion: 1;
+      payload: { reason?: string; occurredAt: Date };
+    }
   | {
       type: "SlackThreadLinked";
+      schemaVersion: 1;
       payload: { channel: string; threadTs: string; occurredAt: Date };
     };
 

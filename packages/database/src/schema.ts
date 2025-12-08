@@ -328,6 +328,7 @@ export const taskEvents = pgTable(
     summary: text("summary"),
     relatedEventId: text("related_event_id"),
     metadata: jsonb("metadata").$type<{
+      schemaVersion?: number;
       issue?: {
         provider: "github" | "manual";
         id?: string | null;
