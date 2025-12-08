@@ -40,41 +40,45 @@ const app = createHonoApp()
 
     const tasks = tasksResult.value;
 
-    // 各タスクの完了情報を取得し、所要時間を計算
-    const tasksWithCompletion = await Promise.all(
-      tasks.map(async (task) => {
-        const completedEventResult = await taskRepository.getLatestEvent({
-          taskSessionId: task.id,
-          eventType: "completed",
-        });
+    // 完了イベントを一括取得 (N+1クエリ問題を回避)
+    const taskIds = tasks.map((t) => t.id);
+    const completedEventsMapResult = await taskRepository.getBulkLatestEvents({
+      taskSessionIds: taskIds,
+      eventType: "completed",
+      limit: 1,
+    });
 
-        if (!completedEventResult.isOk()) {
-          console.error(
-            "Failed to get completed event:",
-            completedEventResult.error,
-          );
-          throw new HTTPException(500, {
-            message: "Failed to get completed event",
-          });
-        }
+    if (!completedEventsMapResult.isOk()) {
+      console.error(
+        "Failed to get completed events:",
+        completedEventsMapResult.error,
+      );
+      throw new HTTPException(500, {
+        message: "Failed to get completed events",
+      });
+    }
 
-        const completedEvent = completedEventResult.value;
-        let durationMs: number | null = null;
-        let completedAt: Date | null = null;
+    const completedEventsMap = completedEventsMapResult.value;
 
-        if (task.status === "completed" && completedEvent) {
-          completedAt = completedEvent.createdAt;
-          durationMs = completedAt.getTime() - task.createdAt.getTime();
-        }
+    // 各タスクの完了情報と所要時間を計算
+    const tasksWithCompletion = tasks.map((task) => {
+      const events = completedEventsMap.get(task.id) ?? [];
+      const completedEvent = events[0] ?? null;
+      let durationMs: number | null = null;
+      let completedAt: Date | null = null;
 
-        return {
-          ...task,
-          completedEvent,
-          durationMs,
-          completedAt,
-        };
-      }),
-    );
+      if (task.status === "completed" && completedEvent) {
+        completedAt = completedEvent.createdAt;
+        durationMs = completedAt.getTime() - task.createdAt.getTime();
+      }
+
+      return {
+        ...task,
+        completedEvent,
+        durationMs,
+        completedAt,
+      };
+    });
 
     return c.json({ tasks: tasksWithCompletion });
   })
