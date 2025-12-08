@@ -4,11 +4,8 @@ import { ResultAsync } from "neverthrow";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { wrapDrizzle } from "@/lib/db";
-import type {
-  ListTaskSessionsRequest,
-  TaskQueryRepository,
-  TaskStatus,
-} from "./interface";
+import type { TaskStatus } from "@/objects/task/task-status";
+import type { ListTaskSessionsRequest, TaskQueryRepository } from "./interface";
 
 export type { TaskQueryRepository } from "./interface";
 

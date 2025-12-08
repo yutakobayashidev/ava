@@ -1,6 +1,17 @@
-import type { TaskSession } from "@ava/database/schema";
+/**
+ * タスクステータスの値の配列
+ * この配列がステータスの唯一の真実の源（Single Source of Truth）
+ */
+export const TASK_STATUSES = [
+  "in_progress",
+  "blocked",
+  "paused",
+  "completed",
+  "cancelled",
+] as const;
 
-export type TaskStatus = TaskSession["status"];
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
 export type TaskStatusFilter =
   | "inProgress"
   | "blocked"

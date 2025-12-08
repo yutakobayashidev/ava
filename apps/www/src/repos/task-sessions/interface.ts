@@ -1,8 +1,7 @@
 import type { DatabaseError } from "@/lib/db";
+import type { TaskStatus } from "@/objects/task/task-status";
 import type { ResultAsync } from "neverthrow";
 import type * as schema from "@ava/database/schema";
-
-export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
 
 export type ListTaskSessionsRequest = {
   userId: string;

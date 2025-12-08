@@ -1,5 +1,6 @@
 import { createHonoApp } from "@/create-app";
 import { sessionMiddleware } from "@/middleware/session";
+import { TASK_STATUSES } from "@/objects/task/task-status";
 import { createTaskQueryRepository } from "@/repos";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
@@ -8,7 +9,7 @@ import { z } from "zod";
 // クエリパラメータのバリデーション
 const listTasksQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(100),
-  status: z.enum(["in_progress", "blocked", "paused", "completed"]).optional(),
+  status: z.enum(TASK_STATUSES).optional(),
 });
 
 const app = createHonoApp()
@@ -28,12 +29,7 @@ const app = createHonoApp()
     const tasksResult = await taskRepository.listTaskSessions({
       userId: user.id,
       workspaceId: workspace.id,
-      status: status as
-        | "in_progress"
-        | "blocked"
-        | "paused"
-        | "completed"
-        | undefined,
+      status,
       limit,
     });
 
