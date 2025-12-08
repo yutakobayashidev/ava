@@ -1,25 +1,22 @@
-import type { TaskRepository } from "@/repos";
-import type { ListTasksInput, ListTasksOutput } from "./interface";
+import { toTaskStatus } from "@/objects/task/task-status";
+import type { TaskQueryRepository } from "@/repos";
+import type { ListTasksCommand, ListTasksOutput } from "./interface";
 
-// ステータスをDBの形式に変換
-function convertStatusToDb(
-  status?: string,
-): "in_progress" | "blocked" | "paused" | "completed" | undefined {
-  if (status === "inProgress") return "in_progress";
-  if (status === "blocked" || status === "paused" || status === "completed")
-    return status;
-  return undefined;
-}
+type ListTasksWorkflow = (
+  command: ListTasksCommand,
+) => Promise<ListTasksOutput>;
 
-export const createListTasks = (taskRepository: TaskRepository) => {
-  return async (input: ListTasksInput): Promise<ListTasksOutput> => {
-    const { workspace, user, params } = input;
+export const createListTasksWorkflow = (
+  taskRepository: TaskQueryRepository,
+): ListTasksWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { status, limit } = params;
 
     const sessions = await taskRepository.listTaskSessions({
       userId: user.id,
       workspaceId: workspace.id,
-      status: convertStatusToDb(status),
+      status: toTaskStatus(status),
       limit,
     });
 

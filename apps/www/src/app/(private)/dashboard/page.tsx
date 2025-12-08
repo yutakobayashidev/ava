@@ -1,6 +1,6 @@
 import { Header } from "@/components/header";
+import { StatusBadge } from "@/components/task/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -11,31 +11,17 @@ import {
 } from "@/components/ui/table";
 import { requireWorkspace } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
-import { createTaskRepository } from "@/repos";
+import { createTaskQueryRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
 
-function StatusBadge({ status }: { status: string }) {
-  const variants = {
-    in_progress: { variant: "default" as const, label: "進行中" },
-    blocked: { variant: "destructive" as const, label: "ブロック中" },
-    completed: { variant: "secondary" as const, label: "完了" },
-  };
-
-  const config =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    variants[status as keyof typeof variants] || variants.in_progress;
-
-  return <Badge variant={config.variant}>{config.label}</Badge>;
-}
-
 export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository(db);
+  const taskRepository = createTaskQueryRepository(db);
   const tasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,

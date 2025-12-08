@@ -1,123 +1,95 @@
 import {
   createSubscriptionRepository,
-  createTaskRepository,
-  createWorkspaceRepository,
+  createTaskQueryRepository,
 } from "@/repos";
-import { createSlackNotificationService } from "@/services/slackNotificationService";
 import { Context } from "@/types";
-import { createCompleteTask } from "./complete";
-import { createListTasks } from "./list";
-import { createPauseTask } from "./pause";
-import { createReportBlocked } from "./reportBlocked";
-import { createResolveBlocked } from "./resolveBlocked";
-import { createResumeTask } from "./resume";
-import { createStartTask } from "./start";
-import { createUpdateTask } from "./update";
+import { createCancelTaskWorkflow } from "./cancel";
+import { createTaskCommandExecutor } from "./commandExecutor";
+import { createCompleteTaskWorkflow } from "./complete";
+import { createListTasksWorkflow } from "./list";
+import { createPauseTaskWorkflow } from "./pause";
+import { createReportBlockedWorkflow } from "./reportBlocked";
+import { createResolveBlockedWorkflow } from "./resolveBlocked";
+import { createResumeTaskWorkflow } from "./resume";
+import { createStartTaskWorkflow } from "./start";
+import { createUpdateTaskWorkflow } from "./update";
 
 export const constructStartTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const subscriptionRepository = createSubscriptionRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const startTaskWorkflow = createStartTask(
-    taskRepository,
+  const startTaskWorkflow = createStartTaskWorkflow(
     subscriptionRepository,
-    slackNotificationService,
+    commandExecutor,
   );
 
   return startTaskWorkflow;
 };
 
 export const constructUpdateTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const updateTaskWorkflow = createUpdateTask(
-    taskRepository,
-    slackNotificationService,
-  );
+  const updateTaskWorkflow = createUpdateTaskWorkflow(commandExecutor);
 
   return updateTaskWorkflow;
 };
 
 export const constructReportBlockedWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const reportBlockedWorkflow = createReportBlocked(
-    taskRepository,
-    slackNotificationService,
-  );
+  const reportBlockedWorkflow = createReportBlockedWorkflow(commandExecutor);
 
   return reportBlockedWorkflow;
 };
 
 export const constructResolveBlockedWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const resolveBlockedWorkflow = createResolveBlocked(
-    taskRepository,
-    slackNotificationService,
-  );
+  const resolveBlockedWorkflow = createResolveBlockedWorkflow(commandExecutor);
 
   return resolveBlockedWorkflow;
 };
 
 export const constructPauseTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const pauseTaskWorkflow = createPauseTask(
-    taskRepository,
-    slackNotificationService,
-  );
+  const pauseTaskWorkflow = createPauseTaskWorkflow(commandExecutor);
 
   return pauseTaskWorkflow;
 };
 
 export const constructResumeTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const resumeTaskWorkflow = createResumeTask(
-    taskRepository,
-    slackNotificationService,
-  );
+  const resumeTaskWorkflow = createResumeTaskWorkflow(commandExecutor);
 
   return resumeTaskWorkflow;
 };
 
 export const constructListTasksWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
+  const taskRepository = createTaskQueryRepository(ctx.get("db"));
 
-  const listTasksWorkflow = createListTasks(taskRepository);
+  const listTasksWorkflow = createListTasksWorkflow(taskRepository);
 
   return listTasksWorkflow;
 };
 
 export const constructCompleteTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
-  const workspaceRepository = createWorkspaceRepository(ctx.get("db"));
-  const slackNotificationService =
-    createSlackNotificationService(workspaceRepository);
+  const taskRepository = createTaskQueryRepository(ctx.get("db"));
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const completeTaskWorkflow = createCompleteTask(
+  const completeTaskWorkflow = createCompleteTaskWorkflow(
     taskRepository,
-    slackNotificationService,
+    commandExecutor,
   );
 
   return completeTaskWorkflow;
+};
+
+export const constructCancelTaskWorkflow = (ctx: Context) => {
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
+
+  const cancelTaskWorkflow = createCancelTaskWorkflow(commandExecutor);
+
+  return cancelTaskWorkflow;
 };

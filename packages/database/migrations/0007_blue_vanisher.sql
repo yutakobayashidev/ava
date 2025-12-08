@@ -1,0 +1,1 @@
+ALTER TABLE "task_events" ADD COLUMN "metadata" jsonb;

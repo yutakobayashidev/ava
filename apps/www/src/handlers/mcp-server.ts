@@ -2,6 +2,7 @@ import { Context } from "@/types";
 import {
   constructCompleteTaskWorkflow,
   constructListTasksWorkflow,
+  constructCancelTaskWorkflow,
   constructPauseTaskWorkflow,
   constructReportBlockedWorkflow,
   constructResolveBlockedWorkflow,
@@ -11,6 +12,7 @@ import {
 } from "@/usecases/taskSessions/constructor";
 import {
   completeTaskInputSchema,
+  cancelTaskInputSchema,
   formatSuccessResponse,
   listTasksInputSchema,
   pauseTaskInputSchema,
@@ -189,6 +191,32 @@ export function createMcpServer(ctx: Context) {
                     ? "完了報告を保存しました。未解決のブロッキングがあります。resolveBlockedツールで解決を報告してください。"
                     : "完了報告を保存しました。",
                 )
+              : result.error,
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "cancelTask",
+    {
+      title: "cancelTask",
+      description: "タスク中止を受け付けるための入力仕様。",
+      inputSchema: cancelTaskInputSchema,
+    },
+    async (params) => {
+      const result = await constructCancelTaskWorkflow(ctx)({
+        workspace: ctx.get("workspace"),
+        user: ctx.get("user"),
+        params,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.success
+              ? formatSuccessResponse(result.data, "タスクを中止しました。")
               : result.error,
           },
         ],

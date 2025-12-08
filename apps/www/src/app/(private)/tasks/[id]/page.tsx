@@ -1,9 +1,9 @@
 import { Header } from "@/components/header";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/task/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
-import { createTaskRepository } from "@/repos";
+import { createTaskQueryRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -16,21 +16,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
-function StatusBadge({ status }: { status: string }) {
-  const variants = {
-    in_progress: { variant: "default" as const, label: "進行中" },
-    blocked: { variant: "destructive" as const, label: "ブロック中" },
-    paused: { variant: "secondary" as const, label: "休止中" },
-    completed: { variant: "secondary" as const, label: "完了" },
-  };
-
-  const config =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    variants[status as keyof typeof variants] || variants.in_progress;
-
-  return <Badge variant={config.variant}>{config.label}</Badge>;
-}
 
 function EventIcon({ eventType }: { eventType: string }) {
   switch (eventType) {
@@ -48,6 +33,8 @@ function EventIcon({ eventType }: { eventType: string }) {
       return <div className="w-3 h-3 bg-green-500 rounded-full" />;
     case "completed":
       return <div className="w-3 h-3 bg-purple-500 rounded-full" />;
+    case "cancelled":
+      return <div className="w-3 h-3 bg-red-700 rounded-full" />;
     default:
       return <div className="w-3 h-3 bg-gray-300 rounded-full" />;
   }
@@ -62,6 +49,7 @@ function EventTypeLabel({ eventType }: { eventType: string }) {
     paused: "休止",
     resumed: "再開",
     completed: "完了",
+    cancelled: "キャンセル",
   };
 
   return (
@@ -77,7 +65,7 @@ export default async function TaskDetailPage({
   const { id } = await params;
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository(db);
+  const taskRepository = createTaskQueryRepository(db);
   const task = await taskRepository.findTaskSessionById(
     id,
     workspace.id,

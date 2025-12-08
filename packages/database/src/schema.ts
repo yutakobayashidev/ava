@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -20,6 +21,8 @@ export const taskEventTypeEnum = pgEnum("task_event_type", [
   "paused",
   "resumed",
   "completed",
+  "cancelled",
+  "slack_thread_linked",
 ]);
 
 export const taskStatusEnum = pgEnum("task_status", [
@@ -284,7 +287,36 @@ export const taskSessions = pgTable(
     issueProviderIdx: index("task_sessions_issue_provider_idx").on(
       table.issueProvider,
     ),
-    statusIdx: index("task_sessions_status_idx").on(table.status),
+    statusCreatedAtIdx: index("task_sessions_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
+  }),
+);
+
+export const taskPolicyOutbox = pgTable(
+  "task_policy_outbox",
+  {
+    id: text("id").primaryKey().notNull(),
+    taskSessionId: text("task_session_id")
+      .references(() => taskSessions.id, { onDelete: "cascade" })
+      .notNull(),
+    policyType: text("policy_type").notNull(),
+    payload: jsonb("payload")
+      .$type<Record<string, unknown>>()
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => ({
+    taskSessionIdx: index("task_policy_outbox_task_session_idx").on(
+      table.taskSessionId,
+    ),
+    statusIdx: index("task_policy_outbox_status_idx").on(table.status),
   }),
 );
 
@@ -292,17 +324,20 @@ export const taskEvents = pgTable(
   "task_events",
   {
     id: text("id").primaryKey().notNull(),
-    taskSessionId: text("task_session_id")
-      .references(() => taskSessions.id, { onDelete: "cascade" })
-      .notNull(),
+    taskSessionId: text("task_session_id").notNull(),
+    version: integer("version").notNull(),
     eventType: taskEventTypeEnum("event_type").notNull(),
     reason: text("reason"),
     summary: text("summary"),
     relatedEventId: text("related_event_id"),
-    rawContext: jsonb("raw_context")
-      .$type<Record<string, unknown>>()
-      .default(sql`'{}'::jsonb`)
-      .notNull(),
+    metadata: jsonb("metadata").$type<{
+      schemaVersion?: number;
+      issue?: {
+        provider: "github" | "manual";
+        id?: string | null;
+        title: string;
+      };
+    }>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -315,6 +350,10 @@ export const taskEvents = pgTable(
     taskSessionEventTypeIdx: index(
       "task_events_task_session_event_type_idx",
     ).on(table.taskSessionId, table.eventType),
+    streamVersionUnique: uniqueIndex("task_events_stream_version_unique").on(
+      table.taskSessionId,
+      table.version,
+    ),
   }),
 );
 

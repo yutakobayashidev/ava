@@ -5,12 +5,6 @@ export function formatSuccessResponse(data: object, message: string) {
   return JSON.stringify({ ...data, message }, null, 2);
 }
 
-// 共通スキーマ
-const rawContextSchema = z
-  .record(z.string(), z.unknown())
-  .default({})
-  .describe("Slackへ共有可能な抽象的メタデータ");
-
 const issueSchema = z.object({
   provider: z.enum(["github", "manual"]).describe("課題の取得元"),
   id: z.string().trim().optional().describe("GitHub Issue番号などの識別子"),
@@ -38,7 +32,6 @@ export const startTaskInputSchema = z.object({
 export const updateTaskInputSchema = z.object({
   taskSessionId: taskSessionIdSchema,
   summary: z.string().min(1, "summaryは必須です").describe("進捗の抽象的説明"),
-  rawContext: rawContextSchema,
 });
 
 export const reportBlockedInputSchema = z.object({
@@ -47,19 +40,16 @@ export const reportBlockedInputSchema = z.object({
     .string()
     .min(1, "reasonは必須です")
     .describe("詰まっている理由の要約"),
-  rawContext: rawContextSchema,
 });
 
 export const pauseTaskInputSchema = z.object({
   taskSessionId: taskSessionIdSchema,
   reason: z.string().min(1, "reasonは必須です").describe("休止理由の要約"),
-  rawContext: rawContextSchema,
 });
 
 export const resumeTaskInputSchema = z.object({
   taskSessionId: taskSessionIdSchema,
   summary: z.string().min(1, "summaryは必須です").describe("再開時のコメント"),
-  rawContext: rawContextSchema,
 });
 
 export const completeTaskInputSchema = z.object({
@@ -68,6 +58,14 @@ export const completeTaskInputSchema = z.object({
     .string()
     .min(1, "summaryは必須です")
     .describe("完了内容の抽象的サマリ"),
+});
+
+export const cancelTaskInputSchema = z.object({
+  taskSessionId: taskSessionIdSchema,
+  reason: z
+    .string()
+    .optional()
+    .describe("中止理由（任意、Slackには送られません）"),
 });
 
 export const resolveBlockedInputSchema = z.object({

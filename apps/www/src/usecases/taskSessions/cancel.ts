@@ -1,17 +1,17 @@
 import { apply } from "@/objects/task/decider";
 import { type TaskCommandExecutor } from "./commandExecutor";
-import type { UpdateTaskCommand, UpdateTaskOutput } from "./interface";
+import type { CancelTaskCommand, CancelTaskOutput } from "./interface";
 
-type UpdateTaskWorkflow = (
-  command: UpdateTaskCommand,
-) => Promise<UpdateTaskOutput>;
+type CancelTaskWorkflow = (
+  command: CancelTaskCommand,
+) => Promise<CancelTaskOutput>;
 
-export const createUpdateTaskWorkflow = (
+export const createCancelTaskWorkflow = (
   executeCommand: TaskCommandExecutor,
-): UpdateTaskWorkflow => {
+): CancelTaskWorkflow => {
   return async (command) => {
     const { workspace, user, params } = command;
-    const { taskSessionId, summary } = params;
+    const { taskSessionId, reason } = params;
 
     try {
       const result = await executeCommand({
@@ -19,8 +19,8 @@ export const createUpdateTaskWorkflow = (
         workspace,
         user,
         command: {
-          type: "AddProgress",
-          payload: { summary },
+          type: "CancelTask",
+          payload: { reason },
         },
       });
 
@@ -29,16 +29,16 @@ export const createUpdateTaskWorkflow = (
       return {
         success: true,
         data: {
-          taskSessionId: taskSessionId,
-          updateId: result.persistedEvents[0].id,
+          taskSessionId,
+          cancellationId: result.persistedEvents[0].id,
           status: nextState.status,
-          summary,
+          cancelledAt: result.persistedEvents[0].createdAt,
         },
       };
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : "Failed to update task",
+        error: err instanceof Error ? err.message : "Failed to cancel task",
       };
     }
   };

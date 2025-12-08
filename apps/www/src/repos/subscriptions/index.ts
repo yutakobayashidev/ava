@@ -37,3 +37,7 @@ export const createSubscriptionRepository = (db: Database) => ({
   getActiveSubscription: getActiveSubscription(db),
   countUserTaskSessions: countUserTaskSessions(db),
 });
+
+export type SubscriptionRepository = ReturnType<
+  typeof createSubscriptionRepository
+>;

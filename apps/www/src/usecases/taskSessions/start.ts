@@ -1,17 +1,19 @@
-import type { TaskRepository } from "@/repos";
-import { createSubscriptionRepository } from "@/repos";
-import type { SlackNotificationService } from "@/services/slackNotificationService";
+import { type SubscriptionRepository } from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
-import type { StartTaskInput, StartTaskOutput } from "./interface";
-import { buildTaskStartedMessage } from "./slackMessages";
+import { uuidv7 } from "uuidv7";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { StartTaskCommand, StartTaskOutput } from "./interface";
 
-export const createStartTask = (
-  taskRepository: TaskRepository,
-  subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
-  slackNotificationService: SlackNotificationService,
-) => {
-  return async (input: StartTaskInput): Promise<StartTaskOutput> => {
-    const { workspace, user, params } = input;
+type StartTaskWorkflow = (
+  command: StartTaskCommand,
+) => Promise<StartTaskOutput>;
+
+export const createStartTaskWorkflow = (
+  subscriptionRepository: SubscriptionRepository,
+  executeCommand: TaskCommandExecutor,
+): StartTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { issue, initialSummary } = params;
 
     // プラン制限のチェック
@@ -26,74 +28,34 @@ export const createStartTask = (
       };
     }
 
-    const session = await taskRepository.createTaskSession({
-      userId: user.id,
-      workspaceId: workspace.id,
-      issueProvider: issue.provider,
-      issueId: issue.id ?? null,
-      issueTitle: issue.title,
-      initialSummary: initialSummary,
-    });
-    // Slack通知
-    let slackNotification: { delivered: boolean; reason?: string };
+    const streamId = uuidv7();
 
-    if (workspace.notificationChannelId) {
-      // メッセージ組み立て（ユースケース層の責務）
-      const message = buildTaskStartedMessage({
-        session: { id: session.id },
-        issue: {
-          title: issue.title,
-          provider: issue.provider,
-          id: issue.id ?? null,
-        },
-        initialSummary,
-        user: {
-          name: user.name,
-          email: user.email,
-          slackId: user.slackId,
-        },
-      });
-
-      // Slack通知（インフラ層への委譲）
-      const notification = await slackNotificationService.postMessage({
+    try {
+      await executeCommand({
+        streamId,
         workspace,
-        channel: workspace.notificationChannelId,
-        message,
+        user,
+        command: {
+          type: "StartTask",
+          payload: {
+            issue,
+            initialSummary,
+          },
+        },
       });
-
-      // スレッド情報を保存
-      if (
-        notification.delivered &&
-        notification.threadTs &&
-        notification.channel
-      ) {
-        await taskRepository.updateSlackThread({
-          taskSessionId: session.id,
-          workspaceId: workspace.id,
-          userId: user.id,
-          threadTs: notification.threadTs,
-          channel: notification.channel,
-        });
-      }
-
-      slackNotification = {
-        delivered: notification.delivered,
-        reason: notification.error,
-      };
-    } else {
-      slackNotification = {
-        delivered: false,
-        reason: "Notification channel not configured",
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to start task",
       };
     }
 
     return {
       success: true,
       data: {
-        taskSessionId: session.id,
-        status: session.status,
-        issuedAt: session.createdAt,
-        slackNotification,
+        taskSessionId: streamId,
+        status: "in_progress",
+        issuedAt: new Date(),
       },
     };
   };

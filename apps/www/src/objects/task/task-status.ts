@@ -1,6 +1,18 @@
 import type { TaskSession } from "@ava/database/schema";
 
 export type TaskStatus = TaskSession["status"];
+export type TaskStatusFilter =
+  | "inProgress"
+  | "blocked"
+  | "paused"
+  | "completed";
+
+const STATUS_FILTER_TO_TASK_STATUS: Record<TaskStatusFilter, TaskStatus> = {
+  inProgress: "in_progress",
+  blocked: "blocked",
+  paused: "paused",
+  completed: "completed",
+};
 
 /**
  * 許可される状態遷移のマップ
@@ -54,4 +66,11 @@ export function validateTransition(from: TaskStatus, to: TaskStatus): void {
  */
 export function isTerminalStatus(status: TaskStatus): boolean {
   return ALLOWED_TRANSITIONS[status].length === 0;
+}
+
+export function toTaskStatus(
+  status?: TaskStatusFilter,
+): TaskStatus | undefined {
+  if (!status) return undefined;
+  return STATUS_FILTER_TO_TASK_STATUS[status];
 }
