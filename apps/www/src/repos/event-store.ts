@@ -1,4 +1,4 @@
-import type { Event } from "@/domain/task/types";
+import type { Event } from "@/objects/task/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { desc, eq, sql } from "drizzle-orm";

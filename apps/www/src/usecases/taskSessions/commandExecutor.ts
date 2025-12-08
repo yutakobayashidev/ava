@@ -1,5 +1,5 @@
-import { decide, replay } from "@/domain/task/decider";
-import type { Command } from "@/domain/task/types";
+import { decide, replay } from "@/objects/task/decider";
+import type { Command } from "@/objects/task/types";
 import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
 import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";

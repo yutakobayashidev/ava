@@ -1,7 +1,7 @@
-import { uuidv7 } from "uuidv7";
+import type { Event } from "@/objects/task/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import type { Event } from "@/domain/task/types";
+import { uuidv7 } from "uuidv7";
 
 const POLICY_TYPES = {
   slackNotify: "slack_notify",

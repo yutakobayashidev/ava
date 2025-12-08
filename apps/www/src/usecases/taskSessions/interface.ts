@@ -1,5 +1,5 @@
+import type { TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
-import type { TaskStatusFilter } from "@/domain/task-status";
 
 /**
  * タスクセッション関連のユースケースの入出力型定義

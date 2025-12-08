@@ -1,4 +1,4 @@
-import { validateTransition } from "../task-status";
+import { validateTransition } from "./task-status";
 import {
   Command,
   Event,

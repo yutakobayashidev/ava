@@ -1,4 +1,4 @@
-import { toTaskStatus } from "@/domain/task-status";
+import { toTaskStatus } from "@/objects/task/task-status";
 import type { TaskQueryRepository } from "@/repos";
 import type { ListTasksInput, ListTasksOutput } from "./interface";
 
