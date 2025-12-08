@@ -35,6 +35,9 @@ importers:
       '@hono/mcp':
         specifier: 0.2.0
         version: 0.2.0(@modelcontextprotocol/sdk@1.23.0(zod@4.1.13))(hono-rate-limiter@0.4.2(hono@4.10.7))(hono@4.10.7)
+      '@hono/otel':
+        specifier: ^0.1.1
+        version: 0.1.1(hono@4.10.7)
       '@hono/ua-blocker':
         specifier: 0.1.20
         version: 0.1.20(hono@4.10.7)
@@ -1082,6 +1085,11 @@ packages:
       hono: '*'
       hono-rate-limiter: ^0.4.2
 
+  '@hono/otel@0.1.1':
+    resolution: {integrity: sha512-B1iJaXeHI+xmEcLsMhhoaIs/2gXmtDlnGW/4RjN9NcEqZ9F9mtakJlZ2Co3L6zx9VGWO8SyfKARC8VgcQimrpw==}
+    peerDependencies:
+      hono: '*'
+
   '@hono/ua-blocker@0.1.20':
     resolution: {integrity: sha512-QZLTlYpKRRnOym4daLCIfIA87rWBSvd9O0WZc9uOgU15PKVmCzKT9J52uvpMaIoJNzaVFbRtmW2H1v+0nC4teA==}
     peerDependencies:
@@ -1373,6 +1381,10 @@ packages:
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
+
+  '@opentelemetry/semantic-conventions@1.38.0':
+    resolution: {integrity: sha512-kocjix+/sSggfJhwXqClZ3i9Y/MI0fp7b+g7kCRm6psy2dsf8uApTRclwG18h8Avm7C9+fnt+O36PspJ/OzoWg==}
+    engines: {node: '>=14'}
 
   '@orama/orama@3.1.16':
     resolution: {integrity: sha512-scSmQBD8eANlMUOglxHrN1JdSW8tDghsPuS83otqealBiIeMukCQMOf/wc0JJjDXomqwNdEQFLXLGHrU6PGxuA==}
@@ -6715,6 +6727,12 @@ snapshots:
       hono-rate-limiter: 0.4.2(hono@4.10.7)
       pkce-challenge: 5.0.1
 
+  '@hono/otel@0.1.1(hono@4.10.7)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/semantic-conventions': 1.38.0
+      hono: 4.10.7
+
   '@hono/ua-blocker@0.1.20(hono@4.10.7)':
     dependencies:
       hono: 4.10.7
@@ -6986,6 +7004,8 @@ snapshots:
   '@nolyfill/is-core-module@1.0.39': {}
 
   '@opentelemetry/api@1.9.0': {}
+
+  '@opentelemetry/semantic-conventions@1.38.0': {}
 
   '@orama/orama@3.1.16': {}
 
