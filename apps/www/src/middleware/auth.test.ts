@@ -63,7 +63,7 @@ describe("authMiddleware", () => {
   });
 
   it("should redirect unauthenticated user to /login when accessing /onboarding", async () => {
-    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+    vi.spyOn(sessionLib, "validateSessionToken").mockResolvedValue({
       session: null,
       user: null,
     });
@@ -71,7 +71,10 @@ describe("authMiddleware", () => {
     const app = new Hono();
     app.get("/onboarding", authMiddleware, (c) => c.json({ success: true }));
 
-    const res = await app.request("/onboarding", { method: "GET" });
+    const res = await app.request("/onboarding", {
+      method: "GET",
+      headers: { Cookie: "session=test-token" },
+    });
 
     expect(res.status).toBe(302);
     const location = res.headers.get("Location");
@@ -80,7 +83,7 @@ describe("authMiddleware", () => {
   });
 
   it("should redirect unauthenticated user to /login when accessing /onboarding/setup", async () => {
-    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+    vi.spyOn(sessionLib, "validateSessionToken").mockResolvedValue({
       session: null,
       user: null,
     });
@@ -90,7 +93,10 @@ describe("authMiddleware", () => {
       c.json({ success: true }),
     );
 
-    const res = await app.request("/onboarding/setup", { method: "GET" });
+    const res = await app.request("/onboarding/setup", {
+      method: "GET",
+      headers: { Cookie: "session=test-token" },
+    });
 
     expect(res.status).toBe(302);
     const location = res.headers.get("Location");
@@ -99,7 +105,7 @@ describe("authMiddleware", () => {
   });
 
   it("should allow unauthenticated user to access non-onboarding paths", async () => {
-    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+    vi.spyOn(sessionLib, "validateSessionToken").mockResolvedValue({
       session: null,
       user: null,
     });
@@ -114,7 +120,7 @@ describe("authMiddleware", () => {
   });
 
   it("should allow authenticated user to access /onboarding", async () => {
-    vi.spyOn(sessionLib, "getCurrentSession").mockResolvedValue({
+    vi.spyOn(sessionLib, "validateSessionToken").mockResolvedValue({
       session: {
         id: "session-1",
         userId: "user-1",
@@ -138,7 +144,10 @@ describe("authMiddleware", () => {
     const app = new Hono();
     app.get("/onboarding", authMiddleware, (c) => c.json({ success: true }));
 
-    const res = await app.request("/onboarding", { method: "GET" });
+    const res = await app.request("/onboarding", {
+      method: "GET",
+      headers: { Cookie: "session=test-token" },
+    });
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true });

@@ -1,5 +1,6 @@
-import { getCurrentSession } from "@/lib/server/session";
+import { validateSessionToken } from "@/lib/server/session";
 import { createMiddleware } from "hono/factory";
+import { getCookie } from "hono/cookie";
 
 const SKIP_PATHS = ["/login", "/oauth", "/api", "/mcp", "/.well-known"];
 
@@ -11,7 +12,8 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     return next();
   }
 
-  const { user } = await getCurrentSession();
+  const token = getCookie(c, "session");
+  const { user } = token ? await validateSessionToken(token) : { user: null };
 
   // 未ログインユーザーのオンボーディング → /login へ
   if (!user && path.startsWith("/onboarding")) {
