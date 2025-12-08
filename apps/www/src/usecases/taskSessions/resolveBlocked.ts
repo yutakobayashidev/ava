@@ -37,7 +37,7 @@ export const createResolveBlockedWorkflow = (
       };
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "ブロッキングの解決に失敗しました";
+        err instanceof Error ? err.message : "Failed to resolve blocked status";
       return {
         success: false,
         error: message,

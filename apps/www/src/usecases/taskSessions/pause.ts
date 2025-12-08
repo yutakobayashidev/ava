@@ -38,8 +38,7 @@ export const createPauseTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの一時休止に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to pause task",
       };
     }
   };

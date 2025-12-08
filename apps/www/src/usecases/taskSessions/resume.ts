@@ -37,8 +37,7 @@ export const createResumeTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの再開処理に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to resume task",
       };
     }
   };

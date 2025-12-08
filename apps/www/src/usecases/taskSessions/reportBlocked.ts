@@ -41,7 +41,7 @@ export const createReportBlockedWorkflow = (
         error:
           err instanceof Error
             ? err.message
-            : "ブロッキング情報の登録に失敗しました",
+            : "Failed to report blocked status",
       };
     }
   };

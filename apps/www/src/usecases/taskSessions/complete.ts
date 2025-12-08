@@ -33,8 +33,7 @@ export const createCompleteTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの完了処理に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to complete task",
       };
     }
 

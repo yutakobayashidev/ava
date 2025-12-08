@@ -38,8 +38,7 @@ export const createCancelTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの中止に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to cancel task",
       };
     }
   };

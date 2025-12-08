@@ -38,8 +38,7 @@ export const createUpdateTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの更新に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to update task",
       };
     }
   };

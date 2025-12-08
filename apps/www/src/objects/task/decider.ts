@@ -97,7 +97,7 @@ export function decide(
   const hasUnresolvedBlocks = state.unresolvedBlocks.length > 0;
 
   if (!state.createdAt && command.type !== "StartTask") {
-    throw new Error("タスクセッションが見つかりません");
+    throw new Error("Task session not found");
   }
 
   switch (command.type) {

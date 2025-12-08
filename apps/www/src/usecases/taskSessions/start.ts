@@ -46,8 +46,7 @@ export const createStartTaskWorkflow = (
     } catch (err) {
       return {
         success: false,
-        error:
-          err instanceof Error ? err.message : "タスクの開始に失敗しました",
+        error: err instanceof Error ? err.message : "Failed to start task",
       };
     }
 
