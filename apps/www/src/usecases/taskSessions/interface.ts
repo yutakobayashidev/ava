@@ -1,4 +1,4 @@
-import type { TaskStatusFilter } from "@/objects/task/task-status";
+import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
 
 /**
@@ -30,7 +30,7 @@ export type StartTaskCommand = BaseCommand<StartTaskParams>;
 
 type StartTaskSuccess = {
   taskSessionId: string;
-  status: string;
+  status: TaskStatus;
   issuedAt: Date;
 };
 
@@ -50,7 +50,7 @@ export type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
 type UpdateTaskSuccess = {
   taskSessionId: string;
   updateId: string;
-  status: string;
+  status: TaskStatus;
   summary: string | null;
 };
 
@@ -70,7 +70,7 @@ export type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
 export type CompleteTaskSuccess = {
   taskSessionId: string;
   completionId: string;
-  status: string;
+  status: TaskStatus;
   unresolvedBlocks?: Array<{
     blockReportId: string;
     reason: string | null;
@@ -94,7 +94,7 @@ export type CancelTaskCommand = BaseCommand<CancelTaskParams>;
 type CancelTaskSuccess = {
   taskSessionId: string;
   cancellationId: string;
-  status: string;
+  status: TaskStatus;
   cancelledAt: Date;
 };
 
@@ -114,7 +114,7 @@ export type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
 type ReportBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
-  status: string;
+  status: TaskStatus;
   reason: string | null;
 };
 
@@ -134,7 +134,7 @@ export type PauseTaskCommand = BaseCommand<PauseTaskParams>;
 type PauseTaskSuccess = {
   taskSessionId: string;
   pauseReportId: string;
-  status: string;
+  status: TaskStatus;
   pausedAt: Date;
 };
 
@@ -153,7 +153,7 @@ export type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
 
 type ResumeTaskSuccess = {
   taskSessionId: string;
-  status: string;
+  status: TaskStatus;
   resumedAt: Date;
 };
 
@@ -173,7 +173,7 @@ export type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
 type ResolveBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
-  status: string;
+  status: TaskStatus;
   resolvedAt: Date;
 };
 
@@ -195,7 +195,7 @@ type TaskSummary = {
   issueProvider: string;
   issueId: string | null;
   issueTitle: string;
-  status: string;
+  status: TaskStatus;
   createdAt: Date;
   updatedAt: Date;
 };
