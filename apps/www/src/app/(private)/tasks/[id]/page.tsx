@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/task/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
-import { createTaskQueryRepository } from "@/repos";
+import { createTasksClient } from "@/clients/tasksClient";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 
 function EventIcon({ eventType }: { eventType: string }) {
   switch (eventType) {
@@ -65,39 +66,19 @@ export default async function TaskDetailPage({
   const { id } = await params;
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskQueryRepository(db);
-  const task = await taskRepository.findTaskSessionById(
-    id,
-    workspace.id,
-    user.id,
-  );
-
-  if (!task) {
+  // タスク詳細とイベントを1回のAPIで取得（所要時間はバックエンドで計算済み）
+  const cookieStore = await cookies();
+  const tasksClient = createTasksClient(cookieStore.toString());
+  const res = await tasksClient[":id"].$get({ param: { id } });
+  if (!res.ok) {
     notFound();
   }
-
-  // イベントを取得
-  const events = await taskRepository.listEvents({
-    taskSessionId: id,
-    limit: 100,
-  });
+  const { task, events } = await res.json();
 
   // 完了情報を取得
-  let completedAt: Date | null = null;
-  let completionSummary: string | null = null;
-  let duration: number | null = null;
-
-  if (task.status === "completed") {
-    const completedEvent = await taskRepository.getLatestEvent({
-      taskSessionId: id,
-      eventType: "completed",
-    });
-    if (completedEvent) {
-      completedAt = completedEvent.createdAt;
-      completionSummary = completedEvent.summary;
-      duration = completedAt.getTime() - task.createdAt.getTime();
-    }
-  }
+  const completedAt = task.completedAt ? new Date(task.completedAt) : null;
+  const completionSummary = task.completedEvent?.summary ?? null;
+  const duration = task.durationMs;
 
   const slackThreadUrl = buildSlackThreadUrl({
     workspaceExternalId: workspace.externalId,
@@ -141,7 +122,7 @@ export default async function TaskDetailPage({
             </CardHeader>
             <CardContent>
               <p className="text-lg font-semibold text-slate-900">
-                {formatDate(task.createdAt, true)}
+                {formatDate(new Date(task.createdAt), true)}
               </p>
             </CardContent>
           </Card>
@@ -253,55 +234,43 @@ export default async function TaskDetailPage({
               </p>
             ) : (
               <div className="space-y-0">
-                {events.map(
-                  (
-                    event: {
-                      id: string;
-                      eventType: string;
-                      reason: string | null;
-                      summary: string | null;
-                      createdAt: Date;
-                    },
-                    index: number,
-                  ) => (
-                    <div
-                      key={event.id}
-                      className="flex gap-4 pb-6 relative"
-                      style={{
-                        paddingBottom:
-                          index === events.length - 1 ? 0 : "1.5rem",
-                      }}
-                    >
-                      <div className="flex flex-col items-center">
-                        <EventIcon eventType={event.eventType} />
-                        {index !== events.length - 1 && (
-                          <div className="flex-1 w-px bg-slate-200 mt-2" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 pt-0.5">
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <EventTypeLabel eventType={event.eventType} />
-                          <span className="text-sm text-slate-500">
-                            {formatDate(event.createdAt, true)}
-                          </span>
-                        </div>
-
-                        {event.reason && (
-                          <p className="text-slate-600 text-sm mt-1">
-                            理由: {event.reason}
-                          </p>
-                        )}
-
-                        {event.summary && (
-                          <p className="text-slate-700 mt-2 whitespace-pre-wrap">
-                            {event.summary}
-                          </p>
-                        )}
-                      </div>
+                {events.map((event, index) => (
+                  <div
+                    key={event.id}
+                    className="flex gap-4 pb-6 relative"
+                    style={{
+                      paddingBottom: index === events.length - 1 ? 0 : "1.5rem",
+                    }}
+                  >
+                    <div className="flex flex-col items-center">
+                      <EventIcon eventType={event.eventType} />
+                      {index !== events.length - 1 && (
+                        <div className="flex-1 w-px bg-slate-200 mt-2" />
+                      )}
                     </div>
-                  ),
-                )}
+
+                    <div className="flex-1 pt-0.5">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <EventTypeLabel eventType={event.eventType} />
+                        <span className="text-sm text-slate-500">
+                          {formatDate(new Date(event.createdAt), true)}
+                        </span>
+                      </div>
+
+                      {event.reason && (
+                        <p className="text-slate-600 text-sm mt-1">
+                          理由: {event.reason}
+                        </p>
+                      )}
+
+                      {event.summary && (
+                        <p className="text-slate-700 mt-2 whitespace-pre-wrap">
+                          {event.summary}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

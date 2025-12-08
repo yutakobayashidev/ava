@@ -6,6 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function absoluteUrl(path: string) {
+  if (typeof window === "undefined") {
+    const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+    return `${baseUrl}${path}`;
+  }
   return `${process.env.NEXT_PUBLIC_BASE_URL}${path}`;
 }
 

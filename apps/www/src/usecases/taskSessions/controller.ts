@@ -99,12 +99,12 @@ export function formatSuccessResponse(data: object, message: string) {
 }
 
 // MCP レスポンス: エラー時
-export function formatErrorResponse(error: string) {
+export function formatErrorResponse(error: Error) {
   return {
     content: [
       {
         type: "text" as const,
-        text: error,
+        text: error.message,
       },
     ],
   };
