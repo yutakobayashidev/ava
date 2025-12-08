@@ -11,12 +11,10 @@ import { createStartTask } from "./start";
 import { createUpdateTask } from "./update";
 
 export const constructStartTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const subscriptionRepository = createSubscriptionRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const startTaskWorkflow = createStartTask(
-    taskRepository,
     subscriptionRepository,
     commandExecutor,
   );
@@ -25,52 +23,41 @@ export const constructStartTaskWorkflow = (ctx: Context) => {
 };
 
 export const constructUpdateTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const updateTaskWorkflow = createUpdateTask(taskRepository, commandExecutor);
+  const updateTaskWorkflow = createUpdateTask(commandExecutor);
 
   return updateTaskWorkflow;
 };
 
 export const constructReportBlockedWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const reportBlockedWorkflow = createReportBlocked(
-    taskRepository,
-    commandExecutor,
-  );
+  const reportBlockedWorkflow = createReportBlocked(commandExecutor);
 
   return reportBlockedWorkflow;
 };
 
 export const constructResolveBlockedWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const resolveBlockedWorkflow = createResolveBlocked(
-    taskRepository,
-    commandExecutor,
-  );
+  const resolveBlockedWorkflow = createResolveBlocked(commandExecutor);
 
   return resolveBlockedWorkflow;
 };
 
 export const constructPauseTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const pauseTaskWorkflow = createPauseTask(taskRepository, commandExecutor);
+  const pauseTaskWorkflow = createPauseTask(commandExecutor);
 
   return pauseTaskWorkflow;
 };
 
 export const constructResumeTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
-  const resumeTaskWorkflow = createResumeTask(taskRepository, commandExecutor);
+  const resumeTaskWorkflow = createResumeTask(commandExecutor);
 
   return resumeTaskWorkflow;
 };

@@ -6,6 +6,7 @@ import {
   newBlockId,
   newPauseId,
 } from "./types";
+import { validateTransition } from "../task-status";
 
 export function evolve(state: TaskState, event: Event): TaskState {
   switch (event.type) {
@@ -84,17 +85,15 @@ export function evolve(state: TaskState, event: Event): TaskState {
   }
 }
 
-function ensureNotTerminal(state: TaskState) {
-  if (state.status === "completed" || state.status === "cancelled") {
-    throw new Error("Terminal task cannot transition");
-  }
-}
-
 export function decide(
   state: TaskState,
   command: Command,
   now = new Date(),
 ): Event[] {
+  if (!state.createdAt && command.type !== "StartTask") {
+    throw new Error("タスクセッションが見つかりません");
+  }
+
   switch (command.type) {
     case "StartTask": {
       if (state.createdAt) throw new Error("Task already started");
@@ -106,7 +105,7 @@ export function decide(
       ];
     }
     case "AddProgress": {
-      ensureNotTerminal(state);
+      validateTransition(state.status, "in_progress");
       return [
         {
           type: "TaskUpdated",
@@ -119,7 +118,7 @@ export function decide(
       ];
     }
     case "ReportBlock": {
-      ensureNotTerminal(state);
+      validateTransition(state.status, "blocked");
       return [
         {
           type: "TaskBlocked",
@@ -133,11 +132,15 @@ export function decide(
       ];
     }
     case "ResolveBlock": {
-      ensureNotTerminal(state);
       const block = state.unresolvedBlocks.find(
         (b) => b.id === command.payload.blockId,
       );
       if (!block) throw new Error("Block not found or already resolved");
+      const remaining = state.unresolvedBlocks.filter(
+        (b) => b.id !== command.payload.blockId,
+      );
+      const nextStatus = remaining.length > 0 ? "blocked" : "in_progress";
+      validateTransition(state.status, nextStatus);
       return [
         {
           type: "BlockResolved",
@@ -150,7 +153,7 @@ export function decide(
       ];
     }
     case "PauseTask": {
-      ensureNotTerminal(state);
+      validateTransition(state.status, "paused");
       return [
         {
           type: "TaskPaused",
@@ -164,10 +167,7 @@ export function decide(
       ];
     }
     case "ResumeTask": {
-      ensureNotTerminal(state);
-      if (state.status !== "paused" && state.status !== "blocked") {
-        throw new Error(`Cannot resume from status ${state.status}`);
-      }
+      validateTransition(state.status, "in_progress");
       return [
         {
           type: "TaskResumed",
@@ -181,7 +181,7 @@ export function decide(
       ];
     }
     case "CompleteTask": {
-      ensureNotTerminal(state);
+      validateTransition(state.status, "completed");
       return [
         {
           type: "TaskCompleted",
@@ -190,7 +190,7 @@ export function decide(
       ];
     }
     case "CancelTask": {
-      ensureNotTerminal(state);
+      validateTransition(state.status, "cancelled");
       return [
         {
           type: "TaskCancelled",

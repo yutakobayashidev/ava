@@ -1,4 +1,3 @@
-import type { TaskRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import { createSubscriptionRepository } from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
@@ -6,7 +5,6 @@ import type { StartTaskInput, StartTaskOutput } from "./interface";
 import { uuidv7 } from "uuidv7";
 
 export const createStartTask = (
-  taskRepository: TaskRepository,
   subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
   commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
@@ -29,18 +27,26 @@ export const createStartTask = (
     const streamId = uuidv7();
 
     const executeCommand = commandExecutorFactory;
-    await executeCommand({
-      streamId,
-      workspace,
-      user,
-      command: {
-        type: "StartTask",
-        payload: {
-          issue,
-          initialSummary,
+    try {
+      await executeCommand({
+        streamId,
+        workspace,
+        user,
+        command: {
+          type: "StartTask",
+          payload: {
+            issue,
+            initialSummary,
+          },
         },
-      },
-    });
+      });
+    } catch (err) {
+      return {
+        success: false,
+        error:
+          err instanceof Error ? err.message : "タスクの開始に失敗しました",
+      };
+    }
 
     return {
       success: true,

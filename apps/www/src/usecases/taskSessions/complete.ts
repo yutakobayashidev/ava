@@ -14,29 +14,25 @@ export const createCompleteTask = (
     const { workspace, user, params } = input;
     const { taskSessionId, summary } = params;
 
-    const currentSession = await taskRepository.findTaskSessionById(
-      taskSessionId,
-      workspace.id,
-      user.id,
-    );
-
-    if (!currentSession) {
+    const executeCommand = commandExecutorFactory;
+    let result;
+    try {
+      result = await executeCommand({
+        streamId: taskSessionId,
+        workspace,
+        user,
+        command: {
+          type: "CompleteTask",
+          payload: { summary },
+        },
+      });
+    } catch (err) {
       return {
         success: false,
-        error: "タスクセッションが見つかりません",
+        error:
+          err instanceof Error ? err.message : "タスクの完了処理に失敗しました",
       };
     }
-
-    const executeCommand = commandExecutorFactory;
-    const result = await executeCommand({
-      streamId: taskSessionId,
-      workspace,
-      user,
-      command: {
-        type: "CompleteTask",
-        payload: { summary },
-      },
-    });
 
     const unresolvedBlocks =
       (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
