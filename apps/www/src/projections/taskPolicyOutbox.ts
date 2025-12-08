@@ -56,8 +56,6 @@ type PolicyPayload = {
   | { policyType: "slack_reaction"; data: ReactionPayload }
 );
 
-export type { NotifyPayload, ReactionPayload, PolicyPayload, UserInfo };
-
 function toPolicyPayload(event: Event, envelope: Envelope): PolicyPayload[] {
   const baseEnvelope = {
     workspaceId: envelope.workspaceId,
