@@ -6,7 +6,7 @@ terraform {
       version = "~> 1.0"
     }
     axiom = {
-      source  = "axiomhq/axiom"
+      source = "axiomhq/axiom"
     }
   }
 }
