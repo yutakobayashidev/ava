@@ -1,3 +1,4 @@
+import type { DatabaseError } from "@/lib/db";
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
 import type { ResultAsync } from "neverthrow";
@@ -35,7 +36,7 @@ type StartTaskSuccess = {
 
 export type StartTaskWorkflow = (
   command: StartTaskCommand,
-) => ResultAsync<StartTaskSuccess, string>;
+) => ResultAsync<StartTaskSuccess, DatabaseError>;
 
 /**
  * Update Task
@@ -57,7 +58,7 @@ type UpdateTaskSuccess = {
 
 export type UpdateTaskWorkflow = (
   command: UpdateTaskCommand,
-) => ResultAsync<UpdateTaskSuccess, string>;
+) => ResultAsync<UpdateTaskSuccess, DatabaseError>;
 
 /**
  * Complete Task
@@ -83,7 +84,7 @@ export type CompleteTaskSuccess = {
 
 export type CompleteTaskWorkflow = (
   command: CompleteTaskCommand,
-) => ResultAsync<CompleteTaskSuccess, string>;
+) => ResultAsync<CompleteTaskSuccess, DatabaseError>;
 
 /**
  * Cancel Task
@@ -105,7 +106,7 @@ type CancelTaskSuccess = {
 
 export type CancelTaskWorkflow = (
   command: CancelTaskCommand,
-) => ResultAsync<CancelTaskSuccess, string>;
+) => ResultAsync<CancelTaskSuccess, DatabaseError>;
 
 /**
  * Report Blocked
@@ -127,7 +128,7 @@ type ReportBlockedSuccess = {
 
 export type ReportBlockedWorkflow = (
   command: ReportBlockedCommand,
-) => ResultAsync<ReportBlockedSuccess, string>;
+) => ResultAsync<ReportBlockedSuccess, DatabaseError>;
 
 /**
  * Pause Task
@@ -149,7 +150,7 @@ type PauseTaskSuccess = {
 
 export type PauseTaskWorkflow = (
   command: PauseTaskCommand,
-) => ResultAsync<PauseTaskSuccess, string>;
+) => ResultAsync<PauseTaskSuccess, DatabaseError>;
 
 /**
  * Resume Task
@@ -170,7 +171,7 @@ type ResumeTaskSuccess = {
 
 export type ResumeTaskWorkflow = (
   command: ResumeTaskCommand,
-) => ResultAsync<ResumeTaskSuccess, string>;
+) => ResultAsync<ResumeTaskSuccess, DatabaseError>;
 
 /**
  * Resolve Blocked
@@ -192,7 +193,7 @@ type ResolveBlockedSuccess = {
 
 export type ResolveBlockedWorkflow = (
   command: ResolveBlockedCommand,
-) => ResultAsync<ResolveBlockedSuccess, string>;
+) => ResultAsync<ResolveBlockedSuccess, DatabaseError>;
 
 /**
  * List Tasks
@@ -222,4 +223,4 @@ type ListTasksSuccess = {
 
 export type ListTasksWorkflow = (
   command: ListTasksCommand,
-) => ResultAsync<ListTasksSuccess, string>;
+) => ResultAsync<ListTasksSuccess, DatabaseError>;

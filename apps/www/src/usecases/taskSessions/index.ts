@@ -8,8 +8,9 @@ import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import { createEventStore } from "@/repos/event-store";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 import type { HonoEnv } from "@/types";
+import { DatabaseError } from "@/lib/db";
 import type { Database } from "@ava/database/client";
-import { ResultAsync } from "neverthrow";
+import { okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 import type {
   CancelTaskWorkflow,
@@ -135,7 +136,10 @@ export const createStartTaskWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to start task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to start task",
+          error,
+        ),
     );
   };
 };
@@ -169,7 +173,10 @@ export const createUpdateTaskWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to update task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to update task",
+          error,
+        ),
     );
   };
 };
@@ -194,9 +201,14 @@ export const createCompleteTaskWorkflow = (
           },
         });
 
-        const unresolvedBlocks =
-          (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
+        const unresolvedBlocksResult =
+          await taskRepository.getUnresolvedBlockReports(taskSessionId);
 
+        if (!unresolvedBlocksResult.isOk()) {
+          throw unresolvedBlocksResult.error;
+        }
+
+        const unresolvedBlocks = unresolvedBlocksResult.value;
         const nextState = apply(result.state, result.events);
 
         const data: CompleteTaskSuccess = {
@@ -216,7 +228,10 @@ export const createCompleteTaskWorkflow = (
         return data;
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to complete task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to complete task",
+          error,
+        ),
     );
   };
 };
@@ -250,9 +265,12 @@ export const createReportBlockedWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error
-          ? error.message
-          : "Failed to report blocked status",
+        new DatabaseError(
+          error instanceof Error
+            ? error.message
+            : "Failed to report blocked status",
+          error,
+        ),
     );
   };
 };
@@ -286,7 +304,10 @@ export const createPauseTaskWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to pause task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to pause task",
+          error,
+        ),
     );
   };
 };
@@ -319,7 +340,10 @@ export const createResumeTaskWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to resume task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to resume task",
+          error,
+        ),
     );
   };
 };
@@ -353,9 +377,12 @@ export const createResolveBlockedWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error
-          ? error.message
-          : "Failed to resolve blocked status",
+        new DatabaseError(
+          error instanceof Error
+            ? error.message
+            : "Failed to resolve blocked status",
+          error,
+        ),
     );
   };
 };
@@ -389,7 +416,10 @@ export const createCancelTaskWorkflow = (
         };
       })(),
       (error) =>
-        error instanceof Error ? error.message : "Failed to cancel task",
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to cancel task",
+          error,
+        ),
     );
   };
 };
@@ -398,33 +428,26 @@ export const createListTasksWorkflow = (
   taskRepository: TaskQueryRepository,
 ): ListTasksWorkflow => {
   return (command) => {
-    const { workspace, user, params } = command;
-    const { status, limit } = params;
-
-    return ResultAsync.fromPromise(
-      (async () => {
-        const sessions = await taskRepository.listTaskSessions({
-          userId: user.id,
-          workspaceId: workspace.id,
-          status: toTaskStatus(status),
-          limit,
-        });
-
-        return {
-          total: sessions.length,
-          tasks: sessions.map((session) => ({
-            taskSessionId: session.id,
-            issueProvider: session.issueProvider,
-            issueId: session.issueId,
-            issueTitle: session.issueTitle,
-            status: session.status,
-            createdAt: session.createdAt,
-            updatedAt: session.updatedAt,
-          })),
-        };
-      })(),
-      (error) =>
-        error instanceof Error ? error.message : "Failed to list tasks",
-    );
+    return okAsync(command)
+      .andThen((command) =>
+        taskRepository.listTaskSessions({
+          userId: command.user.id,
+          workspaceId: command.workspace.id,
+          status: toTaskStatus(command.params.status),
+          limit: command.params.limit,
+        }),
+      )
+      .map((sessions) => ({
+        total: sessions.length,
+        tasks: sessions.map((session) => ({
+          taskSessionId: session.id,
+          issueProvider: session.issueProvider,
+          issueId: session.issueId,
+          issueTitle: session.issueTitle,
+          status: session.status,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+        })),
+      }));
   };
 };

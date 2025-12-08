@@ -49,17 +49,21 @@ describe("listEvents", () => {
 
     const repo = createTaskQueryRepository(db);
 
-    const events = await repo.listEvents({
+    const eventsResult = await repo.listEvents({
       taskSessionId: streamId,
       limit: 10,
     });
-    expect(events.map((event) => event.eventType)).toEqual(["started"]);
+    expect.assert(eventsResult.isOk());
+    expect(eventsResult.value.map((event) => event.eventType)).toEqual([
+      "started",
+    ]);
 
-    const withTechnical = await repo.listEvents({
+    const withTechnicalResult = await repo.listEvents({
       taskSessionId: streamId,
       includeTechnicalEvents: true,
     });
-    expect(withTechnical.map((event) => event.eventType)).toEqual([
+    expect.assert(withTechnicalResult.isOk());
+    expect(withTechnicalResult.value.map((event) => event.eventType)).toEqual([
       "slack_thread_linked",
       "started",
     ]);
