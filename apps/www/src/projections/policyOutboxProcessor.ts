@@ -1,4 +1,11 @@
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
+import {
+  notifyPayloadSchema,
+  type ParsedNotifyPayload,
+  type ParsedPolicy,
+  reactionPayloadSchema,
+  type ParsedReactionPayload,
+} from "@/projections/taskPolicySchemas";
 import { createWorkspaceRepository } from "@/repos";
 import { createEventStore } from "@/repos/event-store";
 import { createSlackNotificationService } from "@/services/slackNotificationService";
@@ -14,79 +21,7 @@ import {
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { and, eq } from "drizzle-orm";
-import { z } from "zod/v3";
 import type { NotifyPayload } from "./taskPolicyOutbox";
-
-const commonFields = {
-  workspaceId: z.string(),
-  userId: z.string().optional(),
-  channel: z.string().nullable(),
-  threadTs: z.string().nullable(),
-} as const;
-
-const issueSchema = z.object({
-  provider: z.enum(["github", "manual"]),
-  id: z.string().nullable().optional(),
-  title: z.string(),
-});
-
-const userInfoSchema = z.object({
-  id: z.string(),
-  name: z.string().nullable().optional(),
-  email: z.string().nullable().optional(),
-  slackId: z.string().nullable().optional(),
-});
-
-const notifyPayloadSchema = z.discriminatedUnion("template", [
-  z.object({
-    template: z.literal("started"),
-    issue: issueSchema,
-    initialSummary: z.string().min(1),
-    user: userInfoSchema,
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("updated"),
-    summary: z.string().min(1),
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("blocked"),
-    blockId: z.string(),
-    reason: z.string().min(1),
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("block_resolved"),
-    blockId: z.string(),
-    reason: z.string().min(1),
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("paused"),
-    pauseId: z.string(),
-    reason: z.string().min(1),
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("resumed"),
-    summary: z.string().min(1),
-    ...commonFields,
-  }),
-  z.object({
-    template: z.literal("completed"),
-    summary: z.string().min(1),
-    ...commonFields,
-  }),
-]);
-
-const reactionPayloadSchema = z.object({
-  workspaceId: z.string(),
-  userId: z.string().optional(),
-  channel: z.string().nullable(),
-  threadTs: z.string().nullable(),
-  emoji: z.string(),
-});
 
 type NotifyTemplate = NotifyPayload["template"];
 type TaskPolicyRow = typeof schema.taskPolicyOutbox.$inferSelect;
@@ -110,13 +45,6 @@ type NotifyBuilderMap = {
   >;
 };
 
-type ParsedNotifyPayload = z.infer<typeof notifyPayloadSchema>;
-type ParsedReactionPayload = z.infer<typeof reactionPayloadSchema>;
-
-type ParsedPolicy =
-  | { kind: "notify"; payload: ParsedNotifyPayload }
-  | { kind: "reaction"; payload: ParsedReactionPayload };
-
 type ProcessResult = {
   delivered: boolean;
   channel: string | null;
@@ -127,23 +55,22 @@ type ProcessResult = {
 function parsePolicyPayload(
   policy: typeof schema.taskPolicyOutbox.$inferSelect,
 ): ParsedPolicy | null {
-  if (policy.policyType === "slack_notify") {
-    const parsed = notifyPayloadSchema.safeParse(policy.payload);
-    if (parsed.success) {
-      return { kind: "notify", payload: parsed.data };
+  switch (policy.policyType) {
+    case "slack_notify": {
+      const parsed = notifyPayloadSchema.safeParse(policy.payload);
+      return parsed.success
+        ? { kind: "notify" as const, payload: parsed.data }
+        : null;
     }
-    return null;
-  }
-
-  if (policy.policyType === "slack_reaction") {
-    const parsed = reactionPayloadSchema.safeParse(policy.payload);
-    if (parsed.success) {
-      return { kind: "reaction", payload: parsed.data };
+    case "slack_reaction": {
+      const parsed = reactionPayloadSchema.safeParse(policy.payload);
+      return parsed.success
+        ? { kind: "reaction" as const, payload: parsed.data }
+        : null;
     }
-    return null;
+    default:
+      return null;
   }
-
-  return null;
 }
 
 async function updatePolicyStatus(params: {
@@ -211,27 +138,21 @@ function buildNotifyMessage(
   policy: TaskPolicyRow,
   payload: ParsedNotifyPayload,
 ) {
-  // Use a type-safe helper function that narrows the payload type
-  const callBuilder = <T extends NotifyTemplate>(
-    template: T,
-    p: Extract<ParsedNotifyPayload, { template: T }>,
-  ) => notifyMessageBuilders[template](policy, p);
-
   switch (payload.template) {
     case "started":
-      return callBuilder("started", payload);
+      return notifyMessageBuilders.started(policy, payload);
     case "updated":
-      return callBuilder("updated", payload);
+      return notifyMessageBuilders.updated(policy, payload);
     case "blocked":
-      return callBuilder("blocked", payload);
+      return notifyMessageBuilders.blocked(policy, payload);
     case "block_resolved":
-      return callBuilder("block_resolved", payload);
+      return notifyMessageBuilders.block_resolved(policy, payload);
     case "paused":
-      return callBuilder("paused", payload);
+      return notifyMessageBuilders.paused(policy, payload);
     case "resumed":
-      return callBuilder("resumed", payload);
+      return notifyMessageBuilders.resumed(policy, payload);
     case "completed":
-      return callBuilder("completed", payload);
+      return notifyMessageBuilders.completed(policy, payload);
     default:
       return null;
   }
@@ -397,6 +318,117 @@ async function processReaction(params: {
   }
 }
 
+type PolicyProcessor = {
+  process: (params: {
+    db: Database;
+    policy: TaskPolicyRow;
+    workspace: schema.Workspace;
+    channel: string | null;
+    threadTs: string | null;
+    slackService: ReturnType<typeof createSlackNotificationService>;
+  }) => Promise<ProcessResult>;
+};
+
+const policyProcessors: Record<ParsedPolicy["kind"], PolicyProcessor> = {
+  notify: {
+    process: async ({
+      db,
+      policy,
+      workspace,
+      channel,
+      threadTs,
+      slackService,
+    }) => {
+      const parsed = parsePolicyPayload(policy);
+      if (!parsed || parsed.kind !== "notify") {
+        return { delivered: false, channel, threadTs };
+      }
+      return processNotify({
+        db,
+        policy,
+        payload: parsed.payload,
+        workspace,
+        channel,
+        threadTs,
+        slackService,
+      });
+    },
+  },
+  reaction: {
+    process: async ({ policy, workspace, channel, threadTs, slackService }) => {
+      const parsed = parsePolicyPayload(policy);
+      if (!parsed || parsed.kind !== "reaction") {
+        return { delivered: false, channel, threadTs };
+      }
+      return processReaction({
+        payload: parsed.payload,
+        workspace,
+        channel,
+        threadTs,
+        slackService,
+      });
+    },
+  },
+};
+
+async function processSinglePolicy(
+  db: Database,
+  policy: TaskPolicyRow,
+  workspaceRepo: ReturnType<typeof createWorkspaceRepository>,
+  slackService: ReturnType<typeof createSlackNotificationService>,
+): Promise<void> {
+  const parsed = parsePolicyPayload(policy);
+  if (!parsed) {
+    await updatePolicyStatus({
+      db,
+      policy,
+      status: "failed",
+      channel: null,
+      threadTs: null,
+      error: "invalid_payload",
+    });
+    return;
+  }
+
+  const workspace = await workspaceRepo.findWorkspaceById(
+    parsed.payload.workspaceId,
+  );
+  if (!workspace || !workspace.botAccessToken) {
+    await updatePolicyStatus({
+      db,
+      policy,
+      status: "failed",
+      channel: parsed.payload.channel ?? null,
+      threadTs: parsed.payload.threadTs ?? null,
+      error: "workspace_not_found_or_bot_not_configured",
+    });
+    return;
+  }
+
+  const channel =
+    parsed.payload.channel ?? workspace.notificationChannelId ?? null;
+  const threadTs = parsed.payload.threadTs ?? null;
+
+  const processor = policyProcessors[parsed.kind];
+  const result = await processor.process({
+    db,
+    policy,
+    workspace,
+    channel,
+    threadTs,
+    slackService,
+  });
+
+  await updatePolicyStatus({
+    db,
+    policy,
+    status: result.delivered ? "processed" : "failed",
+    channel: result.channel,
+    threadTs: result.threadTs,
+    error: result.error,
+  });
+}
+
 export async function processTaskPolicyOutbox(db: Database) {
   const workspaceRepo = createWorkspaceRepository(db);
   const slackService = createSlackNotificationService(workspaceRepo);
@@ -408,64 +440,6 @@ export async function processTaskPolicyOutbox(db: Database) {
     .limit(50);
 
   for (const policy of pending) {
-    const parsed = parsePolicyPayload(policy);
-    if (!parsed) {
-      await updatePolicyStatus({
-        db,
-        policy,
-        status: "failed",
-        channel: null,
-        threadTs: null,
-        error: "invalid_payload",
-      });
-      continue;
-    }
-
-    const workspace = await workspaceRepo.findWorkspaceById(
-      parsed.payload.workspaceId,
-    );
-    if (!workspace || !workspace.botAccessToken) {
-      await updatePolicyStatus({
-        db,
-        policy,
-        status: "failed",
-        channel: parsed.payload.channel ?? null,
-        threadTs: parsed.payload.threadTs ?? null,
-        error: "workspace_not_found_or_bot_not_configured",
-      });
-      continue;
-    }
-
-    const channel =
-      parsed.payload.channel ?? workspace.notificationChannelId ?? null;
-    const threadTs = parsed.payload.threadTs ?? null;
-
-    const result =
-      parsed.kind === "notify"
-        ? await processNotify({
-            db,
-            policy,
-            payload: parsed.payload,
-            workspace,
-            channel,
-            threadTs,
-            slackService,
-          })
-        : await processReaction({
-            payload: parsed.payload,
-            workspace,
-            channel,
-            threadTs,
-            slackService,
-          });
-
-    await updatePolicyStatus({
-      db,
-      policy,
-      status: result.delivered ? "processed" : "failed",
-      channel: result.channel,
-      threadTs: result.threadTs,
-      error: result.error,
-    });
+    await processSinglePolicy(db, policy, workspaceRepo, slackService);
   }
 }
