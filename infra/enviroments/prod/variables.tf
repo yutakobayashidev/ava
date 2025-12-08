@@ -17,3 +17,9 @@ variable "webhook_base_url" {
   description = "Webhook のベース URL (例: https://yourdomain.com)"
   type        = string
 }
+
+variable "axiom_api_key" {
+  description = "Axiom API キー (環境変数 TF_VAR_axiom_api_key で設定)"
+  type        = string
+  sensitive   = true
+}

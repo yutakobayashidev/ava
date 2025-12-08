@@ -72,6 +72,7 @@ let nextConfig: NextConfig = {
     "@opentelemetry/sdk-node",
     "@opentelemetry/sdk-trace-base",
     "@opentelemetry/semantic-conventions",
+    "@opentelemetry/sdk-trace-node",
   ],
 };
 

@@ -9,6 +9,10 @@ project_name = "ava"
 # 例: export TF_VAR_stripe_api_key=sk_live_xxxxx
 # stripe_api_key = "sk_live_xxxxx"
 
+# Axiom APIキーは環境変数 TF_VAR_axiom_api_key で設定することを推奨
+# 例: export TF_VAR_axiom_api_key=xapt-xxxxx
+# axiom_api_key = "xapt-xxxxx"
+
 # Webhook のベース URL (本番環境のドメイン)
 # 例: webhook_base_url = "https://yourdomain.com"
 webhook_base_url = "https://yourdomain.com"

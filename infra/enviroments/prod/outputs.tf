@@ -21,3 +21,13 @@ output "stripe_webhook_secret" {
   value       = stripe_webhook_endpoint.webhook.secret
   sensitive   = true
 }
+
+output "axiom_dataset_id" {
+  description = "Axiom Dataset ID"
+  value       = axiom_dataset.ava_otel_traces.id
+}
+
+output "axiom_dataset_name" {
+  description = "Axiom Dataset Name"
+  value       = axiom_dataset.ava_otel_traces.name
+}
