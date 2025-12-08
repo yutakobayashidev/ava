@@ -1,4 +1,5 @@
 import { createTaskCommandExecutor } from "./commandExecutor";
+import { apply } from "@/objects/task/decider";
 import type { PauseTaskInput, PauseTaskOutput } from "./interface";
 
 export const createPauseTask = (
@@ -20,12 +21,14 @@ export const createPauseTask = (
         },
       });
 
+      const nextState = apply(result.state, result.events);
+
       return {
         success: true,
         data: {
           taskSessionId: taskSessionId,
           pauseReportId: result.persistedEvents[0].id,
-          status: result.nextState.status,
+          status: nextState.status,
           pausedAt: result.persistedEvents[0].createdAt,
         },
       };

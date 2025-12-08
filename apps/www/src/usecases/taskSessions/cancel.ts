@@ -1,4 +1,5 @@
 import { createTaskCommandExecutor } from "./commandExecutor";
+import { apply } from "@/objects/task/decider";
 import type { CancelTaskInput, CancelTaskOutput } from "./interface";
 
 export const createCancelTask = (
@@ -20,12 +21,14 @@ export const createCancelTask = (
         },
       });
 
+      const nextState = apply(result.state, result.events);
+
       return {
         success: true,
         data: {
           taskSessionId,
           cancellationId: result.persistedEvents[0]?.id ?? "",
-          status: result.nextState.status,
+          status: nextState.status,
           cancelledAt: result.persistedEvents[0]?.createdAt ?? new Date(),
         },
       };

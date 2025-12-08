@@ -1,4 +1,5 @@
 import { createTaskCommandExecutor } from "./commandExecutor";
+import { apply } from "@/objects/task/decider";
 import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
 
 export const createResumeTask = (
@@ -20,11 +21,13 @@ export const createResumeTask = (
         },
       });
 
+      const nextState = apply(result.state, result.events);
+
       return {
         success: true,
         data: {
           taskSessionId: taskSessionId,
-          status: result.nextState.status,
+          status: nextState.status,
           resumedAt: result.persistedEvents[0]?.createdAt ?? new Date(),
         },
       };

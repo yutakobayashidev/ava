@@ -1,4 +1,5 @@
 import { createTaskCommandExecutor } from "./commandExecutor";
+import { apply } from "@/objects/task/decider";
 import type { ResolveBlockedInput, ResolveBlockedOutput } from "./interface";
 
 export const createResolveBlocked = (
@@ -20,12 +21,14 @@ export const createResolveBlocked = (
         },
       });
 
+      const nextState = apply(result.state, result.events);
+
       return {
         success: true,
         data: {
           taskSessionId: taskSessionId,
           blockReportId: blockReportId,
-          status: result.nextState.status,
+          status: nextState.status,
           resolvedAt: result.persistedEvents[0].createdAt,
         },
       };

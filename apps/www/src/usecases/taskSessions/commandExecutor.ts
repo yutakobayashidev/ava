@@ -1,4 +1,4 @@
-import { apply, decide, replay } from "@/objects/task/decider";
+import { decide, replay } from "@/objects/task/decider";
 import type { Command } from "@/objects/task/types";
 import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
 import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
@@ -53,12 +53,10 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
       console.error("Failed to process task policy outbox", err);
     }
 
-    const nextState = apply(state, newEvents);
-
     return {
       events: newEvents,
       persistedEvents: appendResult.persistedEvents,
-      nextState,
+      state,
       version: appendResult.newVersion,
     };
   };

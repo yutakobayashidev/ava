@@ -1,4 +1,5 @@
 import type { TaskQueryRepository } from "@/repos";
+import { apply } from "@/objects/task/decider";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import type {
   CompleteTaskInput,
@@ -37,10 +38,12 @@ export const createCompleteTask = (
     const unresolvedBlocks =
       (await taskRepository.getUnresolvedBlockReports(taskSessionId)) || [];
 
+    const nextState = apply(result.state, result.events);
+
     const data: CompleteTaskSuccess = {
       taskSessionId: taskSessionId,
       completionId: result.persistedEvents[0]?.id ?? "",
-      status: result.nextState.status,
+      status: nextState.status,
     };
 
     if (unresolvedBlocks.length > 0) {

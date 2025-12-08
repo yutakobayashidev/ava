@@ -1,4 +1,5 @@
 import { createTaskCommandExecutor } from "./commandExecutor";
+import { apply } from "@/objects/task/decider";
 import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
 
 export const createUpdateTask = (
@@ -20,12 +21,14 @@ export const createUpdateTask = (
         },
       });
 
+      const nextState = apply(result.state, result.events);
+
       return {
         success: true,
         data: {
           taskSessionId: taskSessionId,
           updateId: result.persistedEvents[0].id,
-          status: result.nextState.status,
+          status: nextState.status,
           summary,
         },
       };
