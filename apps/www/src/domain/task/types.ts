@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { uuidv7 } from "uuidv7";
 
 export type TaskStatus =
   | "in_progress"
@@ -101,9 +101,9 @@ export const initialState: TaskState = {
 };
 
 export function newBlockId() {
-  return randomUUID();
+  return uuidv7();
 }
 
 export function newPauseId() {
-  return randomUUID();
+  return uuidv7();
 }

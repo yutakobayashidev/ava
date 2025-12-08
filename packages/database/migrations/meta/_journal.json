@@ -36,6 +36,13 @@
       "when": 1765148791509,
       "tag": "0004_glossy_skaar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765156892318,
+      "tag": "0005_furry_white_queen",
+      "breakpoints": true
     }
   ]
 }

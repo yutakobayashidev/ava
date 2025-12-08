@@ -194,8 +194,9 @@ describe("createMcpServer", async () => {
       })) as CallToolResult;
 
       const textContent = result.content[0] as TextContent;
-      expect(textContent.text).toContain("Invalid status transition");
-      expect(textContent.text).toContain("completed → in_progress");
+      expect(textContent.text).toContain(
+        "Invalid status transition: completed → in_progress. Allowed transitions from completed: []",
+      );
     });
   });
 
@@ -365,7 +366,9 @@ describe("createMcpServer", async () => {
       })) as CallToolResult;
 
       const textContent = result.content[0] as TextContent;
-      expect(textContent.text).toContain("Invalid status transition");
+      expect(textContent.text).toContain(
+        "Invalid status transition: completed → in_progress. Allowed transitions from completed: []",
+      );
       expect(textContent.text).toContain("completed → in_progress");
     });
   });
@@ -497,7 +500,7 @@ describe("createMcpServer", async () => {
       })) as CallToolResult;
 
       const textContent = result.content[0] as TextContent;
-      expect(textContent.text).toBe("ブロッキングの解決処理に失敗しました");
+      expect(textContent.text).toBe("Block not found or already resolved");
     });
 
     it("完了したタスクのブロックは解決できない", async () => {
@@ -552,8 +555,7 @@ describe("createMcpServer", async () => {
       })) as CallToolResult;
 
       const textContent = result.content[0] as TextContent;
-      expect(textContent.text).toContain("Invalid status transition");
-      expect(textContent.text).toContain("completed → in_progress");
+      expect(textContent.text).toContain("Block not found or already resolved");
     });
   });
 

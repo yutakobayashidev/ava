@@ -34,10 +34,7 @@ export const createResolveBlocked = (
         err instanceof Error ? err.message : "ブロッキングの解決に失敗しました";
       return {
         success: false,
-        error:
-          message === "Block not found or already resolved"
-            ? "ブロッキングの解決処理に失敗しました"
-            : message,
+        error: message,
       };
     }
   };

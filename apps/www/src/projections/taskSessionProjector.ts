@@ -17,18 +17,21 @@ export async function projectTaskEvents(
   for (const event of events) {
     switch (event.type) {
       case "TaskStarted": {
-        await db.insert(schema.taskSessions).values({
-          id: streamId,
-          userId: context.userId,
-          workspaceId: context.workspaceId,
-          issueProvider: event.payload.issue.provider,
-          issueId: event.payload.issue.id ?? null,
-          issueTitle: event.payload.issue.title,
-          initialSummary: event.payload.initialSummary,
-          status: "in_progress",
-          createdAt: event.payload.occurredAt,
-          updatedAt: event.payload.occurredAt,
-        });
+        await db
+          .insert(schema.taskSessions)
+          .values({
+            id: streamId,
+            userId: context.userId,
+            workspaceId: context.workspaceId,
+            issueProvider: event.payload.issue.provider,
+            issueId: event.payload.issue.id ?? null,
+            issueTitle: event.payload.issue.title,
+            initialSummary: event.payload.initialSummary,
+            status: "in_progress",
+            createdAt: event.payload.occurredAt,
+            updatedAt: event.payload.occurredAt,
+          })
+          .onConflictDoNothing();
         break;
       }
       case "TaskUpdated": {

@@ -98,6 +98,6 @@ describe("Task decider", () => {
         { type: "AddProgress", payload: { summary: "more" } },
         now,
       ),
-    ).toThrowError(/Terminal task/);
+    ).toThrowError(/Invalid status transition/);
   });
 });
