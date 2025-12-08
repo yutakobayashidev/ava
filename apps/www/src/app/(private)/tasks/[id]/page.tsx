@@ -1,5 +1,5 @@
 import { Header } from "@/components/header";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/task/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
@@ -16,22 +16,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
-function StatusBadge({ status }: { status: string }) {
-  const variants = {
-    in_progress: { variant: "default" as const, label: "進行中" },
-    blocked: { variant: "destructive" as const, label: "ブロック中" },
-    paused: { variant: "secondary" as const, label: "休止中" },
-    completed: { variant: "secondary" as const, label: "完了" },
-    cancelled: { variant: "destructive" as const, label: "キャンセル" },
-  };
-
-  const config =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    variants[status as keyof typeof variants] || variants.in_progress;
-
-  return <Badge variant={config.variant}>{config.label}</Badge>;
-}
 
 function EventIcon({ eventType }: { eventType: string }) {
   switch (eventType) {
