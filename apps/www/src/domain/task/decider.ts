@@ -1,3 +1,4 @@
+import { validateTransition } from "../task-status";
 import {
   Command,
   Event,
@@ -6,9 +7,8 @@ import {
   newBlockId,
   newPauseId,
 } from "./types";
-import { validateTransition } from "../task-status";
 
-export function evolve(state: TaskState, event: Event): TaskState {
+function evolve(state: TaskState, event: Event): TaskState {
   switch (event.type) {
     case "TaskStarted":
       return {

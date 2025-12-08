@@ -1,4 +1,5 @@
 import { HonoEnv } from "@/types";
+import type { TaskStatusFilter } from "@/domain/task-status";
 
 /**
  * タスクセッション関連のユースケースの入出力型定義
@@ -227,7 +228,7 @@ export type ResolveBlockedOutput =
 // ============================================
 
 type ListTasksParams = {
-  status?: "inProgress" | "blocked" | "paused" | "completed";
+  status?: TaskStatusFilter;
   limit?: number;
 };
 

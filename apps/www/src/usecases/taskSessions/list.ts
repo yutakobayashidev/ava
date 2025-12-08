@@ -1,15 +1,6 @@
+import { toTaskStatus } from "@/domain/task-status";
 import type { TaskQueryRepository } from "@/repos";
 import type { ListTasksInput, ListTasksOutput } from "./interface";
-
-// ステータスをDBの形式に変換
-function convertStatusToDb(
-  status?: string,
-): "in_progress" | "blocked" | "paused" | "completed" | undefined {
-  if (status === "inProgress") return "in_progress";
-  if (status === "blocked" || status === "paused" || status === "completed")
-    return status;
-  return undefined;
-}
 
 export const createListTasks = (taskRepository: TaskQueryRepository) => {
   return async (input: ListTasksInput): Promise<ListTasksOutput> => {
@@ -19,7 +10,7 @@ export const createListTasks = (taskRepository: TaskQueryRepository) => {
     const sessions = await taskRepository.listTaskSessions({
       userId: user.id,
       workspaceId: workspace.id,
-      status: convertStatusToDb(status),
+      status: toTaskStatus(status),
       limit,
     });
 

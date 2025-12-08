@@ -8,7 +8,7 @@ import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 
-export type TaskCommandExecutorDeps = {
+type TaskCommandExecutorDeps = {
   db: Database;
 };
 

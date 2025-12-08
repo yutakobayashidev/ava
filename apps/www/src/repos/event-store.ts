@@ -1,8 +1,8 @@
-import { desc, eq, sql } from "drizzle-orm";
-import { uuidv7 } from "uuidv7";
+import type { Event } from "@/domain/task/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import type { Event } from "@/domain/task/types";
+import { desc, eq, sql } from "drizzle-orm";
+import { uuidv7 } from "uuidv7";
 
 type AppendResult = {
   newVersion: number;
@@ -102,7 +102,7 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
   }
 }
 
-export type EventStore = {
+type EventStore = {
   load: (streamId: string) => Promise<Event[]>;
   append: (
     streamId: string,

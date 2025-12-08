@@ -29,7 +29,7 @@ export type SlackMessage = {
  * - Slack APIへのメッセージ配送のみを担当
  * - メッセージ文言の組み立てはユースケース層で行う
  */
-export type SlackNotificationService = {
+type SlackNotificationService = {
   /**
    * メッセージを投稿
    */

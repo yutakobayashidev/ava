@@ -1,13 +1,13 @@
 import { uuidv7 } from "uuidv7";
 
-export type TaskStatus =
+type TaskStatus =
   | "in_progress"
   | "blocked"
   | "paused"
   | "completed"
   | "cancelled";
 
-export type Issue = {
+type Issue = {
   provider: "github" | "manual";
   id?: string | null;
   title: string;

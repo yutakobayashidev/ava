@@ -3,8 +3,10 @@ import {
   ALLOWED_TRANSITIONS,
   isTerminalStatus,
   isValidTransition,
+  toTaskStatus,
   validateTransition,
   type TaskStatus,
+  type TaskStatusFilter,
 } from "./task-status";
 
 describe("task-status", () => {
@@ -139,6 +141,26 @@ describe("task-status", () => {
       expect(isTerminalStatus("in_progress")).toBe(false);
       expect(isTerminalStatus("blocked")).toBe(false);
       expect(isTerminalStatus("paused")).toBe(false);
+    });
+  });
+
+  describe("toTaskStatus", () => {
+    it("should map filter statuses to domain statuses", () => {
+      const expectations: Record<TaskStatusFilter, TaskStatus> = {
+        inProgress: "in_progress",
+        blocked: "blocked",
+        paused: "paused",
+        completed: "completed",
+      };
+
+      Object.entries(expectations).forEach(([filter, status]) => {
+        expect(toTaskStatus(filter as TaskStatusFilter)).toBe(status);
+      });
+    });
+
+    it("should return undefined for missing or unknown value", () => {
+      expect(toTaskStatus()).toBeUndefined();
+      expect(toTaskStatus("other" as TaskStatusFilter)).toBeUndefined();
     });
   });
 });

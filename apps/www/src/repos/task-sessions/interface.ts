@@ -2,10 +2,6 @@ import type * as schema from "@ava/database/schema";
 
 export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
 
-export type ListOptions = {
-  limit?: number;
-};
-
 export type ListTaskSessionsRequest = {
   userId: string;
   workspaceId: string;
