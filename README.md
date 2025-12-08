@@ -125,6 +125,22 @@ Web UI でタスクの可視化：
 
 ## アーキテクチャ
 
+### Monorepo 構成
+
+このプロジェクトは pnpm workspace を使用した monorepo 構成です:
+
+```
+ava/
+├── apps/
+│   └── www/              # Next.js アプリケーション (MCP サーバー、API、ダッシュボード)
+├── packages/
+│   ├── database/         # Drizzle ORM スキーマと DB ユーティリティ
+│   └── integrations/     # 外部サービス連携 (Slack, Stripe など)
+└── infra/                # Terraform による Infrastructure as Code
+```
+
+### システムアーキテクチャ
+
 ```
 ┌─────────────────┐
 │   AI Agents     │
@@ -132,25 +148,30 @@ Web UI でタスクの可視化：
 └────────┬────────┘
          │ HTTPS + OAuth 2.1
          ▼
-┌─────────────────────────────────────┐
-│         Ava (Next.js 16)            │
-│                                     │
-│  ┌──────────┐      ┌────────────┐  │
-│  │   /mcp   │      │  /api/*    │  │
-│  │  (Hono)  │      │  (Hono)    │  │
-│  └──────────┘      └────────────┘  │
-│                                     │
-│  ┌──────────────────────────────┐  │
-│  │    Next.js App Router        │  │
-│  │  (Dashboard, Onboarding)     │  │
-│  └──────────────────────────────┘  │
-└────────┬───────────────────┬────────────┬────────┘
-         │                   │            │
-         ▼                   ▼            ▼
-  ┌─────────────┐    ┌──────────────┐ ┌─────────────┐
-  │ PostgreSQL  │    │  Slack API   │ │ Stripe API  │
-  │  (Drizzle)  │    │ (Bot, OIDC)  │ │ (Payments)  │
-  └─────────────┘    └──────────────┘ └─────────────┘
+┌─────────────────────────────────────────────────┐
+│            Ava (Next.js 16)                     │
+│                                                 │
+│  ┌──────────┐      ┌────────────┐              │
+│  │   /mcp   │      │  /api/*    │              │
+│  │  (Hono)  │      │  (Hono)    │              │
+│  └──────────┘      └────────────┘              │
+│                                                 │
+│  ┌──────────────────────────────┐              │
+│  │    Next.js App Router        │              │
+│  │  (Dashboard, Onboarding)     │              │
+│  └──────────────────────────────┘              │
+│                                                 │
+│  ┌──────────────────────────────┐              │
+│  │   OpenTelemetry              │              │
+│  │   (instrumentation.ts)       │              │
+│  └──────────────────────────────┘              │
+└────┬───────────┬───────────┬───────────┬────────┘
+     │           │           │           │
+     ▼           ▼           ▼           ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│PostgreSQL│ │Slack API │ │Stripe API│ │  Axiom   │
+│(Drizzle) │ │(Bot,OIDC)│ │(Payments)│ │ (Traces) │
+└──────────┘ └──────────┘ └──────────┘ └──────────┘
 ```
 
 **ルーティング構成:**
@@ -178,6 +199,7 @@ Web UI でタスクの可視化：
 | **AI**             | Vercel AI SDK + OpenAI                   |
 | **決済**           | Stripe                                   |
 | **Infrastructure** | Terraform, Stripe Provider (lukasaron)   |
+| **Observability**  | OpenTelemetry, Axiom                     |
 | **UI**             | Tailwind CSS v4, Radix UI, shadcn/ui     |
 | **型安全**         | TypeScript 5, Zod                        |
 | **テスト**         | Vitest, Playwright                       |
@@ -313,6 +335,8 @@ cp .env.example .env
 | `OPENAI_API_KEY`          | OpenAI API キー（日次レポート機能に使用）                                            | Yes  |
 | `STRIPE_SECRET_KEY`       | Stripe API キー（テスト環境: `sk_test_`、本番環境: `sk_live_`）                      | Yes  |
 | `STRIPE_WEBHOOK_SECRET`   | Stripe Webhook 署名シークレット（Webhook イベントの検証に使用）                      | Yes  |
+| `AXIOM_API_TOKEN`         | Axiom API トークン（OpenTelemetry トレースの送信に使用、本番環境のみ）               | No   |
+| `AXIOM_DATASET_NAME`      | Axiom データセット名（OpenTelemetry トレースの送信先、本番環境のみ）                 | No   |
 
 ---
 
