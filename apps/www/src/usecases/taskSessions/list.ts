@@ -1,10 +1,16 @@
 import { toTaskStatus } from "@/objects/task/task-status";
 import type { TaskQueryRepository } from "@/repos";
-import type { ListTasksInput, ListTasksOutput } from "./interface";
+import type { ListTasksCommand, ListTasksOutput } from "./interface";
 
-export const createListTasks = (taskRepository: TaskQueryRepository) => {
-  return async (input: ListTasksInput): Promise<ListTasksOutput> => {
-    const { workspace, user, params } = input;
+export type ListTasksWorkflow = (
+  command: ListTasksCommand,
+) => Promise<ListTasksOutput>;
+
+export const createListTasksWorkflow = (
+  taskRepository: TaskQueryRepository,
+): ListTasksWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { status, limit } = params;
 
     const sessions = await taskRepository.listTaskSessions({

@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { UpdateTaskInput, UpdateTaskOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { UpdateTaskCommand, UpdateTaskOutput } from "./interface";
 
-export const createUpdateTask = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: UpdateTaskInput): Promise<UpdateTaskOutput> => {
-    const { workspace, user, params } = input;
+export type UpdateTaskWorkflow = (
+  command: UpdateTaskCommand,
+) => Promise<UpdateTaskOutput>;
+
+export const createUpdateTaskWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): UpdateTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, summary } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,

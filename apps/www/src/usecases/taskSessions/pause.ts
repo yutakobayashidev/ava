@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { PauseTaskInput, PauseTaskOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { PauseTaskCommand, PauseTaskOutput } from "./interface";
 
-export const createPauseTask = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: PauseTaskInput): Promise<PauseTaskOutput> => {
-    const { workspace, user, params } = input;
+export type PauseTaskWorkflow = (
+  command: PauseTaskCommand,
+) => Promise<PauseTaskOutput>;
+
+export const createPauseTaskWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): PauseTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, reason } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,

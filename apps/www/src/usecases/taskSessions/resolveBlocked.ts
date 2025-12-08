@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { ResolveBlockedInput, ResolveBlockedOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { ResolveBlockedCommand, ResolveBlockedOutput } from "./interface";
 
-export const createResolveBlocked = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: ResolveBlockedInput): Promise<ResolveBlockedOutput> => {
-    const { workspace, user, params } = input;
+export type ResolveBlockedWorkflow = (
+  command: ResolveBlockedCommand,
+) => Promise<ResolveBlockedOutput>;
+
+export const createResolveBlockedWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): ResolveBlockedWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, blockReportId } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,

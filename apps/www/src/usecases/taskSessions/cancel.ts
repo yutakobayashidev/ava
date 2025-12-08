@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { CancelTaskInput, CancelTaskOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { CancelTaskCommand, CancelTaskOutput } from "./interface";
 
-export const createCancelTask = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: CancelTaskInput): Promise<CancelTaskOutput> => {
-    const { workspace, user, params } = input;
+export type CancelTaskWorkflow = (
+  command: CancelTaskCommand,
+) => Promise<CancelTaskOutput>;
+
+export const createCancelTaskWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): CancelTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, reason } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,
@@ -27,9 +30,9 @@ export const createCancelTask = (
         success: true,
         data: {
           taskSessionId,
-          cancellationId: result.persistedEvents[0]?.id ?? "",
+          cancellationId: result.persistedEvents[0].id,
           status: nextState.status,
-          cancelledAt: result.persistedEvents[0]?.createdAt ?? new Date(),
+          cancelledAt: result.persistedEvents[0].createdAt,
         },
       };
     } catch (err) {

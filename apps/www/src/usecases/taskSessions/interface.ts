@@ -2,18 +2,24 @@ import type { TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
 
 /**
- * タスクセッション関連のユースケースの入出力型定義
+ * 共通型
  */
 
-// ============================================
-// Common Types
-// ============================================
+export type BaseCommand<Params> = {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  params: Params;
+};
 
-// ============================================
-// Start Task
-// ============================================
+export type Result<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
 
-type StartTaskParams = {
+/**
+ * Start Task
+ */
+
+export type StartTaskParams = {
   issue: {
     provider: "github" | "manual";
     id?: string;
@@ -22,62 +28,46 @@ type StartTaskParams = {
   initialSummary: string;
 };
 
-export type StartTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: StartTaskParams;
-};
+export type StartTaskCommand = BaseCommand<StartTaskParams>;
 
-type StartTaskSuccess = {
+export type StartTaskSuccess = {
   taskSessionId: string;
   status: string;
   issuedAt: Date;
 };
 
-export type StartTaskOutput =
-  | { success: true; data: StartTaskSuccess }
-  | { success: false; error: string };
+export type StartTaskOutput = Result<StartTaskSuccess>;
 
-// ============================================
-// Update Task
-// ============================================
+/**
+ * Update Task
+ */
 
-type UpdateTaskParams = {
+export type UpdateTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
-export type UpdateTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: UpdateTaskParams;
-};
+export type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
 
-type UpdateTaskSuccess = {
+export type UpdateTaskSuccess = {
   taskSessionId: string;
   updateId: string;
   status: string;
   summary: string | null;
 };
 
-export type UpdateTaskOutput =
-  | { success: true; data: UpdateTaskSuccess }
-  | { success: false; error: string };
+export type UpdateTaskOutput = Result<UpdateTaskSuccess>;
 
-// ============================================
-// Complete Task
-// ============================================
+/**
+ * Complete Task
+ */
 
-type CompleteTaskParams = {
+export type CompleteTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
-export type CompleteTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: CompleteTaskParams;
-};
+export type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
 
 export type CompleteTaskSuccess = {
   taskSessionId: string;
@@ -90,155 +80,119 @@ export type CompleteTaskSuccess = {
   }>;
 };
 
-export type CompleteTaskOutput =
-  | { success: true; data: CompleteTaskSuccess }
-  | { success: false; error: string };
+export type CompleteTaskOutput = Result<CompleteTaskSuccess>;
 
-// ============================================
-// Cancel Task
-// ============================================
+/**
+ * Cancel Task
+ */
 
-type CancelTaskParams = {
+export type CancelTaskParams = {
   taskSessionId: string;
   reason?: string;
 };
 
-export type CancelTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: CancelTaskParams;
-};
+export type CancelTaskCommand = BaseCommand<CancelTaskParams>;
 
-type CancelTaskSuccess = {
+export type CancelTaskSuccess = {
   taskSessionId: string;
   cancellationId: string;
   status: string;
   cancelledAt: Date;
 };
 
-export type CancelTaskOutput =
-  | { success: true; data: CancelTaskSuccess }
-  | { success: false; error: string };
+export type CancelTaskOutput = Result<CancelTaskSuccess>;
 
-// ============================================
-// Report Blocked
-// ============================================
+/**
+ * Report Blocked
+ */
 
-type ReportBlockedParams = {
+export type ReportBlockedParams = {
   taskSessionId: string;
   reason: string;
 };
 
-export type ReportBlockedInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ReportBlockedParams;
-};
+export type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
 
-type ReportBlockedSuccess = {
+export type ReportBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
   reason: string | null;
 };
 
-export type ReportBlockedOutput =
-  | { success: true; data: ReportBlockedSuccess }
-  | { success: false; error: string };
+export type ReportBlockedOutput = Result<ReportBlockedSuccess>;
 
-// ============================================
-// Pause Task
-// ============================================
+/**
+ * Pause Task
+ */
 
-type PauseTaskParams = {
+export type PauseTaskParams = {
   taskSessionId: string;
   reason: string;
 };
 
-export type PauseTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: PauseTaskParams;
-};
+export type PauseTaskCommand = BaseCommand<PauseTaskParams>;
 
-type PauseTaskSuccess = {
+export type PauseTaskSuccess = {
   taskSessionId: string;
   pauseReportId: string;
   status: string;
   pausedAt: Date;
 };
 
-export type PauseTaskOutput =
-  | { success: true; data: PauseTaskSuccess }
-  | { success: false; error: string };
+export type PauseTaskOutput = Result<PauseTaskSuccess>;
 
-// ============================================
-// Resume Task
-// ============================================
+/**
+ * Resume Task
+ */
 
-type ResumeTaskParams = {
+export type ResumeTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
-export type ResumeTaskInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ResumeTaskParams;
-};
+export type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
 
-type ResumeTaskSuccess = {
+export type ResumeTaskSuccess = {
   taskSessionId: string;
   status: string;
   resumedAt: Date;
 };
 
-export type ResumeTaskOutput =
-  | { success: true; data: ResumeTaskSuccess }
-  | { success: false; error: string };
+export type ResumeTaskOutput = Result<ResumeTaskSuccess>;
 
-// ============================================
-// Resolve Blocked
-// ============================================
+/**
+ * Resolve Blocked
+ */
 
-type ResolveBlockedParams = {
+export type ResolveBlockedParams = {
   taskSessionId: string;
   blockReportId: string;
 };
 
-export type ResolveBlockedInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ResolveBlockedParams;
-};
+export type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
 
-type ResolveBlockedSuccess = {
+export type ResolveBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
   resolvedAt: Date;
 };
 
-export type ResolveBlockedOutput =
-  | { success: true; data: ResolveBlockedSuccess }
-  | { success: false; error: string };
+export type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
 
-// ============================================
-// List Tasks
-// ============================================
+/**
+ * List Tasks
+ */
 
-type ListTasksParams = {
+export type ListTasksParams = {
   status?: TaskStatusFilter;
   limit?: number;
 };
 
-export type ListTasksInput = {
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  params: ListTasksParams;
-};
+export type ListTasksCommand = BaseCommand<ListTasksParams>;
 
-type TaskSummary = {
+export type TaskSummary = {
   taskSessionId: string;
   issueProvider: string;
   issueId: string | null;
@@ -248,11 +202,9 @@ type TaskSummary = {
   updatedAt: Date;
 };
 
-type ListTasksSuccess = {
+export type ListTasksSuccess = {
   total: number;
   tasks: TaskSummary[];
 };
 
-export type ListTasksOutput =
-  | { success: true; data: ListTasksSuccess }
-  | { success: false; error: string };
+export type ListTasksOutput = Result<ListTasksSuccess>;

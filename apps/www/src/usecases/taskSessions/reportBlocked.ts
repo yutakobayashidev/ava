@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { ReportBlockedInput, ReportBlockedOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { ReportBlockedCommand, ReportBlockedOutput } from "./interface";
 
-export const createReportBlocked = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: ReportBlockedInput): Promise<ReportBlockedOutput> => {
-    const { workspace, user, params } = input;
+export type ReportBlockedWorkflow = (
+  command: ReportBlockedCommand,
+) => Promise<ReportBlockedOutput>;
+
+export const createReportBlockedWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): ReportBlockedWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, reason } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,

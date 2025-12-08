@@ -1,21 +1,24 @@
-import type { TaskQueryRepository } from "@/repos";
 import { apply } from "@/objects/task/decider";
-import { createTaskCommandExecutor } from "./commandExecutor";
+import type { TaskQueryRepository } from "@/repos";
+import { type TaskCommandExecutor } from "./commandExecutor";
 import type {
-  CompleteTaskInput,
+  CompleteTaskCommand,
   CompleteTaskOutput,
   CompleteTaskSuccess,
 } from "./interface";
 
-export const createCompleteTask = (
+export type CompleteTaskWorkflow = (
+  command: CompleteTaskCommand,
+) => Promise<CompleteTaskOutput>;
+
+export const createCompleteTaskWorkflow = (
   taskRepository: TaskQueryRepository,
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: CompleteTaskInput): Promise<CompleteTaskOutput> => {
-    const { workspace, user, params } = input;
+  executeCommand: TaskCommandExecutor,
+): CompleteTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, summary } = params;
 
-    const executeCommand = commandExecutorFactory;
     let result;
     try {
       result = await executeCommand({
@@ -42,7 +45,7 @@ export const createCompleteTask = (
 
     const data: CompleteTaskSuccess = {
       taskSessionId: taskSessionId,
-      completionId: result.persistedEvents[0]?.id ?? "",
+      completionId: result.persistedEvents[0].id,
       status: nextState.status,
     };
 

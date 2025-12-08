@@ -1,15 +1,18 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
 import { apply } from "@/objects/task/decider";
-import type { ResumeTaskInput, ResumeTaskOutput } from "./interface";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { ResumeTaskCommand, ResumeTaskOutput } from "./interface";
 
-export const createResumeTask = (
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: ResumeTaskInput): Promise<ResumeTaskOutput> => {
-    const { workspace, user, params } = input;
+export type ResumeTaskWorkflow = (
+  command: ResumeTaskCommand,
+) => Promise<ResumeTaskOutput>;
+
+export const createResumeTaskWorkflow = (
+  executeCommand: TaskCommandExecutor,
+): ResumeTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { taskSessionId, summary } = params;
 
-    const executeCommand = commandExecutorFactory;
     try {
       const result = await executeCommand({
         streamId: taskSessionId,
@@ -28,7 +31,7 @@ export const createResumeTask = (
         data: {
           taskSessionId: taskSessionId,
           status: nextState.status,
-          resumedAt: result.persistedEvents[0]?.createdAt ?? new Date(),
+          resumedAt: result.persistedEvents[0].createdAt,
         },
       };
     } catch (err) {

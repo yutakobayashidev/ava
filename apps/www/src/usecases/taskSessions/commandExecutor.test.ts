@@ -1,7 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@ava/database/schema";
-import { createTaskCommandExecutor } from "./commandExecutor";
+import {
+  createTaskCommandExecutor,
+  type TaskCommandExecutor,
+} from "./commandExecutor";
 import { setup } from "../../../tests/vitest.helper";
 
 const { db, createTestUserAndWorkspace } = await setup();
@@ -21,7 +24,7 @@ describe("createTaskCommandExecutor", () => {
     ReturnType<typeof createTestUserAndWorkspace>
   >["workspace"];
   let user: Awaited<ReturnType<typeof createTestUserAndWorkspace>>["user"];
-  let executeCommand: ReturnType<typeof createTaskCommandExecutor>;
+  let executeCommand: TaskCommandExecutor;
 
   beforeEach(async () => {
     vi.clearAllMocks();

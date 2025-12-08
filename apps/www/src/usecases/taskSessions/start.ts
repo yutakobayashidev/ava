@@ -1,15 +1,19 @@
-import { createTaskCommandExecutor } from "./commandExecutor";
-import { createSubscriptionRepository } from "@/repos";
+import { type SubscriptionRepository } from "@/repos";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
-import type { StartTaskInput, StartTaskOutput } from "./interface";
 import { uuidv7 } from "uuidv7";
+import { type TaskCommandExecutor } from "./commandExecutor";
+import type { StartTaskCommand, StartTaskOutput } from "./interface";
 
-export const createStartTask = (
-  subscriptionRepository: ReturnType<typeof createSubscriptionRepository>,
-  commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
-) => {
-  return async (input: StartTaskInput): Promise<StartTaskOutput> => {
-    const { workspace, user, params } = input;
+export type StartTaskWorkflow = (
+  command: StartTaskCommand,
+) => Promise<StartTaskOutput>;
+
+export const createStartTaskWorkflow = (
+  subscriptionRepository: SubscriptionRepository,
+  executeCommand: TaskCommandExecutor,
+): StartTaskWorkflow => {
+  return async (command) => {
+    const { workspace, user, params } = command;
     const { issue, initialSummary } = params;
 
     // プラン制限のチェック
@@ -26,7 +30,6 @@ export const createStartTask = (
 
     const streamId = uuidv7();
 
-    const executeCommand = commandExecutorFactory;
     try {
       await executeCommand({
         streamId,
