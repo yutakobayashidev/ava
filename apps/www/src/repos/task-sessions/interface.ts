@@ -1,3 +1,5 @@
+import type { DatabaseError } from "@/lib/db";
+import type { ResultAsync } from "neverthrow";
 import type * as schema from "@ava/database/schema";
 
 export type TaskStatus = (typeof schema.taskStatusEnum.enumValues)[number];
@@ -17,52 +19,53 @@ export type TaskQueryRepository = {
     taskSessionId: string,
     workspaceId: string,
     userId: string,
-  ) => Promise<schema.TaskSession | null>;
+  ) => ResultAsync<schema.TaskSession | null, DatabaseError>;
   getUnresolvedBlockReports: (
     taskSessionId: string,
-  ) => Promise<schema.TaskEvent[]>;
+  ) => ResultAsync<schema.TaskEvent[], DatabaseError>;
   getBulkUnresolvedBlockReports: (
     taskSessionIds: string[],
-  ) => Promise<Map<string, schema.TaskEvent[]>>;
+  ) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
   listTaskSessions: (
     params: ListTaskSessionsRequest,
-  ) => Promise<schema.TaskSession[]>;
+  ) => ResultAsync<schema.TaskSession[], DatabaseError>;
   updateSlackThread: (params: {
     taskSessionId: string;
     workspaceId: string;
     userId: string;
     threadTs: string;
     channel: string;
-  }) => Promise<schema.TaskSession | null>;
+  }) => ResultAsync<schema.TaskSession | null, DatabaseError>;
   listEvents: (params: {
     taskSessionId: string;
     eventType?: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
     includeTechnicalEvents?: boolean;
-  }) => Promise<schema.TaskEvent[]>;
+  }) => ResultAsync<schema.TaskEvent[], DatabaseError>;
   getBulkLatestEvents: (params: {
     taskSessionIds: string[];
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
     limit?: number;
-  }) => Promise<Map<string, schema.TaskEvent[]>>;
+  }) => ResultAsync<Map<string, schema.TaskEvent[]>, DatabaseError>;
   getLatestEvent: (params: {
     taskSessionId: string;
     eventType: (typeof schema.taskEventTypeEnum.enumValues)[number];
-  }) => Promise<schema.TaskEvent | null>;
+  }) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
   getLatestEventByTypes: (
     taskSessionId: string,
     eventTypes: (typeof schema.taskEventTypeEnum.enumValues)[number][],
-  ) => Promise<schema.TaskEvent | null>;
+  ) => ResultAsync<schema.TaskEvent | null, DatabaseError>;
   getTodayCompletedTasks: (params: {
     userId: string;
     workspaceId: string;
     dateRange: { from: Date; to: Date };
-  }) => Promise<
+  }) => ResultAsync<
     Array<
       schema.TaskSession & {
         completedAt: Date;
         completionSummary: string | null;
       }
-    >
+    >,
+    DatabaseError
   >;
 };

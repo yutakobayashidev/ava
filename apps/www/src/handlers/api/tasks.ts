@@ -2,6 +2,7 @@ import { createHonoApp } from "@/create-app";
 import { sessionMiddleware } from "@/middleware/session";
 import { createTaskQueryRepository } from "@/repos";
 import { zValidator } from "@hono/zod-validator";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 // クエリパラメータのバリデーション
@@ -23,7 +24,8 @@ const app = createHonoApp()
     const { limit, status } = c.req.valid("query");
 
     const taskRepository = createTaskQueryRepository(db);
-    const tasks = await taskRepository.listTaskSessions({
+
+    const tasksResult = await taskRepository.listTaskSessions({
       userId: user.id,
       workspaceId: workspace.id,
       status: status as
@@ -35,14 +37,32 @@ const app = createHonoApp()
       limit,
     });
 
+    if (!tasksResult.isOk()) {
+      console.error("Failed to list tasks:", tasksResult.error);
+      throw new HTTPException(500, { message: "Failed to list tasks" });
+    }
+
+    const tasks = tasksResult.value;
+
     // 各タスクの完了情報を取得し、所要時間を計算
     const tasksWithCompletion = await Promise.all(
       tasks.map(async (task) => {
-        const completedEvent = await taskRepository.getLatestEvent({
+        const completedEventResult = await taskRepository.getLatestEvent({
           taskSessionId: task.id,
           eventType: "completed",
         });
 
+        if (!completedEventResult.isOk()) {
+          console.error(
+            "Failed to get completed event:",
+            completedEventResult.error,
+          );
+          throw new HTTPException(500, {
+            message: "Failed to get completed event",
+          });
+        }
+
+        const completedEvent = completedEventResult.value;
         let durationMs: number | null = null;
         let completedAt: Date | null = null;
 
@@ -73,28 +93,54 @@ const app = createHonoApp()
     const id = c.req.param("id");
 
     const taskRepository = createTaskQueryRepository(db);
-    const task = await taskRepository.findTaskSessionById(
+
+    const taskResult = await taskRepository.findTaskSessionById(
       id,
       workspace.id,
       user.id,
     );
+
+    if (!taskResult.isOk()) {
+      console.error("Failed to get task:", taskResult.error);
+      throw new HTTPException(500, { message: "Failed to get task" });
+    }
+
+    const task = taskResult.value;
 
     if (!task) {
       return c.json({ error: "Task not found" }, 404);
     }
 
     // イベント一覧を取得
-    const events = await taskRepository.listEvents({
+    const eventsResult = await taskRepository.listEvents({
       taskSessionId: id,
       limit: 100,
     });
 
+    if (!eventsResult.isOk()) {
+      console.error("Failed to get events:", eventsResult.error);
+      throw new HTTPException(500, { message: "Failed to get events" });
+    }
+
+    const events = eventsResult.value;
+
     // 完了情報を取得
-    const completedEvent = await taskRepository.getLatestEvent({
+    const completedEventResult = await taskRepository.getLatestEvent({
       taskSessionId: task.id,
       eventType: "completed",
     });
 
+    if (!completedEventResult.isOk()) {
+      console.error(
+        "Failed to get completed event:",
+        completedEventResult.error,
+      );
+      throw new HTTPException(500, {
+        message: "Failed to get completed event",
+      });
+    }
+
+    const completedEvent = completedEventResult.value;
     let durationMs: number | null = null;
     let completedAt: Date | null = null;
 

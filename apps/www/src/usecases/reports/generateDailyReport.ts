@@ -37,6 +37,7 @@ type GenerateDailyReport = {
 type DailyReportResult =
   | { success: false; error: "workspace_not_found" | "user_not_found" }
   | { success: false; error: "no_activity" }
+  | { success: false; error: "database_error" }
   | { success: true; summary: string };
 
 function formatDuration(ms: number): string {
@@ -142,14 +143,26 @@ export const generateDailyReport = async (
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   // 今日完了したタスクを取得（1回のクエリで完了イベント情報も含む）
-  const todayCompletedTasks = await taskRepository.getTodayCompletedTasks({
-    userId: user.id,
-    workspaceId: workspace.id,
-    dateRange: { from: today, to: tomorrow },
-  });
+  const todayCompletedTasksResult = await taskRepository.getTodayCompletedTasks(
+    {
+      userId: user.id,
+      workspaceId: workspace.id,
+      dateRange: { from: today, to: tomorrow },
+    },
+  );
+
+  if (!todayCompletedTasksResult.isOk()) {
+    console.error(
+      "Failed to get today completed tasks:",
+      todayCompletedTasksResult.error,
+    );
+    return { success: false, error: "database_error" };
+  }
+
+  const todayCompletedTasks = todayCompletedTasksResult.value;
 
   // 今日更新された進行中・ブロック中タスクを取得（日付フィルタをDBで実行）
-  const inProgressTasks = await taskRepository.listTaskSessions({
+  const inProgressTasksResult = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
     status: "in_progress",
@@ -157,7 +170,18 @@ export const generateDailyReport = async (
     updatedBefore: tomorrow,
     limit: 100,
   });
-  const blockedTasks = await taskRepository.listTaskSessions({
+
+  if (!inProgressTasksResult.isOk()) {
+    console.error(
+      "Failed to get in progress tasks:",
+      inProgressTasksResult.error,
+    );
+    return { success: false, error: "database_error" };
+  }
+
+  const inProgressTasks = inProgressTasksResult.value;
+
+  const blockedTasksResult = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,
     status: "blocked",
@@ -165,6 +189,13 @@ export const generateDailyReport = async (
     updatedBefore: tomorrow,
     limit: 100,
   });
+
+  if (!blockedTasksResult.isOk()) {
+    console.error("Failed to get blocked tasks:", blockedTasksResult.error);
+    return { success: false, error: "database_error" };
+  }
+
+  const blockedTasks = blockedTasksResult.value;
 
   const todayActiveTasks = [...inProgressTasks, ...blockedTasks];
 
@@ -179,13 +210,31 @@ export const generateDailyReport = async (
   ];
 
   // バルクでunresolvedBlocksとupdateEventsを取得
-  const unresolvedBlocksMap =
+  const unresolvedBlocksMapResult =
     await taskRepository.getBulkUnresolvedBlockReports(allTaskIds);
-  const updateEventsMap = await taskRepository.getBulkLatestEvents({
+
+  if (!unresolvedBlocksMapResult.isOk()) {
+    console.error(
+      "Failed to get unresolved blocks:",
+      unresolvedBlocksMapResult.error,
+    );
+    return { success: false, error: "database_error" };
+  }
+
+  const unresolvedBlocksMap = unresolvedBlocksMapResult.value;
+
+  const updateEventsMapResult = await taskRepository.getBulkLatestEvents({
     taskSessionIds: todayActiveTasks.map((t) => t.id),
     eventType: "updated",
     limit: 5,
   });
+
+  if (!updateEventsMapResult.isOk()) {
+    console.error("Failed to get update events:", updateEventsMapResult.error);
+    return { success: false, error: "database_error" };
+  }
+
+  const updateEventsMap = updateEventsMapResult.value;
 
   // 各完了タスクの詳細情報を構築
   const completedTasksWithDetails = todayCompletedTasks.map((task) => {

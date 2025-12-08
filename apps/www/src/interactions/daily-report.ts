@@ -22,6 +22,7 @@ const handler = async ({ teamId, userId, ctx }: DailyReportContext) => {
       workspace_not_found: "ワークスペースが見つかりません",
       user_not_found: "ユーザーが見つかりません",
       no_activity: "今日のタスク活動がありません",
+      database_error: "データベースエラーが発生しました",
     };
 
     return {
