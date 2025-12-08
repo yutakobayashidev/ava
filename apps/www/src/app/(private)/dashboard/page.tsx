@@ -10,18 +10,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireWorkspace } from "@/lib/auth";
-import { tasksClient } from "@/clients/tasksClient";
+import { createTasksClient } from "@/clients/tasksClient";
 import { getInitials } from "@/lib/utils";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
   // API経由でタスク一覧を取得（所要時間はバックエンドで計算済み）
+  const cookieStore = await cookies();
+  const tasksClient = createTasksClient(cookieStore.toString());
   const res = await tasksClient.index.$get({ query: { limit: "100" } });
   const { tasks } = await res.json();
 

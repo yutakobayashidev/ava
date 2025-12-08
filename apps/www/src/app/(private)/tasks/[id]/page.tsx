@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/task/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
-import { tasksClient } from "@/clients/tasksClient";
+import { createTasksClient } from "@/clients/tasksClient";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 
 function EventIcon({ eventType }: { eventType: string }) {
   switch (eventType) {
@@ -66,6 +67,8 @@ export default async function TaskDetailPage({
   const { user, workspace } = await requireWorkspace(db);
 
   // タスク詳細とイベントを1回のAPIで取得（所要時間はバックエンドで計算済み）
+  const cookieStore = await cookies();
+  const tasksClient = createTasksClient(cookieStore.toString());
   const res = await tasksClient[":id"].$get({ param: { id } });
   if (!res.ok) {
     notFound();
