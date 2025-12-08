@@ -4,6 +4,7 @@ import {
 } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import { Context } from "@/types";
+import { createCancelTask } from "./cancel";
 import { createCompleteTask } from "./complete";
 import { createListTasks } from "./list";
 import { createPauseTask } from "./pause";
@@ -83,4 +84,12 @@ export const constructCompleteTaskWorkflow = (ctx: Context) => {
   );
 
   return completeTaskWorkflow;
+};
+
+export const constructCancelTaskWorkflow = (ctx: Context) => {
+  const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
+
+  const cancelTaskWorkflow = createCancelTask(commandExecutor);
+
+  return cancelTaskWorkflow;
 };

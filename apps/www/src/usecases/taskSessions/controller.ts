@@ -60,6 +60,14 @@ export const completeTaskInputSchema = z.object({
     .describe("完了内容の抽象的サマリ"),
 });
 
+export const cancelTaskInputSchema = z.object({
+  taskSessionId: taskSessionIdSchema,
+  reason: z
+    .string()
+    .optional()
+    .describe("中止理由（任意、Slackには送られません）"),
+});
+
 export const resolveBlockedInputSchema = z.object({
   taskSessionId: taskSessionIdSchema,
   blockReportId: z

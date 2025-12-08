@@ -94,6 +94,32 @@ export type CompleteTaskOutput =
   | { success: false; error: string };
 
 // ============================================
+// Cancel Task
+// ============================================
+
+type CancelTaskParams = {
+  taskSessionId: string;
+  reason?: string;
+};
+
+export type CancelTaskInput = {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  params: CancelTaskParams;
+};
+
+type CancelTaskSuccess = {
+  taskSessionId: string;
+  cancellationId: string;
+  status: string;
+  cancelledAt: Date;
+};
+
+export type CancelTaskOutput =
+  | { success: true; data: CancelTaskSuccess }
+  | { success: false; error: string };
+
+// ============================================
 // Report Blocked
 // ============================================
 
