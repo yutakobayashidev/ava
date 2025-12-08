@@ -10,8 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireWorkspace } from "@/lib/auth";
+import { tasksClient } from "@/clients/tasksClient";
 import { getInitials } from "@/lib/utils";
-import { createTaskQueryRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -21,37 +21,9 @@ import Link from "next/link";
 export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskQueryRepository(db);
-  const tasks = await taskRepository.listTaskSessions({
-    userId: user.id,
-    workspaceId: workspace.id,
-    limit: 100,
-  });
-
-  const tasksWithDuration = await Promise.all(
-    tasks.map(async (task) => {
-      let durationMs: number | null = null;
-      let completedAt: Date | null = null;
-
-      // 完了済みタスクのみ所要時間を計算
-      if (task.status === "completed") {
-        const completedEvent = await taskRepository.getLatestEvent({
-          taskSessionId: task.id,
-          eventType: "completed",
-        });
-        if (completedEvent) {
-          completedAt = completedEvent.createdAt;
-          durationMs = completedAt.getTime() - task.createdAt.getTime();
-        }
-      }
-
-      return {
-        ...task,
-        completedAt,
-        durationMs,
-      };
-    }),
-  );
+  // API経由でタスク一覧を取得（所要時間はバックエンドで計算済み）
+  const res = await tasksClient.index.$get({ query: { limit: "100" } });
+  const { tasks } = await res.json();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -82,11 +54,11 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-bold text-slate-900 mb-4">
             タスク一覧
             <span className="ml-3 text-base font-normal text-slate-500">
-              ({tasksWithDuration.length}件)
+              ({tasks.length}件)
             </span>
           </h2>
 
-          {tasksWithDuration.length === 0 ? (
+          {tasks.length === 0 ? (
             <p className="text-slate-600 py-8 text-center">
               タスクがありません
             </p>
@@ -102,7 +74,7 @@ export default async function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasksWithDuration.map((task) => {
+                {tasks.map((task) => {
                   const slackThreadUrl = buildSlackThreadUrl({
                     workspaceExternalId: workspace.externalId,
                     workspaceDomain: workspace.domain,
@@ -140,10 +112,12 @@ export default async function DashboardPage() {
                         <StatusBadge status={task.status} />
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {formatDate(task.createdAt)}
+                        {formatDate(new Date(task.createdAt))}
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {task.completedAt ? formatDate(task.completedAt) : "-"}
+                        {task.completedAt
+                          ? formatDate(new Date(task.completedAt))
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-slate-900">
                         {task.durationMs

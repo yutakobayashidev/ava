@@ -3,6 +3,7 @@ import healthRoutes from "@/handlers/api/health";
 import oauthRoutes from "@/handlers/api/oauth";
 import slackRoutes from "@/handlers/api/slack";
 import stripeRoutes from "@/handlers/api/stripe";
+import tasksRoutes from "@/handlers/api/tasks";
 import { handle } from "hono/vercel";
 import { createHonoApp } from "../../../create-app";
 
@@ -12,6 +13,7 @@ app.route("/oauth", oauthRoutes);
 app.route("/auth", authRoutes);
 app.route("/slack", slackRoutes);
 app.route("/stripe", stripeRoutes);
+app.route("/tasks", tasksRoutes);
 app.route("/health", healthRoutes);
 
 export const GET = handle(app);
