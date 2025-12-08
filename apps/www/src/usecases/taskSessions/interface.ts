@@ -36,6 +36,10 @@ type StartTaskSuccess = {
 
 export type StartTaskOutput = Result<StartTaskSuccess>;
 
+export type StartTaskWorkflow = (
+  command: StartTaskCommand,
+) => Promise<StartTaskOutput>;
+
 /**
  * Update Task
  */
@@ -55,6 +59,10 @@ type UpdateTaskSuccess = {
 };
 
 export type UpdateTaskOutput = Result<UpdateTaskSuccess>;
+
+export type UpdateTaskWorkflow = (
+  command: UpdateTaskCommand,
+) => Promise<UpdateTaskOutput>;
 
 /**
  * Complete Task
@@ -80,6 +88,10 @@ export type CompleteTaskSuccess = {
 
 export type CompleteTaskOutput = Result<CompleteTaskSuccess>;
 
+export type CompleteTaskWorkflow = (
+  command: CompleteTaskCommand,
+) => Promise<CompleteTaskOutput>;
+
 /**
  * Cancel Task
  */
@@ -99,6 +111,10 @@ type CancelTaskSuccess = {
 };
 
 export type CancelTaskOutput = Result<CancelTaskSuccess>;
+
+export type CancelTaskWorkflow = (
+  command: CancelTaskCommand,
+) => Promise<CancelTaskOutput>;
 
 /**
  * Report Blocked
@@ -120,6 +136,10 @@ type ReportBlockedSuccess = {
 
 export type ReportBlockedOutput = Result<ReportBlockedSuccess>;
 
+export type ReportBlockedWorkflow = (
+  command: ReportBlockedCommand,
+) => Promise<ReportBlockedOutput>;
+
 /**
  * Pause Task
  */
@@ -140,6 +160,10 @@ type PauseTaskSuccess = {
 
 export type PauseTaskOutput = Result<PauseTaskSuccess>;
 
+export type PauseTaskWorkflow = (
+  command: PauseTaskCommand,
+) => Promise<PauseTaskOutput>;
+
 /**
  * Resume Task
  */
@@ -158,6 +182,10 @@ type ResumeTaskSuccess = {
 };
 
 export type ResumeTaskOutput = Result<ResumeTaskSuccess>;
+
+export type ResumeTaskWorkflow = (
+  command: ResumeTaskCommand,
+) => Promise<ResumeTaskOutput>;
 
 /**
  * Resolve Blocked
@@ -178,6 +206,10 @@ type ResolveBlockedSuccess = {
 };
 
 export type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
+
+export type ResolveBlockedWorkflow = (
+  command: ResolveBlockedCommand,
+) => Promise<ResolveBlockedOutput>;
 
 /**
  * List Tasks
@@ -206,3 +238,7 @@ type ListTasksSuccess = {
 };
 
 export type ListTasksOutput = Result<ListTasksSuccess>;
+
+export type ListTasksWorkflow = (
+  command: ListTasksCommand,
+) => Promise<ListTasksOutput>;
