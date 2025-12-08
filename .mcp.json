@@ -2,7 +2,7 @@
   "mcpServers": {
     "ava": {
       "type": "http",
-      "url": "https://ava-dusky-gamma.vercel.app/mcp"
+      "url": "https://localhost:3000/mcp"
     },
     "next-devtools": {
       "command": "npx",

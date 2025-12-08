@@ -22,6 +22,8 @@ const staticEnv = z.object({
   OPENAI_API_KEY: z.string().min(1),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
+
+  TRACE_EXPORTER_URL: z.url().optional().or(z.literal("")),
 });
 
 const runtimeEnv = z.object({});

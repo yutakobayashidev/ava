@@ -1,18 +1,25 @@
 import { db } from "@ava/database/client";
+import { httpInstrumentationMiddleware } from "@hono/otel";
 import { env } from "hono/adapter";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import Stripe from "stripe";
 import { createAiSdkModels } from "./lib/server/ai";
+import { withTraceResponseHeader } from "./middleware/otel";
 import { HonoEnv } from "./types";
 
 const factory = () =>
   createFactory<HonoEnv>({
     initApp: (app) => {
+      app.use(
+        secureHeaders,
+        httpInstrumentationMiddleware({ serviceName: "ava" }),
+        withTraceResponseHeader,
+      );
+
       app.use(async (c, next) => {
         c.set("db", db);
-
         c.set(
           "ai",
           createAiSdkModels({
@@ -21,7 +28,6 @@ const factory = () =>
             },
           }),
         );
-
         const { STRIPE_SECRET_KEY } = env(c);
         c.set(
           "stripe",
@@ -38,7 +44,6 @@ const factory = () =>
 export const createHonoApp = () => {
   return factory()
     .createApp()
-    .use(secureHeaders())
     .onError((error, c) => {
       if (error instanceof HTTPException) {
         console.error(error.cause);
