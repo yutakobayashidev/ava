@@ -3,6 +3,7 @@ import { httpInstrumentationMiddleware } from "@hono/otel";
 import { env } from "hono/adapter";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { secureHeaders } from "hono/secure-headers";
 import Stripe from "stripe";
 import { createAiSdkModels } from "./lib/server/ai";
 import { withTraceResponseHeader } from "./middleware/otel";
@@ -12,6 +13,7 @@ const factory = () =>
   createFactory<HonoEnv>({
     initApp: (app) => {
       app.use(
+        secureHeaders,
         httpInstrumentationMiddleware({ serviceName: "ava" }),
         withTraceResponseHeader,
       );
