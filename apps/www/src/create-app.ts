@@ -11,6 +11,11 @@ import { HonoEnv } from "./types";
 const factory = () =>
   createFactory<HonoEnv>({
     initApp: (app) => {
+      app.use(
+        httpInstrumentationMiddleware({ serviceName: "ava" }),
+        withTraceResponseHeader,
+      );
+
       app.use(async (c, next) => {
         c.set("db", db);
         c.set(
@@ -31,11 +36,6 @@ const factory = () =>
 
         await next();
       });
-
-      app.use(
-        httpInstrumentationMiddleware({ serviceName: "ava" }),
-        withTraceResponseHeader,
-      );
     },
   });
 

@@ -63,6 +63,16 @@ let nextConfig: NextConfig = {
     browserDebugInfoInTerminal: true,
     turbopackFileSystemCacheForDev: true,
   },
+  serverExternalPackages: [
+    "@opentelemetry/exporter-metrics-otlp-grpc",
+    "@opentelemetry/exporter-trace-otlp-grpc",
+    "@opentelemetry/instrumentation-http",
+    "@opentelemetry/resources",
+    "@opentelemetry/sdk-metrics",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/sdk-trace-base",
+    "@opentelemetry/semantic-conventions",
+  ],
 };
 
 nextConfig = withMDX(nextConfig);
