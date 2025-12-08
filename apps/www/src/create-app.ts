@@ -1,5 +1,5 @@
 import { db } from "@ava/database/client";
-import { otel } from "@hono/otel";
+import { httpInstrumentationMiddleware } from "@hono/otel";
 import { env } from "hono/adapter";
 import { createFactory } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
@@ -32,7 +32,10 @@ const factory = () =>
         await next();
       });
 
-      app.use(otel(), withTraceResponseHeader);
+      app.use(
+        httpInstrumentationMiddleware({ serviceName: "ava" }),
+        withTraceResponseHeader,
+      );
     },
   });
 
