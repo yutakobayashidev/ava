@@ -2,7 +2,7 @@ import { toTaskStatus } from "@/objects/task/task-status";
 import type { TaskQueryRepository } from "@/repos";
 import type { ListTasksCommand, ListTasksOutput } from "./interface";
 
-export type ListTasksWorkflow = (
+type ListTasksWorkflow = (
   command: ListTasksCommand,
 ) => Promise<ListTasksOutput>;
 

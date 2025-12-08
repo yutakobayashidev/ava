@@ -2,7 +2,7 @@ import { apply } from "@/objects/task/decider";
 import { type TaskCommandExecutor } from "./commandExecutor";
 import type { ResolveBlockedCommand, ResolveBlockedOutput } from "./interface";
 
-export type ResolveBlockedWorkflow = (
+type ResolveBlockedWorkflow = (
   command: ResolveBlockedCommand,
 ) => Promise<ResolveBlockedOutput>;
 

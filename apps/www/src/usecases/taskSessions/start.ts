@@ -4,7 +4,7 @@ import { uuidv7 } from "uuidv7";
 import { type TaskCommandExecutor } from "./commandExecutor";
 import type { StartTaskCommand, StartTaskOutput } from "./interface";
 
-export type StartTaskWorkflow = (
+type StartTaskWorkflow = (
   command: StartTaskCommand,
 ) => Promise<StartTaskOutput>;
 

@@ -2,7 +2,7 @@ import { apply } from "@/objects/task/decider";
 import { type TaskCommandExecutor } from "./commandExecutor";
 import type { UpdateTaskCommand, UpdateTaskOutput } from "./interface";
 
-export type UpdateTaskWorkflow = (
+type UpdateTaskWorkflow = (
   command: UpdateTaskCommand,
 ) => Promise<UpdateTaskOutput>;
 

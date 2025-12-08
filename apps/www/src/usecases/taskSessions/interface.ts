@@ -5,21 +5,19 @@ import { HonoEnv } from "@/types";
  * 共通型
  */
 
-export type BaseCommand<Params> = {
+type BaseCommand<Params> = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   params: Params;
 };
 
-export type Result<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 /**
  * Start Task
  */
 
-export type StartTaskParams = {
+type StartTaskParams = {
   issue: {
     provider: "github" | "manual";
     id?: string;
@@ -30,7 +28,7 @@ export type StartTaskParams = {
 
 export type StartTaskCommand = BaseCommand<StartTaskParams>;
 
-export type StartTaskSuccess = {
+type StartTaskSuccess = {
   taskSessionId: string;
   status: string;
   issuedAt: Date;
@@ -42,14 +40,14 @@ export type StartTaskOutput = Result<StartTaskSuccess>;
  * Update Task
  */
 
-export type UpdateTaskParams = {
+type UpdateTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
 export type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
 
-export type UpdateTaskSuccess = {
+type UpdateTaskSuccess = {
   taskSessionId: string;
   updateId: string;
   status: string;
@@ -62,14 +60,14 @@ export type UpdateTaskOutput = Result<UpdateTaskSuccess>;
  * Complete Task
  */
 
-export type CompleteTaskParams = {
+type CompleteTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
 export type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
 
-export type CompleteTaskSuccess = {
+type CompleteTaskSuccess = {
   taskSessionId: string;
   completionId: string;
   status: string;
@@ -86,14 +84,14 @@ export type CompleteTaskOutput = Result<CompleteTaskSuccess>;
  * Cancel Task
  */
 
-export type CancelTaskParams = {
+type CancelTaskParams = {
   taskSessionId: string;
   reason?: string;
 };
 
 export type CancelTaskCommand = BaseCommand<CancelTaskParams>;
 
-export type CancelTaskSuccess = {
+type CancelTaskSuccess = {
   taskSessionId: string;
   cancellationId: string;
   status: string;
@@ -106,14 +104,14 @@ export type CancelTaskOutput = Result<CancelTaskSuccess>;
  * Report Blocked
  */
 
-export type ReportBlockedParams = {
+type ReportBlockedParams = {
   taskSessionId: string;
   reason: string;
 };
 
 export type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
 
-export type ReportBlockedSuccess = {
+type ReportBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
@@ -126,14 +124,14 @@ export type ReportBlockedOutput = Result<ReportBlockedSuccess>;
  * Pause Task
  */
 
-export type PauseTaskParams = {
+type PauseTaskParams = {
   taskSessionId: string;
   reason: string;
 };
 
 export type PauseTaskCommand = BaseCommand<PauseTaskParams>;
 
-export type PauseTaskSuccess = {
+type PauseTaskSuccess = {
   taskSessionId: string;
   pauseReportId: string;
   status: string;
@@ -146,14 +144,14 @@ export type PauseTaskOutput = Result<PauseTaskSuccess>;
  * Resume Task
  */
 
-export type ResumeTaskParams = {
+type ResumeTaskParams = {
   taskSessionId: string;
   summary: string;
 };
 
 export type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
 
-export type ResumeTaskSuccess = {
+type ResumeTaskSuccess = {
   taskSessionId: string;
   status: string;
   resumedAt: Date;
@@ -165,14 +163,14 @@ export type ResumeTaskOutput = Result<ResumeTaskSuccess>;
  * Resolve Blocked
  */
 
-export type ResolveBlockedParams = {
+type ResolveBlockedParams = {
   taskSessionId: string;
   blockReportId: string;
 };
 
 export type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
 
-export type ResolveBlockedSuccess = {
+type ResolveBlockedSuccess = {
   taskSessionId: string;
   blockReportId: string;
   status: string;
@@ -185,14 +183,14 @@ export type ResolveBlockedOutput = Result<ResolveBlockedSuccess>;
  * List Tasks
  */
 
-export type ListTasksParams = {
+type ListTasksParams = {
   status?: TaskStatusFilter;
   limit?: number;
 };
 
 export type ListTasksCommand = BaseCommand<ListTasksParams>;
 
-export type TaskSummary = {
+type TaskSummary = {
   taskSessionId: string;
   issueProvider: string;
   issueId: string | null;
@@ -202,7 +200,7 @@ export type TaskSummary = {
   updatedAt: Date;
 };
 
-export type ListTasksSuccess = {
+type ListTasksSuccess = {
   total: number;
   tasks: TaskSummary[];
 };

@@ -7,7 +7,7 @@ import type {
   CompleteTaskSuccess,
 } from "./interface";
 
-export type CompleteTaskWorkflow = (
+type CompleteTaskWorkflow = (
   command: CompleteTaskCommand,
 ) => Promise<CompleteTaskOutput>;
 

@@ -2,7 +2,7 @@ import { apply } from "@/objects/task/decider";
 import { type TaskCommandExecutor } from "./commandExecutor";
 import type { CancelTaskCommand, CancelTaskOutput } from "./interface";
 
-export type CancelTaskWorkflow = (
+type CancelTaskWorkflow = (
   command: CancelTaskCommand,
 ) => Promise<CancelTaskOutput>;
 

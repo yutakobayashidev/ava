@@ -7,7 +7,7 @@ import { createEventStore } from "@/repos/event-store";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
 
-export type TaskCommandExecutorDeps = {
+type TaskCommandExecutorDeps = {
   db: Database;
 };
 
