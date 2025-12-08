@@ -21,9 +21,6 @@ type ButtonParams = {
   style?: ButtonStyle;
 };
 
-const joinLines = (...lines: Array<string | null | undefined>) =>
-  lines.filter((line) => line !== null && line !== undefined).join("\n");
-
 const button = ({ label, actionId, value, style }: ButtonParams) => ({
   type: "button",
   text: { type: "plain_text", text: label },
@@ -34,13 +31,15 @@ const button = ({ label, actionId, value, style }: ButtonParams) => ({
 
 const section = (text: string) => ({
   type: "section" as const,
-  text: { type: "mrkdwn" as const, text },
+  text: { type: "mrkdwn", text },
 });
 
 const actions = (elements: unknown[]) => ({
   type: "actions" as const,
   elements,
 });
+
+// ---------- formatting helpers ----------
 
 const formatUser = (user: UserRef) => {
   if (user.slackId) return `<@${user.slackId}>`;
@@ -55,6 +54,8 @@ const formatIssue = (issue: IssueRef) => {
   };
 };
 
+// ---------- message builders ----------
+
 export function buildTaskStartedMessage(params: {
   session: SessionRef;
   issue: IssueRef;
@@ -65,50 +66,55 @@ export function buildTaskStartedMessage(params: {
   const { title, provider } = formatIssue(issue);
   const userLabel = formatUser(user);
 
-  const text = joinLines(
-    ":rocket: Task started",
-    `Title: ${title}`,
-    `Session ID: ${session.id}`,
-    `Issue Provider: ${provider}`,
-    `Started by: ${userLabel}`,
-    "",
-    `Summary: ${initialSummary}`,
-  );
-
   const blocks = [
-    section(text),
+    section("*Task started :rocket:*"),
+
+    section(
+      `*Title*\n${title}\n\n` +
+        `*Started by*\n${userLabel}\n\n` +
+        `*Session ID*\n\`${session.id}\`\n\n` +
+        `*Issue Provider*\n${provider}`,
+    ),
+
+    section(`*Summary*\n${initialSummary}`),
+
     actions([
       button({
-        label: "✅ 完了",
+        label: "完了",
         actionId: "complete_task",
         value: session.id,
         style: "primary",
       }),
       button({
-        label: "⚠️ ブロッキング報告",
+        label: "ブロッキング報告",
         actionId: "report_blocked",
         value: session.id,
         style: "danger",
       }),
       button({
-        label: "⏸️ 休止",
+        label: "休止",
         actionId: "pause_task",
         value: session.id,
       }),
     ]),
   ];
 
-  return { text, blocks };
+  return {
+    text: `Task started: ${title}`,
+    blocks,
+  };
 }
 
 export function buildTaskUpdateMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = joinLines(
-    ":arrow_forward: Progress update",
-    `Summary: ${params.summary}`,
-  );
-  return { text };
+  return {
+    text: `Progress update: ${params.summary}`,
+    blocks: [
+      section("*Progress update :arrow_forward:*"),
+      section(`*Summary*\n${params.summary}`),
+    ],
+  };
 }
 
 export function buildTaskBlockedMessage(params: {
@@ -118,33 +124,39 @@ export function buildTaskBlockedMessage(params: {
 }): SlackMessage {
   const { session, reason, blockReportId } = params;
 
-  const text = joinLines(":warning: Task blocked", `Reason: ${reason}`);
   const blocks = [
-    section(text),
+    section("*Task blocked :warning:*"),
+    section(`*Reason*\n${reason}`),
+
     actions([
       button({
-        label: "✅ 解決",
+        label: "解決",
         actionId: "resolve_blocked",
-        style: "primary",
         value: JSON.stringify({
           taskSessionId: session.id,
           blockReportId,
         }),
+        style: "primary",
       }),
     ]),
   ];
 
-  return { text, blocks };
+  return {
+    text: `Task blocked: ${reason}`,
+    blocks,
+  };
 }
 
 export function buildBlockResolvedMessage(params: {
   blockReason: string;
 }): SlackMessage {
-  const text = joinLines(
-    ":white_check_mark: Block resolved",
-    `Previous issue: ${params.blockReason}`,
-  );
-  return { text };
+  return {
+    text: `Block resolved: ${params.blockReason}`,
+    blocks: [
+      section("*Block resolved :white_check_mark:*"),
+      section(`*Previous issue*\n${params.blockReason}`),
+    ],
+  };
 }
 
 export function buildTaskPausedMessage(params: {
@@ -153,38 +165,46 @@ export function buildTaskPausedMessage(params: {
 }): SlackMessage {
   const { session, reason } = params;
 
-  const text = joinLines(":pause_button: Task paused", `Reason: ${reason}`);
   const blocks = [
-    section(text),
+    section("*Task paused :pause_button:*"),
+    section(`*Reason*\n${reason}`),
+
     actions([
       button({
-        label: "▶️ 再開",
+        label: "再開",
         actionId: "resume_task",
-        style: "primary",
         value: session.id,
+        style: "primary",
       }),
     ]),
   ];
 
-  return { text, blocks };
+  return {
+    text: `Task paused: ${reason}`,
+    blocks,
+  };
 }
 
 export function buildTaskResumedMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = joinLines(
-    ":arrow_forward: Task resumed",
-    `Summary: ${params.summary}`,
-  );
-  return { text };
+  return {
+    text: `Task resumed: ${params.summary}`,
+    blocks: [
+      section("*Task resumed :arrow_forward:*"),
+      section(`*Summary*\n${params.summary}`),
+    ],
+  };
 }
 
 export function buildTaskCompletedMessage(params: {
   summary: string;
 }): SlackMessage {
-  const text = joinLines(
-    ":white_check_mark: Task completed",
-    `Summary: ${params.summary}`,
-  );
-  return { text };
+  return {
+    text: `Task completed: ${params.summary}`,
+    blocks: [
+      section("*Task completed :white_check_mark:*"),
+      section(`*Summary*\n${params.summary}`),
+    ],
+  };
 }

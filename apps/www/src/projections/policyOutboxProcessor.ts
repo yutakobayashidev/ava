@@ -1,20 +1,21 @@
-import { and, eq } from "drizzle-orm";
-import { z } from "zod/v3";
-import type { Database } from "@ava/database/client";
-import * as schema from "@ava/database/schema";
-import { createEventStore } from "@/repos/event-store";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
 import { createWorkspaceRepository } from "@/repos";
+import { createEventStore } from "@/repos/event-store";
 import { createSlackNotificationService } from "@/services/slackNotificationService";
 import {
-  buildTaskBlockedMessage,
   buildBlockResolvedMessage,
+  buildTaskBlockedMessage,
   buildTaskCompletedMessage,
   buildTaskPausedMessage,
   buildTaskResumedMessage,
   buildTaskStartedMessage,
   buildTaskUpdateMessage,
 } from "@/usecases/taskSessions/slackMessages";
+import type { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod/v3";
+import type { NotifyPayload } from "./taskPolicyOutbox";
 
 const commonFields = {
   workspaceId: z.string(),
@@ -23,10 +24,25 @@ const commonFields = {
   threadTs: z.string().nullable(),
 } as const;
 
+const issueSchema = z.object({
+  provider: z.enum(["github", "manual"]),
+  id: z.string().nullable().optional(),
+  title: z.string(),
+});
+
+const userInfoSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  slackId: z.string().nullable().optional(),
+});
+
 const notifyPayloadSchema = z.discriminatedUnion("template", [
   z.object({
     template: z.literal("started"),
-    summary: z.string().min(1),
+    issue: issueSchema,
+    initialSummary: z.string().min(1),
+    user: userInfoSchema,
     ...commonFields,
   }),
   z.object({
@@ -36,17 +52,19 @@ const notifyPayloadSchema = z.discriminatedUnion("template", [
   }),
   z.object({
     template: z.literal("blocked"),
+    blockId: z.string(),
     reason: z.string().min(1),
     ...commonFields,
   }),
   z.object({
     template: z.literal("block_resolved"),
-    blockId: z.string().optional(),
+    blockId: z.string(),
     reason: z.string().min(1),
     ...commonFields,
   }),
   z.object({
     template: z.literal("paused"),
+    pauseId: z.string(),
     reason: z.string().min(1),
     ...commonFields,
   }),
@@ -67,11 +85,8 @@ const reactionPayloadSchema = z.object({
   userId: z.string().optional(),
   channel: z.string().nullable(),
   threadTs: z.string().nullable(),
-  emoji: z.string().optional(),
+  emoji: z.string(),
 });
-
-type NotifyPayload = z.infer<typeof notifyPayloadSchema>;
-type ReactionPayload = z.infer<typeof reactionPayloadSchema>;
 
 type NotifyTemplate = NotifyPayload["template"];
 type TaskPolicyRow = typeof schema.taskPolicyOutbox.$inferSelect;
@@ -80,21 +95,10 @@ const sessionRefFromPolicy = (policy: TaskPolicyRow) => ({
   id: policy.taskSessionId,
 });
 
-const defaultIssue = {
-  title: "",
-  provider: "manual",
-  id: null as string | null,
-};
-const defaultUser = {
-  name: "",
-  email: "",
-  slackId: undefined as string | undefined,
-};
-
 type NotifyBuilderMap = {
   [K in NotifyTemplate]: (
     policy: TaskPolicyRow,
-    payload: Extract<NotifyPayload, { template: K }>,
+    payload: Extract<ParsedNotifyPayload, { template: K }>,
   ) => ReturnType<
     | typeof buildTaskStartedMessage
     | typeof buildTaskUpdateMessage
@@ -106,9 +110,12 @@ type NotifyBuilderMap = {
   >;
 };
 
+type ParsedNotifyPayload = z.infer<typeof notifyPayloadSchema>;
+type ParsedReactionPayload = z.infer<typeof reactionPayloadSchema>;
+
 type ParsedPolicy =
-  | { kind: "notify"; payload: NotifyPayload }
-  | { kind: "reaction"; payload: ReactionPayload };
+  | { kind: "notify"; payload: ParsedNotifyPayload }
+  | { kind: "reaction"; payload: ParsedReactionPayload };
 
 type ProcessResult = {
   delivered: boolean;
@@ -164,12 +171,12 @@ async function updatePolicyStatus(params: {
 }
 
 const notifyMessageBuilders: NotifyBuilderMap = {
-  started: (policy, payload) =>
+  started: (_policy, payload) =>
     buildTaskStartedMessage({
-      session: sessionRefFromPolicy(policy),
-      issue: defaultIssue,
-      initialSummary: payload.summary,
-      user: defaultUser,
+      session: sessionRefFromPolicy(_policy),
+      issue: payload.issue,
+      initialSummary: payload.initialSummary,
+      user: payload.user,
     }),
   updated: (_policy, payload) =>
     buildTaskUpdateMessage({
@@ -179,7 +186,7 @@ const notifyMessageBuilders: NotifyBuilderMap = {
     buildTaskBlockedMessage({
       session: sessionRefFromPolicy(policy),
       reason: payload.reason,
-      blockReportId: policy.id,
+      blockReportId: payload.blockId,
     }),
   block_resolved: (_policy, payload) =>
     buildBlockResolvedMessage({
@@ -200,22 +207,31 @@ const notifyMessageBuilders: NotifyBuilderMap = {
     }),
 };
 
-function buildNotifyMessage(policy: TaskPolicyRow, payload: NotifyPayload) {
+function buildNotifyMessage(
+  policy: TaskPolicyRow,
+  payload: ParsedNotifyPayload,
+) {
+  // Use a type-safe helper function that narrows the payload type
+  const callBuilder = <T extends NotifyTemplate>(
+    template: T,
+    p: Extract<ParsedNotifyPayload, { template: T }>,
+  ) => notifyMessageBuilders[template](policy, p);
+
   switch (payload.template) {
     case "started":
-      return notifyMessageBuilders.started(policy, payload);
+      return callBuilder("started", payload);
     case "updated":
-      return notifyMessageBuilders.updated(policy, payload);
+      return callBuilder("updated", payload);
     case "blocked":
-      return notifyMessageBuilders.blocked(policy, payload);
+      return callBuilder("blocked", payload);
     case "block_resolved":
-      return notifyMessageBuilders.block_resolved(policy, payload);
+      return callBuilder("block_resolved", payload);
     case "paused":
-      return notifyMessageBuilders.paused(policy, payload);
+      return callBuilder("paused", payload);
     case "resumed":
-      return notifyMessageBuilders.resumed(policy, payload);
+      return callBuilder("resumed", payload);
     case "completed":
-      return notifyMessageBuilders.completed(policy, payload);
+      return callBuilder("completed", payload);
     default:
       return null;
   }
@@ -286,7 +302,7 @@ async function appendSlackThreadLink(params: {
 async function processNotify(params: {
   db: Database;
   policy: typeof schema.taskPolicyOutbox.$inferSelect;
-  payload: NotifyPayload;
+  payload: ParsedNotifyPayload;
   workspace: schema.Workspace;
   channel: string | null;
   threadTs: string | null;
@@ -343,7 +359,7 @@ async function processNotify(params: {
 }
 
 async function processReaction(params: {
-  payload: ReactionPayload;
+  payload: ParsedReactionPayload;
   workspace: schema.Workspace;
   channel: string | null;
   threadTs: string | null;

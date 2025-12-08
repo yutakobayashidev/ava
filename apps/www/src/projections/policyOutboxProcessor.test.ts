@@ -61,7 +61,12 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
 
     await queuePolicyEvents(db, streamId, events, {
       workspaceId: workspace.id,
-      userId: user.id,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        slackId: user.slackId,
+      },
       channel: workspace.notificationChannelId,
       threadTs: "thread-existing",
     });
@@ -108,19 +113,6 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
     const streamId = `task-${randomUUID()}`;
     const occurredAt = new Date("2024-04-01T00:00:00.000Z");
 
-    await db.insert(schema.taskSessions).values({
-      id: streamId,
-      userId: user.id,
-      workspaceId: workspace.id,
-      issueProvider: "manual",
-      issueId: null,
-      issueTitle: "Start only",
-      initialSummary: "init",
-      status: "in_progress",
-      createdAt: occurredAt,
-      updatedAt: occurredAt,
-    });
-
     const startEvent: Event = {
       type: "TaskStarted",
       payload: {
@@ -139,7 +131,12 @@ describe("taskPolicyOutbox & processTaskPolicyOutbox", () => {
 
     await queuePolicyEvents(db, streamId, [startEvent], {
       workspaceId: workspace.id,
-      userId: user.id,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        slackId: user.slackId,
+      },
       channel: workspace.notificationChannelId,
       threadTs: null,
     });
