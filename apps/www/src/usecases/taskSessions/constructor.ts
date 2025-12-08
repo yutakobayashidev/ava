@@ -1,4 +1,7 @@
-import { createSubscriptionRepository, createTaskRepository } from "@/repos";
+import {
+  createSubscriptionRepository,
+  createTaskQueryRepository,
+} from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import { Context } from "@/types";
 import { createCompleteTask } from "./complete";
@@ -63,7 +66,7 @@ export const constructResumeTaskWorkflow = (ctx: Context) => {
 };
 
 export const constructListTasksWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
+  const taskRepository = createTaskQueryRepository(ctx.get("db"));
 
   const listTasksWorkflow = createListTasks(taskRepository);
 
@@ -71,7 +74,7 @@ export const constructListTasksWorkflow = (ctx: Context) => {
 };
 
 export const constructCompleteTaskWorkflow = (ctx: Context) => {
-  const taskRepository = createTaskRepository(ctx.get("db"));
+  const taskRepository = createTaskQueryRepository(ctx.get("db"));
   const commandExecutor = createTaskCommandExecutor({ db: ctx.get("db") });
 
   const completeTaskWorkflow = createCompleteTask(

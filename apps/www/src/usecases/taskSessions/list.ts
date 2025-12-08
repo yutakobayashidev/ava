@@ -1,4 +1,4 @@
-import type { TaskRepository } from "@/repos";
+import type { TaskQueryRepository } from "@/repos";
 import type { ListTasksInput, ListTasksOutput } from "./interface";
 
 // ステータスをDBの形式に変換
@@ -11,7 +11,7 @@ function convertStatusToDb(
   return undefined;
 }
 
-export const createListTasks = (taskRepository: TaskRepository) => {
+export const createListTasks = (taskRepository: TaskQueryRepository) => {
   return async (input: ListTasksInput): Promise<ListTasksOutput> => {
     const { workspace, user, params } = input;
     const { status, limit } = params;

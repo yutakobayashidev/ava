@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { requireWorkspace } from "@/lib/auth";
 import { getInitials } from "@/lib/utils";
-import { createTaskRepository } from "@/repos";
+import { createTaskQueryRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -35,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
 export default async function DashboardPage() {
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository(db);
+  const taskRepository = createTaskQueryRepository(db);
   const tasks = await taskRepository.listTaskSessions({
     userId: user.id,
     workspaceId: workspace.id,

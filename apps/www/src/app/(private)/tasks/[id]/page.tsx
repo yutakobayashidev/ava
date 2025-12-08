@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireWorkspace } from "@/lib/auth";
-import { createTaskRepository } from "@/repos";
+import { createTaskQueryRepository } from "@/repos";
 import { formatDate, formatDuration } from "@/utils/date";
 import { buildSlackThreadUrl } from "@/utils/slack";
 import { db } from "@ava/database/client";
@@ -77,7 +77,7 @@ export default async function TaskDetailPage({
   const { id } = await params;
   const { user, workspace } = await requireWorkspace(db);
 
-  const taskRepository = createTaskRepository(db);
+  const taskRepository = createTaskQueryRepository(db);
   const task = await taskRepository.findTaskSessionById(
     id,
     workspace.id,

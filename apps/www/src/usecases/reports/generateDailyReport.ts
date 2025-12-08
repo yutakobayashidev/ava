@@ -1,7 +1,7 @@
 import { generateText } from "@/lib/server/ai";
 import { DAILY_SUMMARY_PROMPT } from "@/prompts/daily-summary";
 import {
-  createTaskRepository,
+  createTaskQueryRepository,
   createUserRepository,
   createWorkspaceRepository,
 } from "@/repos";
@@ -113,7 +113,7 @@ export const generateDailyReport = async (
 
   const workspaceRepository = createWorkspaceRepository(db);
   const userRepository = createUserRepository(db);
-  const taskRepository = createTaskRepository(db);
+  const taskRepository = createTaskQueryRepository(db);
 
   // ワークスペースを取得
   const workspace = await workspaceRepository.findWorkspaceByExternalId({

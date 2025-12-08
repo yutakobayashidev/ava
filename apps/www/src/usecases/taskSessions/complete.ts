@@ -1,4 +1,4 @@
-import type { TaskRepository } from "@/repos";
+import type { TaskQueryRepository } from "@/repos";
 import { createTaskCommandExecutor } from "./commandExecutor";
 import type {
   CompleteTaskInput,
@@ -7,7 +7,7 @@ import type {
 } from "./interface";
 
 export const createCompleteTask = (
-  taskRepository: TaskRepository,
+  taskRepository: TaskQueryRepository,
   commandExecutorFactory: ReturnType<typeof createTaskCommandExecutor>,
 ) => {
   return async (input: CompleteTaskInput): Promise<CompleteTaskOutput> => {
