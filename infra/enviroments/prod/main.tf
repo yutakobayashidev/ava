@@ -12,3 +12,8 @@ resource "stripe_webhook_endpoint" "webhook" {
     "customer.deleted",
   ]
 }
+
+resource "axiom_dataset" "ava_otel_traces" {
+  name        = "ava"
+  description = "ava's otel traces"
+}

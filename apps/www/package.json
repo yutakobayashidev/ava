@@ -42,6 +42,7 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "0.208.0",
     "@opentelemetry/resources": "2.2.0",
     "@opentelemetry/sdk-node": "0.208.0",
+    "@opentelemetry/sdk-trace-base": "2.2.0",
     "@opentelemetry/semantic-conventions": "1.38.0",
     "@oslojs/crypto": "1.0.1",
     "@oslojs/encoding": "1.1.0",
