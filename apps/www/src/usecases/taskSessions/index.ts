@@ -9,6 +9,7 @@ import { createEventStore } from "@/repos/event-store";
 import { checkFreePlanLimit } from "@/services/subscriptionService";
 import type { HonoEnv } from "@/types";
 import { DatabaseError } from "@/lib/db";
+import { withSpanAsync } from "@/lib/otel";
 import type { Database } from "@ava/database/client";
 import { okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
@@ -99,355 +100,430 @@ export const createStartTaskWorkflow = (
   subscriptionRepository: SubscriptionRepository,
   executeCommand: TaskCommandExecutor,
 ): StartTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { issue, initialSummary } = params;
+  return withSpanAsync(
+    "startTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { issue, initialSummary } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        // プラン制限のチェック
-        const limitError = await checkFreePlanLimit(
-          user.id,
-          subscriptionRepository,
-        );
-        if (limitError) {
-          throw new Error(limitError);
-        }
+      return ResultAsync.fromPromise(
+        (async () => {
+          // プラン制限のチェック
+          const limitError = await checkFreePlanLimit(
+            user.id,
+            subscriptionRepository,
+          );
+          if (limitError) {
+            throw new Error(limitError);
+          }
 
-        const streamId = uuidv7();
+          const streamId = uuidv7();
 
-        await executeCommand({
-          streamId,
-          workspace,
-          user,
-          command: {
-            type: "StartTask",
-            payload: {
-              issue,
-              initialSummary,
+          await executeCommand({
+            streamId,
+            workspace,
+            user,
+            command: {
+              type: "StartTask",
+              payload: {
+                issue,
+                initialSummary,
+              },
             },
-          },
-        });
+          });
 
-        return {
-          taskSessionId: streamId,
-          status: "in_progress" as const,
-          issuedAt: new Date(),
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to start task",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: streamId,
+            status: "in_progress" as const,
+            issuedAt: new Date(),
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to start task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.issue.provider": args[0].params.issue.provider,
+        "task.issue.title": args[0].params.issue.title,
+      }),
+    },
+  );
 };
 
 export const createUpdateTaskWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): UpdateTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, summary } = params;
+  return withSpanAsync(
+    "updateTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, summary } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "AddProgress",
-            payload: { summary },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "AddProgress",
+              payload: { summary },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId: taskSessionId,
-          updateId: result.persistedEvents[0].id,
-          status: nextState.status,
-          summary,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to update task",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: taskSessionId,
+            updateId: result.persistedEvents[0].id,
+            status: nextState.status,
+            summary,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to update task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createCompleteTaskWorkflow = (
   taskRepository: TaskQueryRepository,
   executeCommand: TaskCommandExecutor,
 ): CompleteTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, summary } = params;
+  return withSpanAsync(
+    "completeTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, summary } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "CompleteTask",
-            payload: { summary },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "CompleteTask",
+              payload: { summary },
+            },
+          });
 
-        const unresolvedBlocksResult =
-          await taskRepository.getUnresolvedBlockReports(taskSessionId);
+          const unresolvedBlocksResult =
+            await taskRepository.getUnresolvedBlockReports(taskSessionId);
 
-        if (!unresolvedBlocksResult.isOk()) {
-          throw unresolvedBlocksResult.error;
-        }
+          if (!unresolvedBlocksResult.isOk()) {
+            throw unresolvedBlocksResult.error;
+          }
 
-        const unresolvedBlocks = unresolvedBlocksResult.value;
-        const nextState = apply(result.state, result.events);
+          const unresolvedBlocks = unresolvedBlocksResult.value;
+          const nextState = apply(result.state, result.events);
 
-        const data: CompleteTaskSuccess = {
-          taskSessionId: taskSessionId,
-          completionId: result.persistedEvents[0].id,
-          status: nextState.status,
-        };
+          const data: CompleteTaskSuccess = {
+            taskSessionId: taskSessionId,
+            completionId: result.persistedEvents[0].id,
+            status: nextState.status,
+          };
 
-        if (unresolvedBlocks.length > 0) {
-          data.unresolvedBlocks = unresolvedBlocks.map((block) => ({
-            blockReportId: block.id,
-            reason: block.reason,
-            createdAt: block.createdAt,
-          }));
-        }
+          if (unresolvedBlocks.length > 0) {
+            data.unresolvedBlocks = unresolvedBlocks.map((block) => ({
+              blockReportId: block.id,
+              reason: block.reason,
+              createdAt: block.createdAt,
+            }));
+          }
 
-        return data;
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to complete task",
-          error,
-        ),
-    );
-  };
+          return data;
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to complete task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createReportBlockedWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): ReportBlockedWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, reason } = params;
+  return withSpanAsync(
+    "reportBlocked",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, reason } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "ReportBlock",
-            payload: { reason },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "ReportBlock",
+              payload: { reason },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId: taskSessionId,
-          blockReportId: result.persistedEvents[0].id,
-          status: nextState.status,
-          reason,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error
-            ? error.message
-            : "Failed to report blocked status",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: taskSessionId,
+            blockReportId: result.persistedEvents[0].id,
+            status: nextState.status,
+            reason,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error
+              ? error.message
+              : "Failed to report blocked status",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createPauseTaskWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): PauseTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, reason } = params;
+  return withSpanAsync(
+    "pauseTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, reason } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "PauseTask",
-            payload: { reason },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "PauseTask",
+              payload: { reason },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId: taskSessionId,
-          pauseReportId: result.persistedEvents[0].id,
-          status: nextState.status,
-          pausedAt: result.persistedEvents[0].createdAt,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to pause task",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: taskSessionId,
+            pauseReportId: result.persistedEvents[0].id,
+            status: nextState.status,
+            pausedAt: result.persistedEvents[0].createdAt,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to pause task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createResumeTaskWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): ResumeTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, summary } = params;
+  return withSpanAsync(
+    "resumeTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, summary } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "ResumeTask",
-            payload: { summary },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "ResumeTask",
+              payload: { summary },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId: taskSessionId,
-          status: nextState.status,
-          resumedAt: result.persistedEvents[0].createdAt,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to resume task",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: taskSessionId,
+            status: nextState.status,
+            resumedAt: result.persistedEvents[0].createdAt,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to resume task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createResolveBlockedWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): ResolveBlockedWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, blockReportId } = params;
+  return withSpanAsync(
+    "resolveBlocked",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, blockReportId } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "ResolveBlock",
-            payload: { blockId: blockReportId },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "ResolveBlock",
+              payload: { blockId: blockReportId },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId: taskSessionId,
-          blockReportId: blockReportId,
-          status: nextState.status,
-          resolvedAt: result.persistedEvents[0].createdAt,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error
-            ? error.message
-            : "Failed to resolve blocked status",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId: taskSessionId,
+            blockReportId: blockReportId,
+            status: nextState.status,
+            resolvedAt: result.persistedEvents[0].createdAt,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error
+              ? error.message
+              : "Failed to resolve blocked status",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+        "task.block.report.id": args[0].params.blockReportId,
+      }),
+    },
+  );
 };
 
 export const createCancelTaskWorkflow = (
   executeCommand: TaskCommandExecutor,
 ): CancelTaskWorkflow => {
-  return (command) => {
-    const { workspace, user, params } = command;
-    const { taskSessionId, reason } = params;
+  return withSpanAsync(
+    "cancelTask",
+    (command) => {
+      const { workspace, user, params } = command;
+      const { taskSessionId, reason } = params;
 
-    return ResultAsync.fromPromise(
-      (async () => {
-        const result = await executeCommand({
-          streamId: taskSessionId,
-          workspace,
-          user,
-          command: {
-            type: "CancelTask",
-            payload: { reason },
-          },
-        });
+      return ResultAsync.fromPromise(
+        (async () => {
+          const result = await executeCommand({
+            streamId: taskSessionId,
+            workspace,
+            user,
+            command: {
+              type: "CancelTask",
+              payload: { reason },
+            },
+          });
 
-        const nextState = apply(result.state, result.events);
+          const nextState = apply(result.state, result.events);
 
-        return {
-          taskSessionId,
-          cancellationId: result.persistedEvents[0].id,
-          status: nextState.status,
-          cancelledAt: result.persistedEvents[0].createdAt,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to cancel task",
-          error,
-        ),
-    );
-  };
+          return {
+            taskSessionId,
+            cancellationId: result.persistedEvents[0].id,
+            status: nextState.status,
+            cancelledAt: result.persistedEvents[0].createdAt,
+          };
+        })(),
+        (error) =>
+          new DatabaseError(
+            error instanceof Error ? error.message : "Failed to cancel task",
+            error,
+          ),
+      );
+    },
+    {
+      spanAttrs: (args) => ({
+        "task.session.id": args[0].params.taskSessionId,
+      }),
+    },
+  );
 };
 
 export const createListTasksWorkflow = (
   taskRepository: TaskQueryRepository,
 ): ListTasksWorkflow => {
-  return (command) => {
-    return okAsync(command)
-      .andThen((command) =>
-        taskRepository.listTaskSessions({
-          userId: command.user.id,
-          workspaceId: command.workspace.id,
-          status: toTaskStatus(command.params.status),
-          limit: command.params.limit,
-        }),
-      )
-      .map((sessions) => ({
-        total: sessions.length,
-        tasks: sessions.map((session) => ({
-          taskSessionId: session.id,
-          issueProvider: session.issueProvider,
-          issueId: session.issueId,
-          issueTitle: session.issueTitle,
-          status: session.status,
-          createdAt: session.createdAt,
-          updatedAt: session.updatedAt,
-        })),
-      }));
-  };
+  return withSpanAsync(
+    "listTasks",
+    (command) => {
+      return okAsync(command)
+        .andThen((command) =>
+          taskRepository.listTaskSessions({
+            userId: command.user.id,
+            workspaceId: command.workspace.id,
+            status: toTaskStatus(command.params.status),
+            limit: command.params.limit,
+          }),
+        )
+        .map((sessions) => ({
+          total: sessions.length,
+          tasks: sessions.map((session) => ({
+            taskSessionId: session.id,
+            issueProvider: session.issueProvider,
+            issueId: session.issueId,
+            issueTitle: session.issueTitle,
+            status: session.status,
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+          })),
+        }));
+    },
+    {
+      spanAttrs: (args) => ({
+        "user.id": args[0].user.id,
+        "workspace.id": args[0].workspace.id,
+      }),
+    },
+  );
 };
