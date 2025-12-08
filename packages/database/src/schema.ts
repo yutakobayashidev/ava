@@ -287,7 +287,10 @@ export const taskSessions = pgTable(
     issueProviderIdx: index("task_sessions_issue_provider_idx").on(
       table.issueProvider,
     ),
-    statusIdx: index("task_sessions_status_idx").on(table.status),
+    statusCreatedAtIdx: index("task_sessions_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
   }),
 );
 
