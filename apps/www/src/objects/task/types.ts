@@ -7,7 +7,7 @@ type TaskStatus =
   | "completed"
   | "cancelled";
 
-type Issue = {
+export type Issue = {
   provider: "github" | "manual";
   id?: string | null;
   title: string;

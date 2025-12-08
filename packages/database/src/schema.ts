@@ -327,6 +327,13 @@ export const taskEvents = pgTable(
     reason: text("reason"),
     summary: text("summary"),
     relatedEventId: text("related_event_id"),
+    metadata: jsonb("metadata").$type<{
+      issue?: {
+        provider: "github" | "manual";
+        id?: string | null;
+        title: string;
+      };
+    }>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

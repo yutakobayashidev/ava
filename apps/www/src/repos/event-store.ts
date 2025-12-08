@@ -1,7 +1,7 @@
-import type { Event } from "@/objects/task/types";
+import type { Event, Issue } from "@/objects/task/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
 type AppendResult = {
@@ -18,6 +18,9 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
         version,
         eventType: "started" as const,
         summary: event.payload.initialSummary,
+        metadata: {
+          issue: event.payload.issue,
+        },
         createdAt: event.payload.occurredAt,
       } satisfies schema.NewTaskEvent;
     case "TaskUpdated":
@@ -114,14 +117,15 @@ type EventStore = {
 function mapDbToDomain(event: schema.TaskEvent): Event {
   switch (event.eventType) {
     case "started": {
+      const issue: Issue = event.metadata?.issue ?? {
+        provider: "manual",
+        id: null,
+        title: event.summary ?? "",
+      };
       return {
         type: "TaskStarted",
         payload: {
-          issue: {
-            provider: "manual",
-            id: null,
-            title: event.summary ?? "",
-          },
+          issue,
           initialSummary: event.summary ?? "",
           occurredAt: event.createdAt,
         },
@@ -210,9 +214,9 @@ export const createEventStore = (db: Database): EventStore => {
         .select()
         .from(schema.taskEvents)
         .where(eq(schema.taskEvents.taskSessionId, streamId))
-        .orderBy(desc(schema.taskEvents.version));
+        .orderBy(asc(schema.taskEvents.version));
 
-      return rows.reverse().map(mapDbToDomain);
+      return rows.map(mapDbToDomain);
     },
     append: async (streamId, expectedVersion, events) => {
       return db.transaction(async (tx) => {
