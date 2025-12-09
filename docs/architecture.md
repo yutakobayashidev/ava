@@ -67,14 +67,14 @@ type DecidedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof apply>;
+  newEvents: Event[];
   expectedVersion: number;
 };
 ```
 
 **処理内容:**
 
-- `apply()`関数でコマンドと現在の状態から新しいイベントを生成
+- `decide()`関数でコマンドと現在の状態から新しいイベントを生成
 - ビジネスルールの検証（例: ブロック中は進捗更新不可）をResult型で表現
 - 無効な状態遷移の場合は`err(BadRequestError)`を返す
 - 楽観的同時実行制御のためのバージョン番号を記録
@@ -90,7 +90,7 @@ type CommittedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof apply>;
+  newEvents: Event[];
   persistedEvents: schema.TaskEvent[];
   version: number;
 };
@@ -109,7 +109,7 @@ type CommittedCommand = {
 ```typescript
 type ProjectedCommand = {
   kind: "projected";
-  events: ReturnType<typeof apply>;
+  events: Event[];
   persistedEvents: schema.TaskEvent[];
   state: ReturnType<typeof replay>;
   version: number;
@@ -140,16 +140,67 @@ const loadEvents =
 
 const decideEvents = (
   command: LoadedCommand,
-): Result<DecidedCommand, BadRequestError> => {
-  return apply(command.state, command.command, new Date()).map((newEvents) => ({
-    ...command,
-    kind: "decided",
-    newEvents,
-    expectedVersion: command.history.length - 1,
-  }));
+): Result<DecidedCommand, BadRequestError | NotFoundError> => {
+  return decide(command.state, command.command, new Date()).map(
+    (newEvents) => ({
+      ...command,
+      kind: "decided",
+      newEvents,
+      expectedVersion: command.history.length - 1,
+    }),
+  );
 };
 
-// ... commitEvents, projectEvents
+const commitEvents =
+  (eventStore: ReturnType<typeof createEventStore>) =>
+  (command: DecidedCommand): ResultAsync<CommittedCommand, DatabaseError> => {
+    return eventStore
+      .append(command.streamId, command.expectedVersion, command.newEvents)
+      .map((appendResult) => ({
+        ...command,
+        kind: "committed",
+        persistedEvents: appendResult.persistedEvents,
+        version: appendResult.newVersion,
+      }));
+  };
+
+const projectEvents =
+  (db: Database) =>
+  (command: CommittedCommand): ResultAsync<ProjectedCommand, DatabaseError> => {
+    return projectTaskEvents(db, command.streamId, command.newEvents, {
+      workspaceId: command.workspace.id,
+      userId: command.user.id,
+    })
+      .andThen(() =>
+        queuePolicyEvents(db, command.streamId, command.newEvents, {
+          workspaceId: command.workspace.id,
+          user: {
+            id: command.user.id,
+            name: command.user.name,
+            email: command.user.email,
+            slackId: command.user.slackId,
+          },
+          channel:
+            command.state.slackThread?.channel ??
+            command.workspace.notificationChannelId ??
+            null,
+          threadTs: command.state.slackThread?.threadTs ?? null,
+        }),
+      )
+      .andThen(() =>
+        processTaskPolicyOutbox(db).orElse((error) => {
+          console.error("Failed to process task policy outbox", error);
+          return okAsync(undefined);
+        }),
+      )
+      .map(() => ({
+        kind: "projected",
+        events: command.newEvents,
+        persistedEvents: command.persistedEvents,
+        state: command.state,
+        version: command.version,
+      }));
+  };
 ```
 
 パイプライン全体の実行:
