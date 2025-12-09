@@ -128,13 +128,7 @@ const toUnloadedCommand = <TInput extends { taskSessionId: string }>(
     input: TInput;
   },
   command: Command,
-): ResultAsync<UnloadedCommand, DatabaseError> => {
-  if (!workflowCommand.input.taskSessionId) {
-    return ResultAsync.fromSafePromise(
-      Promise.reject(new DatabaseError("Missing taskSessionId")),
-    );
-  }
-
+): ResultAsync<UnloadedCommand, never> => {
   return okAsync({
     kind: "unloaded" as const,
     streamId: workflowCommand.input.taskSessionId,
