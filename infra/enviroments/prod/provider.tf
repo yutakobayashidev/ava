@@ -8,6 +8,10 @@ terraform {
     axiom = {
       source = "axiomhq/axiom"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.8"
+    }
   }
 }
 
