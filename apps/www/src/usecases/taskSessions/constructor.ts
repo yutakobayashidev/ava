@@ -3,7 +3,7 @@ import {
   createTaskQueryRepository,
 } from "@/repos";
 import { Context } from "@/types";
-import { createTaskExecuteCommand } from "./executor";
+import { createTaskExecuteCommand } from "./executor/index";
 import {
   createCancelTaskWorkflow,
   createCompleteTaskWorkflow,

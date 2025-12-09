@@ -8,7 +8,7 @@ import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import type { HonoEnv } from "@/types";
 import { ok, okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
-import { type TaskExecuteCommand } from "./executor";
+import type { TaskExecuteCommand } from "./interface";
 import type {
   CancelTaskWorkflow,
   CompleteTaskSuccess,

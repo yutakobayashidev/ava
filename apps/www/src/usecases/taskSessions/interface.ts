@@ -257,3 +257,28 @@ type ListTasksSuccess = {
 export type ListTasksWorkflow = (
   command: ListTasksCommand,
 ) => ResultAsync<ListTasksSuccess, DatabaseError>;
+
+/**
+ * Task Execute Command (Internal)
+ */
+
+type TaskExecuteParams = {
+  streamId: string;
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  command: import("@/objects/task/types").Command;
+};
+
+type TaskExecuteSuccess = {
+  events: import("@/objects/task/types").Event[];
+  persistedEvents: import("@ava/database/schema").TaskEvent[];
+  state: ReturnType<typeof import("@/objects/task/decider").replay>;
+  version: number;
+};
+
+export type TaskExecuteCommand = (
+  params: TaskExecuteParams,
+) => ResultAsync<
+  TaskExecuteSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
