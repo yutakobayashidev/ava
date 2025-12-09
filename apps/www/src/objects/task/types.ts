@@ -14,26 +14,26 @@ export type Issue = {
 };
 
 export type Command =
-  | { type: "StartTask"; payload: { issue: Issue; initialSummary: string } }
+  | { type: "StartTask"; input: { issue: Issue; initialSummary: string } }
   | {
       type: "AddProgress";
-      payload: { summary: string };
+      input: { summary: string };
     }
   | {
       type: "ReportBlock";
-      payload: { reason: string };
+      input: { reason: string };
     }
-  | { type: "ResolveBlock"; payload: { blockId: string } }
+  | { type: "ResolveBlock"; input: { blockId: string } }
   | {
       type: "PauseTask";
-      payload: { reason: string };
+      input: { reason: string };
     }
   | {
       type: "ResumeTask";
-      payload: { summary: string };
+      input: { summary: string };
     }
-  | { type: "CompleteTask"; payload: { summary: string } }
-  | { type: "CancelTask"; payload: { reason?: string } };
+  | { type: "CompleteTask"; input: { summary: string } }
+  | { type: "CancelTask"; input: { reason?: string } };
 
 export type Event =
   | {

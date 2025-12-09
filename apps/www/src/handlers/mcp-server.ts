@@ -71,9 +71,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: updateTaskInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructUpdateTaskWorkflow(ctx)(
-        createCommand(taskSessionId, { type: "AddProgress", input: payload }),
+        createCommand(taskSessionId, {
+          type: "AddProgress",
+          input: commandInput,
+        }),
       );
       return result.match(
         (data) => formatSuccessResponse(data, "進捗を保存しました。"),
@@ -90,9 +93,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: reportBlockedInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructReportBlockedWorkflow(ctx)(
-        createCommand(taskSessionId, { type: "ReportBlock", input: payload }),
+        createCommand(taskSessionId, {
+          type: "ReportBlock",
+          input: commandInput,
+        }),
       );
       return result.match(
         (data) =>
@@ -110,9 +116,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: pauseTaskInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructPauseTaskWorkflow(ctx)(
-        createCommand(taskSessionId, { type: "PauseTask", input: payload }),
+        createCommand(taskSessionId, {
+          type: "PauseTask",
+          input: commandInput,
+        }),
       );
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを一時休止しました。"),
@@ -129,9 +138,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: resumeTaskInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructResumeTaskWorkflow(ctx)(
-        createCommand(taskSessionId, { type: "ResumeTask", input: payload }),
+        createCommand(taskSessionId, {
+          type: "ResumeTask",
+          input: commandInput,
+        }),
       );
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを再開しました。"),
@@ -148,12 +160,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: completeTaskInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructCompleteTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         taskSessionId,
-        command: { type: "CompleteTask", input: payload },
+        command: { type: "CompleteTask", input: commandInput },
       });
       return result.match(
         (data) =>
@@ -176,12 +188,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: cancelTaskInputSchema,
     },
     (input) => {
-      const { taskSessionId, ...payload } = input;
+      const { taskSessionId, ...commandInput } = input;
       const result = constructCancelTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
         taskSessionId,
-        command: { type: "CancelTask", input: payload },
+        command: { type: "CancelTask", input: commandInput },
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを中止しました。"),

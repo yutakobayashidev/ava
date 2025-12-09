@@ -48,7 +48,7 @@ describe("createTaskExecuteCommand", () => {
       user,
       command: {
         type: "StartTask",
-        payload: { issue, initialSummary: "initial" },
+        input: { issue, initialSummary: "initial" },
       },
     });
 
@@ -59,7 +59,7 @@ describe("createTaskExecuteCommand", () => {
       user,
       command: {
         type: "AddProgress",
-        payload: { summary: "doing the work" },
+        input: { summary: "doing the work" },
       },
     });
 
@@ -70,7 +70,7 @@ describe("createTaskExecuteCommand", () => {
       user,
       command: {
         type: "CompleteTask",
-        payload: { summary: "all done" },
+        input: { summary: "all done" },
       },
     });
 
@@ -102,7 +102,7 @@ describe("createTaskExecuteCommand", () => {
       .select({
         policyType: schema.taskPolicyOutbox.policyType,
         status: schema.taskPolicyOutbox.status,
-        payload: schema.taskPolicyOutbox.payload,
+        input: schema.taskPolicyOutbox.payload,
       })
       .from(schema.taskPolicyOutbox)
       .where(eq(schema.taskPolicyOutbox.taskSessionId, streamId));
@@ -114,7 +114,7 @@ describe("createTaskExecuteCommand", () => {
 
     const templates = policies
       .filter((policy) => policy.policyType === "slack_notify")
-      .map((policy) => (policy.payload as { template?: string }).template)
+      .map((policy) => (policy.input as { template?: string }).template)
       .filter(Boolean);
 
     expect(templates.sort()).toEqual(["completed", "started", "updated"]);
@@ -131,7 +131,7 @@ describe("createTaskExecuteCommand", () => {
       user,
       command: {
         type: "StartTask",
-        payload: { issue, initialSummary: "initial" },
+        input: { issue, initialSummary: "initial" },
       },
     });
 
@@ -140,7 +140,7 @@ describe("createTaskExecuteCommand", () => {
       streamId,
       workspace,
       user,
-      command: { type: "ReportBlock", payload: { reason: "waiting" } },
+      command: { type: "ReportBlock", input: { reason: "waiting" } },
     });
 
     const result = await executeCommand({
@@ -150,7 +150,7 @@ describe("createTaskExecuteCommand", () => {
       user,
       command: {
         type: "AddProgress",
-        payload: { summary: "should fail" },
+        input: { summary: "should fail" },
       },
     });
 

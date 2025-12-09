@@ -112,8 +112,8 @@ export function decide(
           type: "TaskStarted",
           schemaVersion: 1,
           payload: {
-            issue: command.payload.issue,
-            initialSummary: command.payload.initialSummary,
+            issue: command.input.issue,
+            initialSummary: command.input.initialSummary,
             occurredAt: now,
           },
         },
@@ -132,7 +132,7 @@ export function decide(
           type: "TaskUpdated",
           schemaVersion: 1,
           payload: {
-            summary: command.payload.summary,
+            summary: command.input.summary,
             occurredAt: now,
           },
         },
@@ -145,7 +145,7 @@ export function decide(
           schemaVersion: 1,
           payload: {
             blockId: newBlockId(),
-            reason: command.payload.reason,
+            reason: command.input.reason,
             occurredAt: now,
           },
         },
@@ -153,13 +153,13 @@ export function decide(
     }
     case "ResolveBlock": {
       const block = state.unresolvedBlocks.find(
-        (b) => b.id === command.payload.blockId,
+        (b) => b.id === command.input.blockId,
       );
       if (!block) {
         return err(new NotFoundError("Block not found or already resolved"));
       }
       const remaining = state.unresolvedBlocks.filter(
-        (b) => b.id !== command.payload.blockId,
+        (b) => b.id !== command.input.blockId,
       );
       const nextStatus = remaining.length > 0 ? "blocked" : "in_progress";
       return validateTransition(state.status, nextStatus).map(() => [
@@ -167,7 +167,7 @@ export function decide(
           type: "BlockResolved",
           schemaVersion: 1,
           payload: {
-            blockId: command.payload.blockId,
+            blockId: command.input.blockId,
             reason: block.reason,
             occurredAt: now,
           },
@@ -181,7 +181,7 @@ export function decide(
           schemaVersion: 1,
           payload: {
             pauseId: newPauseId(),
-            reason: command.payload.reason,
+            reason: command.input.reason,
             occurredAt: now,
           },
         },
@@ -198,7 +198,7 @@ export function decide(
           type: "TaskResumed",
           schemaVersion: 1,
           payload: {
-            summary: command.payload.summary,
+            summary: command.input.summary,
             resumedFromPauseId: state.lastPausedId,
             occurredAt: now,
           },
@@ -210,7 +210,7 @@ export function decide(
         {
           type: "TaskCompleted",
           schemaVersion: 1,
-          payload: { summary: command.payload.summary, occurredAt: now },
+          payload: { summary: command.input.summary, occurredAt: now },
         },
       ]);
     }
@@ -219,7 +219,7 @@ export function decide(
         {
           type: "TaskCancelled",
           schemaVersion: 1,
-          payload: { reason: command.payload.reason, occurredAt: now },
+          payload: { reason: command.input.reason, occurredAt: now },
         },
       ]);
     }
