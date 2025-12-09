@@ -5,6 +5,7 @@ import { getCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import { handle } from "hono/vercel";
 import { NextRequest, NextResponse } from "next/server";
+import { validateSessionToken } from "./lib/server/session";
 
 const { rewrite: rewriteLLM } = rewritePath("/docs/*path", "/llms.mdx/*path");
 
@@ -29,31 +30,45 @@ export const rewriteMarkdownMiddleware = createMiddleware(async (c, next) => {
   await next();
 });
 
-/**
- * 認証ミドルウェア
- *
- * 保護する内容:
- * - 未ログインユーザーが /{teamId}/onboarding にアクセス → /login へリダイレクト
- *
- * 楽観的にCookieの有無だけをチェックし、DBアクセスを省略
- * オンボーディング完了チェックはページ側で行う
- */
 export const authMiddleware = createMiddleware(async (c, next) => {
   const path = c.req.path;
 
-  // 未ログインユーザーのオンボーディング → /login へ（楽観的チェック）
-  // パターン: /{teamId}/onboarding*
-  if (/^\/[^/]+\/onboarding/.test(path)) {
-    const token = getCookie(c, "session");
+  // API や fetch リクエストではリダイレクトさせない
+  const isHTML = c.req.header("accept")?.includes("text/html");
 
-    if (!token) {
+  const token = getCookie(c, "session");
+  const { user } = token ? await validateSessionToken(token) : { user: null };
+
+  const isOnboardingPath = path.startsWith("/onboarding");
+  const completed = !!user?.onboardingCompletedAt;
+
+  // 未ログインユーザーが /onboarding に来たらログインへ
+  if (!user && isOnboardingPath) {
+    if (isHTML) {
       const loginUrl = new URL("/login", c.req.url);
       loginUrl.searchParams.set("callbackUrl", path);
-      return NextResponse.redirect(loginUrl.toString());
+      return c.redirect(loginUrl.toString());
     }
+    return next();
   }
 
-  await next();
+  // ログイン済み & 未完了ユーザーをオンボーディングへ誘導
+  if (user && !completed && !isOnboardingPath) {
+    if (isHTML) {
+      return c.redirect(new URL("/onboarding", c.req.url));
+    }
+    return next();
+  }
+
+  // 完了済みユーザーが /onboarding に来たらダッシュボードへ
+  if (user && completed && isOnboardingPath) {
+    if (isHTML) {
+      return c.redirect(new URL("/dashboard", c.req.url));
+    }
+    return next();
+  }
+
+  return next();
 });
 
 const app = new Hono();
