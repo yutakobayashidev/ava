@@ -204,10 +204,13 @@ export const createUpdateTaskWorkflow = (
   return withSpanAsync(
     "updateTask",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "AddProgress",
-        payload: { summary: command.input.summary },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "AddProgress",
+            payload: { summary: command.input.summary },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -234,10 +237,13 @@ export const createCompleteTaskWorkflow = (
   return withSpanAsync(
     "completeTask",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "CompleteTask",
-        payload: { summary: command.input.summary },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "CompleteTask",
+            payload: { summary: command.input.summary },
+          }),
+        )
         .andThen(executeCommand)
         .andThen((result) =>
           taskRepository
@@ -277,10 +283,13 @@ export const createReportBlockedWorkflow = (
   return withSpanAsync(
     "reportBlocked",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "ReportBlock",
-        payload: { reason: command.input.reason },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "ReportBlock",
+            payload: { reason: command.input.reason },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -306,10 +315,13 @@ export const createPauseTaskWorkflow = (
   return withSpanAsync(
     "pauseTask",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "PauseTask",
-        payload: { reason: command.input.reason },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "PauseTask",
+            payload: { reason: command.input.reason },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -335,10 +347,13 @@ export const createResumeTaskWorkflow = (
   return withSpanAsync(
     "resumeTask",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "ResumeTask",
-        payload: { summary: command.input.summary },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "ResumeTask",
+            payload: { summary: command.input.summary },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -363,10 +378,13 @@ export const createResolveBlockedWorkflow = (
   return withSpanAsync(
     "resolveBlocked",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "ResolveBlock",
-        payload: { blockId: command.input.blockReportId },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "ResolveBlock",
+            payload: { blockId: command.input.blockReportId },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -393,10 +411,13 @@ export const createCancelTaskWorkflow = (
   return withSpanAsync(
     "cancelTask",
     (command) => {
-      return toUnloadedCommand(command, {
-        type: "CancelTask",
-        payload: { reason: command.input.reason },
-      })
+      return ok(command)
+        .asyncAndThen((command) =>
+          toUnloadedCommand(command, {
+            type: "CancelTask",
+            payload: { reason: command.input.reason },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
@@ -422,8 +443,8 @@ export const createListTasksWorkflow = (
   return withSpanAsync(
     "listTasks",
     (command) => {
-      return okAsync(command)
-        .andThen((command) =>
+      return ok(command)
+        .asyncAndThen((command) =>
           taskRepository.listTaskSessions({
             userId: command.user.id,
             workspaceId: command.workspace.id,
