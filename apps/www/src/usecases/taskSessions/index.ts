@@ -28,6 +28,197 @@ import type {
 } from "./interface";
 
 // ============================================================================
+// Command Executor: Pipeline Types
+// ============================================================================
+
+type UnloadedCommand = {
+  kind: "unloaded";
+  streamId: string;
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  command: Command;
+};
+
+type LoadedCommand = {
+  kind: "loaded";
+  streamId: string;
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  command: Command;
+  history: Awaited<ReturnType<ReturnType<typeof createEventStore>["load"]>>;
+  state: ReturnType<typeof replay>;
+};
+
+type DecidedCommand = {
+  kind: "decided";
+  streamId: string;
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  state: ReturnType<typeof replay>;
+  newEvents: ReturnType<typeof decide>;
+  expectedVersion: number;
+};
+
+type CommittedCommand = {
+  kind: "committed";
+  streamId: string;
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  state: ReturnType<typeof replay>;
+  newEvents: ReturnType<typeof decide>;
+  persistedEvents: Awaited<
+    ReturnType<ReturnType<typeof createEventStore>["append"]>
+  >["persistedEvents"];
+  version: Awaited<
+    ReturnType<ReturnType<typeof createEventStore>["append"]>
+  >["newVersion"];
+};
+
+type ProjectedCommand = {
+  kind: "projected";
+  events: ReturnType<typeof decide>;
+  persistedEvents: Awaited<
+    ReturnType<ReturnType<typeof createEventStore>["append"]>
+  >["persistedEvents"];
+  state: ReturnType<typeof replay>;
+  version: Awaited<
+    ReturnType<ReturnType<typeof createEventStore>["append"]>
+  >["newVersion"];
+};
+
+// ============================================================================
+// Command Executor: Pipeline Functions
+// ============================================================================
+
+/**
+ * Step 1: イベント履歴をロードして状態を再構築
+ */
+const loadEvents =
+  (eventStore: ReturnType<typeof createEventStore>) =>
+  (command: UnloadedCommand): ResultAsync<LoadedCommand, DatabaseError> => {
+    return ResultAsync.fromPromise(
+      eventStore.load(command.streamId),
+      (error) =>
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to load events",
+          error,
+        ),
+    ).map((history) => ({
+      ...command,
+      kind: "loaded",
+      history,
+      state: replay(command.streamId, history),
+    }));
+  };
+
+/**
+ * Step 2: コマンドから新しいイベントを決定
+ */
+const decideEvents = (
+  command: LoadedCommand,
+): ResultAsync<DecidedCommand, DatabaseError> => {
+  return ResultAsync.fromPromise(
+    (async () => {
+      const newEvents = decide(command.state, command.command, new Date());
+      return {
+        kind: "decided" as const,
+        streamId: command.streamId,
+        workspace: command.workspace,
+        user: command.user,
+        state: command.state,
+        newEvents,
+        expectedVersion: command.history.length - 1,
+      };
+    })(),
+    (error) =>
+      new DatabaseError(
+        error instanceof Error ? error.message : "Failed to decide events",
+        error,
+      ),
+  );
+};
+
+/**
+ * Step 3: イベントを永続化
+ */
+const commitEvents =
+  (eventStore: ReturnType<typeof createEventStore>) =>
+  (command: DecidedCommand): ResultAsync<CommittedCommand, DatabaseError> => {
+    return ResultAsync.fromPromise(
+      eventStore.append(
+        command.streamId,
+        command.expectedVersion,
+        command.newEvents,
+      ),
+      (error) =>
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to commit events",
+          error,
+        ),
+    ).map((appendResult) => ({
+      kind: "committed" as const,
+      streamId: command.streamId,
+      workspace: command.workspace,
+      user: command.user,
+      state: command.state,
+      newEvents: command.newEvents,
+      persistedEvents: appendResult.persistedEvents,
+      version: appendResult.newVersion,
+    }));
+  };
+
+/**
+ * Step 4: プロジェクションとポリシーイベントの処理
+ */
+const projectEvents =
+  (db: Database) =>
+  (command: CommittedCommand): ResultAsync<ProjectedCommand, DatabaseError> => {
+    return ResultAsync.fromPromise(
+      (async () => {
+        await projectTaskEvents(db, command.streamId, command.newEvents, {
+          workspaceId: command.workspace.id,
+          userId: command.user.id,
+        });
+
+        await queuePolicyEvents(db, command.streamId, command.newEvents, {
+          workspaceId: command.workspace.id,
+          user: {
+            id: command.user.id,
+            name: command.user.name,
+            email: command.user.email,
+            slackId: command.user.slackId,
+          },
+          channel:
+            command.state.slackThread?.channel ??
+            command.workspace.notificationChannelId ??
+            null,
+          threadTs: command.state.slackThread?.threadTs ?? null,
+        });
+
+        // 可能な限り即時に通知するため、アウトボックスをその場で処理する
+        try {
+          await processTaskPolicyOutbox(db);
+        } catch (err) {
+          console.error("Failed to process task policy outbox", err);
+        }
+
+        return {
+          kind: "projected" as const,
+          events: command.newEvents,
+          persistedEvents: command.persistedEvents,
+          state: command.state,
+          version: command.version,
+        };
+      })(),
+      (error) =>
+        new DatabaseError(
+          error instanceof Error ? error.message : "Failed to project events",
+          error,
+        ),
+    );
+  };
+
+// ============================================================================
 // Command Executor
 // ============================================================================
 
@@ -56,61 +247,22 @@ export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
     },
     DatabaseError
   > => {
-    return ResultAsync.fromPromise(
-      (async () => {
-        const { streamId, workspace, user, command } = params;
-        const history = await eventStore.load(streamId);
-        const state = replay(streamId, history);
+    const command: UnloadedCommand = {
+      kind: "unloaded",
+      ...params,
+    };
 
-        const newEvents = decide(state, command, new Date());
-        const expectedVersion = history.length - 1;
-
-        const appendResult = await eventStore.append(
-          streamId,
-          expectedVersion,
-          newEvents,
-        );
-
-        await projectTaskEvents(deps.db, streamId, newEvents, {
-          workspaceId: workspace.id,
-          userId: user.id,
-        });
-
-        await queuePolicyEvents(deps.db, streamId, newEvents, {
-          workspaceId: workspace.id,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            slackId: user.slackId,
-          },
-          channel:
-            state.slackThread?.channel ??
-            workspace.notificationChannelId ??
-            null,
-          threadTs: state.slackThread?.threadTs ?? null,
-        });
-
-        // 可能な限り即時に通知するため、アウトボックスをその場で処理する
-        try {
-          await processTaskPolicyOutbox(deps.db);
-        } catch (err) {
-          console.error("Failed to process task policy outbox", err);
-        }
-
-        return {
-          events: newEvents,
-          persistedEvents: appendResult.persistedEvents,
-          state,
-          version: appendResult.newVersion,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to execute command",
-          error,
-        ),
-    );
+    return ok(command)
+      .asyncAndThen(loadEvents(eventStore))
+      .andThen(decideEvents)
+      .andThen(commitEvents(eventStore))
+      .andThen(projectEvents(deps.db))
+      .map((result) => ({
+        events: result.events,
+        persistedEvents: result.persistedEvents,
+        state: result.state,
+        version: result.version,
+      }));
   };
 };
 
