@@ -287,7 +287,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           await constructCompleteTaskWorkflow(ctx)({
             workspace,
             user,
-            input: { taskSessionId, summary },
+            taskSessionId,
+            command: { type: "CompleteTask", input: { summary } },
           });
           break;
         }
@@ -297,7 +298,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           await constructReportBlockedWorkflow(ctx)({
             workspace,
             user,
-            input: { taskSessionId, reason },
+            taskSessionId,
+            command: { type: "ReportBlock", input: { reason } },
           });
           break;
         }
@@ -306,7 +308,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           await constructPauseTaskWorkflow(ctx)({
             workspace,
             user,
-            input: { taskSessionId, reason },
+            taskSessionId,
+            command: { type: "PauseTask", input: { reason } },
           });
           break;
         }
@@ -316,7 +319,8 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           await constructResumeTaskWorkflow(ctx)({
             workspace,
             user,
-            input: { taskSessionId, summary },
+            taskSessionId,
+            command: { type: "ResumeTask", input: { summary } },
           });
           break;
         }
@@ -325,9 +329,10 @@ app.post("/interactions", verifySlackSignature, async (ctx) => {
           await constructResolveBlockedWorkflow(ctx)({
             workspace,
             user,
-            input: {
-              taskSessionId: metadata.taskSessionId,
-              blockReportId: metadata.blockReportId,
+            taskSessionId: metadata.taskSessionId,
+            command: {
+              type: "ResolveBlock",
+              input: { blockId: metadata.blockReportId },
             },
           });
           break;

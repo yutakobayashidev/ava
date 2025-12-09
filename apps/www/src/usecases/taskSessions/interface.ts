@@ -5,6 +5,7 @@ import type {
 } from "@/errors";
 import type { DatabaseError } from "@/lib/db";
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
+import type { Command } from "@/objects/task/types";
 import { HonoEnv } from "@/types";
 import type { ResultAsync } from "neverthrow";
 
@@ -12,10 +13,11 @@ import type { ResultAsync } from "neverthrow";
  * 共通型
  */
 
-type BaseCommand<Input> = {
+export type BaseCommand<C extends Command> = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  input: Input;
+  taskSessionId: string;
+  command: C;
 };
 
 /**
@@ -54,12 +56,7 @@ export type StartTaskWorkflow = (
  * Update Task
  */
 
-type UpdateTaskParams = {
-  taskSessionId: string;
-  summary: string;
-};
-
-type UpdateTaskCommand = BaseCommand<UpdateTaskParams>;
+type UpdateTaskCommand = BaseCommand<Extract<Command, { type: "AddProgress" }>>;
 
 type UpdateTaskSuccess = {
   taskSessionId: string;
@@ -79,12 +76,9 @@ export type UpdateTaskWorkflow = (
  * Complete Task
  */
 
-type CompleteTaskParams = {
-  taskSessionId: string;
-  summary: string;
-};
-
-type CompleteTaskCommand = BaseCommand<CompleteTaskParams>;
+type CompleteTaskCommand = BaseCommand<
+  Extract<Command, { type: "CompleteTask" }>
+>;
 
 export type CompleteTaskSuccess = {
   taskSessionId: string;
@@ -108,12 +102,7 @@ export type CompleteTaskWorkflow = (
  * Cancel Task
  */
 
-type CancelTaskParams = {
-  taskSessionId: string;
-  reason?: string;
-};
-
-type CancelTaskCommand = BaseCommand<CancelTaskParams>;
+type CancelTaskCommand = BaseCommand<Extract<Command, { type: "CancelTask" }>>;
 
 type CancelTaskSuccess = {
   taskSessionId: string;
@@ -133,12 +122,9 @@ export type CancelTaskWorkflow = (
  * Report Blocked
  */
 
-type ReportBlockedParams = {
-  taskSessionId: string;
-  reason: string;
-};
-
-type ReportBlockedCommand = BaseCommand<ReportBlockedParams>;
+type ReportBlockedCommand = BaseCommand<
+  Extract<Command, { type: "ReportBlock" }>
+>;
 
 type ReportBlockedSuccess = {
   taskSessionId: string;
@@ -158,12 +144,7 @@ export type ReportBlockedWorkflow = (
  * Pause Task
  */
 
-type PauseTaskParams = {
-  taskSessionId: string;
-  reason: string;
-};
-
-type PauseTaskCommand = BaseCommand<PauseTaskParams>;
+type PauseTaskCommand = BaseCommand<Extract<Command, { type: "PauseTask" }>>;
 
 type PauseTaskSuccess = {
   taskSessionId: string;
@@ -183,12 +164,7 @@ export type PauseTaskWorkflow = (
  * Resume Task
  */
 
-type ResumeTaskParams = {
-  taskSessionId: string;
-  summary: string;
-};
-
-type ResumeTaskCommand = BaseCommand<ResumeTaskParams>;
+type ResumeTaskCommand = BaseCommand<Extract<Command, { type: "ResumeTask" }>>;
 
 type ResumeTaskSuccess = {
   taskSessionId: string;
@@ -207,12 +183,9 @@ export type ResumeTaskWorkflow = (
  * Resolve Blocked
  */
 
-type ResolveBlockedParams = {
-  taskSessionId: string;
-  blockReportId: string;
-};
-
-type ResolveBlockedCommand = BaseCommand<ResolveBlockedParams>;
+type ResolveBlockedCommand = BaseCommand<
+  Extract<Command, { type: "ResolveBlock" }>
+>;
 
 type ResolveBlockedSuccess = {
   taskSessionId: string;
@@ -237,7 +210,11 @@ type ListTasksParams = {
   limit?: number;
 };
 
-type ListTasksCommand = BaseCommand<ListTasksParams>;
+type ListTasksCommand = {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  input: ListTasksParams;
+};
 
 type TaskSummary = {
   taskSessionId: string;

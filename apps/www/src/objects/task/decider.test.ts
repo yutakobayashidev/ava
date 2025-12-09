@@ -10,7 +10,7 @@ describe("Task decider", () => {
       { ...initialState, streamId },
       {
         type: "StartTask",
-        payload: {
+        input: {
           issue: { provider: "manual", title: "Test" },
           initialSummary: "init",
         },
@@ -23,7 +23,7 @@ describe("Task decider", () => {
 
     const updatedResult = decide(
       stateAfterStart,
-      { type: "AddProgress", payload: { summary: "progress" } },
+      { type: "AddProgress", input: { summary: "progress" } },
       now,
     );
     expect.assert(updatedResult.isOk());
@@ -31,7 +31,7 @@ describe("Task decider", () => {
 
     const completedResult = decide(
       replay(streamId, [...started, ...updated]),
-      { type: "CompleteTask", payload: { summary: "done" } },
+      { type: "CompleteTask", input: { summary: "done" } },
       now,
     );
     expect.assert(completedResult.isOk());
@@ -50,7 +50,7 @@ describe("Task decider", () => {
       { ...initialState, streamId },
       {
         type: "StartTask",
-        payload: {
+        input: {
           issue: { provider: "manual", title: "Test" },
           initialSummary: "init",
         },
@@ -62,7 +62,7 @@ describe("Task decider", () => {
 
     const blockedResult = decide(
       replay(streamId, started),
-      { type: "ReportBlock", payload: { reason: "oops" } },
+      { type: "ReportBlock", input: { reason: "oops" } },
       now,
     );
     expect.assert(blockedResult.isOk());
@@ -77,7 +77,7 @@ describe("Task decider", () => {
       apply(replay(streamId, started), blocked),
       {
         type: "ResolveBlock",
-        payload: { blockId },
+        input: { blockId },
       },
       now,
     );
@@ -96,7 +96,7 @@ describe("Task decider", () => {
       { ...initialState, streamId },
       {
         type: "StartTask",
-        payload: {
+        input: {
           issue: { provider: "manual", title: "Test" },
           initialSummary: "init",
         },
@@ -108,7 +108,7 @@ describe("Task decider", () => {
 
     const completedResult = decide(
       replay(streamId, started),
-      { type: "CompleteTask", payload: { summary: "done" } },
+      { type: "CompleteTask", input: { summary: "done" } },
       now,
     );
     expect.assert(completedResult.isOk());
@@ -117,7 +117,7 @@ describe("Task decider", () => {
     const finalState = replay(streamId, [...started, ...completed]);
     const result = decide(
       finalState,
-      { type: "AddProgress", payload: { summary: "more" } },
+      { type: "AddProgress", input: { summary: "more" } },
       now,
     );
     expect.assert(result.isErr());
@@ -131,7 +131,7 @@ describe("Task decider", () => {
       { ...initialState, streamId },
       {
         type: "StartTask",
-        payload: {
+        input: {
           issue: { provider: "manual", title: "Test" },
           initialSummary: "init",
         },
@@ -144,7 +144,7 @@ describe("Task decider", () => {
 
     const blockedResult = decide(
       stateAfterStart,
-      { type: "ReportBlock", payload: { reason: "blocked" } },
+      { type: "ReportBlock", input: { reason: "blocked" } },
       now,
     );
     expect.assert(blockedResult.isOk());
@@ -157,7 +157,7 @@ describe("Task decider", () => {
 
     const resolvedResult = decide(
       apply(stateAfterStart, blocked),
-      { type: "ResolveBlock", payload: { blockId } },
+      { type: "ResolveBlock", input: { blockId } },
       now,
     );
     expect.assert(resolvedResult.isOk());
