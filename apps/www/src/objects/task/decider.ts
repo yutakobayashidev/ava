@@ -1,12 +1,6 @@
 import { validateTransition } from "./task-status";
-import {
-  Command,
-  Event,
-  TaskState,
-  initialState,
-  newBlockId,
-  newPauseId,
-} from "./types";
+import { Command, Event, TaskState, initialState } from "./types";
+import { generateId } from "./id";
 
 function evolve(state: TaskState, event: Event): TaskState {
   switch (event.type) {
@@ -138,7 +132,7 @@ export function decide(
           type: "TaskBlocked",
           schemaVersion: 1,
           payload: {
-            blockId: newBlockId(),
+            blockId: generateId(),
             reason: command.payload.reason,
             occurredAt: now,
           },
@@ -174,7 +168,7 @@ export function decide(
           type: "TaskPaused",
           schemaVersion: 1,
           payload: {
-            pauseId: newPauseId(),
+            pauseId: generateId(),
             reason: command.payload.reason,
             occurredAt: now,
           },

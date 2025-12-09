@@ -1,6 +1,7 @@
 import { DatabaseError } from "@/lib/db";
 import { withSpanAsync } from "@/lib/otel";
 import { apply, decide, replay } from "@/objects/task/decider";
+import { generateId } from "@/objects/task/id";
 import { toTaskStatus } from "@/objects/task/task-status";
 import type { Command, Event } from "@/objects/task/types";
 import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
@@ -13,7 +14,6 @@ import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { ok, okAsync, ResultAsync } from "neverthrow";
-import { uuidv7 } from "uuidv7";
 import { PlanLimitError } from "./errors";
 import type {
   CancelTaskWorkflow,
@@ -323,7 +323,7 @@ const generateStreamId = (
   return okAsync({
     ...params,
     kind: "prepared",
-    streamId: uuidv7(),
+    streamId: generateId(),
   });
 };
 

@@ -1,5 +1,3 @@
-import { uuidv7 } from "uuidv7";
-
 type TaskStatus =
   | "in_progress"
   | "blocked"
@@ -114,11 +112,3 @@ export const initialState: TaskState = {
   status: "in_progress",
   unresolvedBlocks: [],
 };
-
-export function newBlockId() {
-  return uuidv7();
-}
-
-export function newPauseId() {
-  return uuidv7();
-}
