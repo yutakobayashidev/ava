@@ -26,7 +26,7 @@ describe("createTaskExecuteCommand", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     ({ user, workspace } = await createTestUserAndWorkspace());
-    executeCommand = createTaskExecuteCommand({ db });
+    executeCommand = createTaskExecuteCommand(db);
 
     mockPostMessage.mockResolvedValue({
       delivered: true,

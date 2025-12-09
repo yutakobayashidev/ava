@@ -10,12 +10,8 @@ import { ok, ResultAsync } from "neverthrow";
 import { commitEvents, decideEvents, loadEvents, projectEvents } from "./steps";
 import type { UnloadedCommand } from "./types";
 
-type TaskExecuteCommandDeps = {
-  db: Database;
-};
-
-export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
-  const eventStore = createEventStore(deps.db);
+export const createTaskExecuteCommand = (db: Database) => {
+  const eventStore = createEventStore(db);
 
   return (params: {
     streamId: string;
@@ -40,7 +36,7 @@ export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
       .asyncAndThen(loadEvents(eventStore))
       .andThen(decideEvents)
       .andThen(commitEvents(eventStore))
-      .andThen(projectEvents(deps.db))
+      .andThen(projectEvents(db))
       .map((result) => ({
         events: result.events,
         persistedEvents: result.persistedEvents,
