@@ -5,6 +5,7 @@ import * as schema from "@ava/database/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import type { OAuth2Tokens } from "arctic";
+import { WebClient } from "@slack/web-api";
 
 type LoginWithSlack = {
   code: string;
@@ -28,7 +29,6 @@ type LoginWithSlackResult =
   | { success: false; error: "invalid_code" | "user_creation_failed" };
 
 async function getSlackUser(tokens: OAuth2Tokens): Promise<SlackUser> {
-  const { WebClient } = await import("@slack/web-api");
   const client = new WebClient(tokens.accessToken());
 
   const result = await client.openid.connect.userInfo();

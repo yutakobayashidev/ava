@@ -5,9 +5,12 @@ import type {
 } from "@/errors";
 import type { DatabaseError } from "@/lib/db";
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
-import type { Command } from "@/objects/task/types";
+import type { Command, Event } from "@/objects/task/types";
 import { HonoEnv } from "@/types";
 import type { ResultAsync } from "neverthrow";
+import type { TaskEvent } from "@ava/database/schema";
+import type { replay } from "@/objects/task/decider";
+import type { UnloadedCommand } from "./executor/types";
 
 /**
  * 共通型
@@ -240,14 +243,14 @@ export type ListTasksWorkflow = (
  */
 
 type TaskExecuteSuccess = {
-  events: import("@/objects/task/types").Event[];
-  persistedEvents: import("@ava/database/schema").TaskEvent[];
-  state: ReturnType<typeof import("@/objects/task/decider").replay>;
+  events: Event[];
+  persistedEvents: TaskEvent[];
+  state: ReturnType<typeof replay>;
   version: number;
 };
 
 export type TaskExecuteWorkflow = (
-  command: import("./executor/types").UnloadedCommand,
+  command: UnloadedCommand,
 ) => ResultAsync<
   TaskExecuteSuccess,
   DatabaseError | BadRequestError | NotFoundError
