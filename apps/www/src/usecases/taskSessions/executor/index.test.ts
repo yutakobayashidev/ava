@@ -1,8 +1,9 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@ava/database/schema";
-import { createTaskExecuteCommand, type TaskExecuteCommand } from "./index";
-import { setup } from "../../../tests/vitest.helper";
+import type { TaskExecuteWorkflow } from "../interface";
+import { createTaskExecuteCommand } from "./index";
+import { setup } from "../../../../tests/vitest.helper";
 
 const { db, createTestUserAndWorkspace } = await setup();
 
@@ -21,12 +22,12 @@ describe("createTaskExecuteCommand", () => {
     ReturnType<typeof createTestUserAndWorkspace>
   >["workspace"];
   let user: Awaited<ReturnType<typeof createTestUserAndWorkspace>>["user"];
-  let executeCommand: TaskExecuteCommand;
+  let executeCommand: TaskExecuteWorkflow;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     ({ user, workspace } = await createTestUserAndWorkspace());
-    executeCommand = createTaskExecuteCommand({ db });
+    executeCommand = createTaskExecuteCommand(db);
 
     mockPostMessage.mockResolvedValue({
       delivered: true,
@@ -41,6 +42,7 @@ describe("createTaskExecuteCommand", () => {
     const issue = { provider: "manual" as const, title: "CQRS flow" };
 
     await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,
@@ -51,6 +53,7 @@ describe("createTaskExecuteCommand", () => {
     });
 
     await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,
@@ -61,6 +64,7 @@ describe("createTaskExecuteCommand", () => {
     });
 
     await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,
@@ -121,6 +125,7 @@ describe("createTaskExecuteCommand", () => {
     const issue = { provider: "manual" as const, title: "Blocked task" };
 
     await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,
@@ -131,6 +136,7 @@ describe("createTaskExecuteCommand", () => {
     });
 
     await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,
@@ -138,6 +144,7 @@ describe("createTaskExecuteCommand", () => {
     });
 
     const result = await executeCommand({
+      kind: "unloaded",
       streamId,
       workspace,
       user,

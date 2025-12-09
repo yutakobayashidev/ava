@@ -1,20 +1,13 @@
+import { PaymentRequiredError } from "@/errors";
 import { DatabaseError } from "@/lib/db";
 import { withSpanAsync } from "@/lib/otel";
-import { apply, decide, replay } from "@/objects/task/decider";
+import { apply } from "@/objects/task/decider";
 import { toTaskStatus } from "@/objects/task/task-status";
-import type { Command, Event } from "@/objects/task/types";
-import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
-import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
-import { projectTaskEvents } from "@/projections/taskSessionProjector";
-import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
-import { createEventStore } from "@/repos/event-store";
 import { checkFreePlanLimitResult } from "@/policies/planLimit";
+import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import type { HonoEnv } from "@/types";
-import type { Database } from "@ava/database/client";
-import * as schema from "@ava/database/schema";
 import { ok, okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
-import { PlanLimitError } from "./errors";
 import type {
   CancelTaskWorkflow,
   CompleteTaskSuccess,
@@ -25,214 +18,9 @@ import type {
   ResolveBlockedWorkflow,
   ResumeTaskWorkflow,
   StartTaskWorkflow,
+  TaskExecuteWorkflow,
   UpdateTaskWorkflow,
 } from "./interface";
-
-// ============================================================================
-// Command Executor: Pipeline Types
-// ============================================================================
-
-type UnloadedCommand = {
-  kind: "unloaded";
-  streamId: string;
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  command: Command;
-};
-
-type LoadedCommand = {
-  kind: "loaded";
-  streamId: string;
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  command: Command;
-  history: Event[];
-  state: ReturnType<typeof replay>;
-};
-
-type DecidedCommand = {
-  kind: "decided";
-  streamId: string;
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
-  expectedVersion: number;
-};
-
-type CommittedCommand = {
-  kind: "committed";
-  streamId: string;
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
-  persistedEvents: schema.TaskEvent[];
-  version: number;
-};
-
-type ProjectedCommand = {
-  kind: "projected";
-  events: ReturnType<typeof decide>;
-  persistedEvents: schema.TaskEvent[];
-  state: ReturnType<typeof replay>;
-  version: number;
-};
-
-// ============================================================================
-// Command Executor: Pipeline Functions
-// ============================================================================
-
-/**
- * Step 1: イベント履歴をロードして状態を再構築
- */
-const loadEvents =
-  (eventStore: ReturnType<typeof createEventStore>) =>
-  (command: UnloadedCommand): ResultAsync<LoadedCommand, DatabaseError> => {
-    return eventStore.load(command.streamId).map((history) => ({
-      ...command,
-      kind: "loaded",
-      history,
-      state: replay(command.streamId, history),
-    }));
-  };
-
-/**
- * Step 2: コマンドから新しいイベントを決定
- */
-const decideEvents = (
-  command: LoadedCommand,
-): ResultAsync<DecidedCommand, DatabaseError> => {
-  return ResultAsync.fromPromise(
-    (async () => {
-      const newEvents = decide(command.state, command.command, new Date());
-      return {
-        ...command,
-        kind: "decided" as const,
-        newEvents,
-        expectedVersion: command.history.length - 1,
-      };
-    })(),
-    (error) =>
-      new DatabaseError(
-        error instanceof Error ? error.message : "Failed to decide events",
-        error,
-      ),
-  );
-};
-
-/**
- * Step 3: イベントを永続化
- */
-const commitEvents =
-  (eventStore: ReturnType<typeof createEventStore>) =>
-  (command: DecidedCommand): ResultAsync<CommittedCommand, DatabaseError> => {
-    return eventStore
-      .append(command.streamId, command.expectedVersion, command.newEvents)
-      .map((appendResult) => ({
-        ...command,
-        kind: "committed" as const,
-        persistedEvents: appendResult.persistedEvents,
-        version: appendResult.newVersion,
-      }));
-  };
-
-/**
- * Step 4: プロジェクションとポリシーイベントの処理
- */
-const projectEvents =
-  (db: Database) =>
-  (command: CommittedCommand): ResultAsync<ProjectedCommand, DatabaseError> => {
-    return ResultAsync.fromPromise(
-      (async () => {
-        await projectTaskEvents(db, command.streamId, command.newEvents, {
-          workspaceId: command.workspace.id,
-          userId: command.user.id,
-        });
-
-        await queuePolicyEvents(db, command.streamId, command.newEvents, {
-          workspaceId: command.workspace.id,
-          user: {
-            id: command.user.id,
-            name: command.user.name,
-            email: command.user.email,
-            slackId: command.user.slackId,
-          },
-          channel:
-            command.state.slackThread?.channel ??
-            command.workspace.notificationChannelId ??
-            null,
-          threadTs: command.state.slackThread?.threadTs ?? null,
-        });
-
-        // 可能な限り即時に通知するため、アウトボックスをその場で処理する
-        try {
-          await processTaskPolicyOutbox(db);
-        } catch (err) {
-          console.error("Failed to process task policy outbox", err);
-        }
-
-        return {
-          kind: "projected" as const,
-          events: command.newEvents,
-          persistedEvents: command.persistedEvents,
-          state: command.state,
-          version: command.version,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to project events",
-          error,
-        ),
-    );
-  };
-
-// ============================================================================
-// Command Executor
-// ============================================================================
-
-type TaskExecuteCommandDeps = {
-  db: Database;
-};
-
-export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
-  const eventStore = createEventStore(deps.db);
-
-  return (params: {
-    streamId: string;
-    workspace: HonoEnv["Variables"]["workspace"];
-    user: HonoEnv["Variables"]["user"];
-    command: Command;
-  }): ResultAsync<
-    {
-      events: ReturnType<typeof decide>;
-      persistedEvents: schema.TaskEvent[];
-      state: ReturnType<typeof replay>;
-      version: number;
-    },
-    DatabaseError
-  > => {
-    const command: UnloadedCommand = {
-      kind: "unloaded",
-      ...params,
-    };
-
-    return ok(command)
-      .asyncAndThen(loadEvents(eventStore))
-      .andThen(decideEvents)
-      .andThen(commitEvents(eventStore))
-      .andThen(projectEvents(deps.db))
-      .map((result) => ({
-        events: result.events,
-        persistedEvents: result.persistedEvents,
-        state: result.state,
-        version: result.version,
-      }));
-  };
-};
-
-export type TaskExecuteCommand = ReturnType<typeof createTaskExecuteCommand>;
 
 // ============================================================================
 // Workflow Functions
@@ -305,7 +93,7 @@ const validatePlanLimit =
   (subscriptionRepository: SubscriptionRepository) =>
   (
     params: StartTaskInput,
-  ): ResultAsync<ValidatedStartTask, PlanLimitError | DatabaseError> => {
+  ): ResultAsync<ValidatedStartTask, PaymentRequiredError | DatabaseError> => {
     return checkFreePlanLimitResult(params.user.id, subscriptionRepository).map(
       () => ({
         ...params,
@@ -331,9 +119,10 @@ const generateStreamId = (
  * Step 3: コマンド実行
  */
 const executeStartTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (params: PreparedStartTask): ResultAsync<StartedTask, DatabaseError> => {
     return executeCommand({
+      kind: "unloaded",
       streamId: params.streamId,
       workspace: params.workspace,
       user: params.user,
@@ -358,7 +147,7 @@ const executeStartTask =
 
 export const createStartTaskWorkflow = (
   subscriptionRepository: SubscriptionRepository,
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): StartTaskWorkflow => {
   return withSpanAsync(
     "startTask",
@@ -383,9 +172,10 @@ export const createStartTaskWorkflow = (
 };
 
 const executeUpdateTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<UpdateTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -405,7 +195,7 @@ const executeUpdateTask =
   };
 
 export const createUpdateTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): UpdateTaskWorkflow => {
   return withSpanAsync(
     "updateTask",
@@ -421,9 +211,10 @@ export const createUpdateTaskWorkflow = (
 };
 
 const executeCompleteTask =
-  (executeCommand: TaskExecuteCommand, taskRepository: TaskQueryRepository) =>
+  (executeCommand: TaskExecuteWorkflow, taskRepository: TaskQueryRepository) =>
   (command: Parameters<CompleteTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -459,7 +250,7 @@ const executeCompleteTask =
 
 export const createCompleteTaskWorkflow = (
   taskRepository: TaskQueryRepository,
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): CompleteTaskWorkflow => {
   return withSpanAsync(
     "completeTask",
@@ -477,9 +268,10 @@ export const createCompleteTaskWorkflow = (
 };
 
 const executeReportBlocked =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ReportBlockedWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -499,7 +291,7 @@ const executeReportBlocked =
   };
 
 export const createReportBlockedWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ReportBlockedWorkflow => {
   return withSpanAsync(
     "reportBlocked",
@@ -515,9 +307,10 @@ export const createReportBlockedWorkflow = (
 };
 
 const executePauseTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<PauseTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -537,7 +330,7 @@ const executePauseTask =
   };
 
 export const createPauseTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): PauseTaskWorkflow => {
   return withSpanAsync(
     "pauseTask",
@@ -553,9 +346,10 @@ export const createPauseTaskWorkflow = (
 };
 
 const executeResumeTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ResumeTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -574,7 +368,7 @@ const executeResumeTask =
   };
 
 export const createResumeTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ResumeTaskWorkflow => {
   return withSpanAsync(
     "resumeTask",
@@ -590,9 +384,10 @@ export const createResumeTaskWorkflow = (
 };
 
 const executeResolveBlocked =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ResolveBlockedWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -612,7 +407,7 @@ const executeResolveBlocked =
   };
 
 export const createResolveBlockedWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ResolveBlockedWorkflow => {
   return withSpanAsync(
     "resolveBlocked",
@@ -629,9 +424,10 @@ export const createResolveBlockedWorkflow = (
 };
 
 const executeCancelTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<CancelTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -651,7 +447,7 @@ const executeCancelTask =
   };
 
 export const createCancelTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): CancelTaskWorkflow => {
   return withSpanAsync(
     "cancelTask",

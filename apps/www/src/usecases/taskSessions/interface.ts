@@ -1,8 +1,12 @@
+import type {
+  BadRequestError,
+  NotFoundError,
+  PaymentRequiredError,
+} from "@/errors";
 import type { DatabaseError } from "@/lib/db";
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
 import type { ResultAsync } from "neverthrow";
-import type { PlanLimitError } from "./errors";
 
 /**
  * 共通型
@@ -41,7 +45,10 @@ type StartTaskSuccess = {
 
 export type StartTaskWorkflow = (
   command: StartTaskCommand,
-) => ResultAsync<StartTaskSuccess, DatabaseError | PlanLimitError>;
+) => ResultAsync<
+  StartTaskSuccess,
+  DatabaseError | PaymentRequiredError | BadRequestError | NotFoundError
+>;
 
 /**
  * Update Task
@@ -63,7 +70,10 @@ type UpdateTaskSuccess = {
 
 export type UpdateTaskWorkflow = (
   command: UpdateTaskCommand,
-) => ResultAsync<UpdateTaskSuccess, DatabaseError>;
+) => ResultAsync<
+  UpdateTaskSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Complete Task
@@ -89,7 +99,10 @@ export type CompleteTaskSuccess = {
 
 export type CompleteTaskWorkflow = (
   command: CompleteTaskCommand,
-) => ResultAsync<CompleteTaskSuccess, DatabaseError>;
+) => ResultAsync<
+  CompleteTaskSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Cancel Task
@@ -111,7 +124,10 @@ type CancelTaskSuccess = {
 
 export type CancelTaskWorkflow = (
   command: CancelTaskCommand,
-) => ResultAsync<CancelTaskSuccess, DatabaseError>;
+) => ResultAsync<
+  CancelTaskSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Report Blocked
@@ -133,7 +149,10 @@ type ReportBlockedSuccess = {
 
 export type ReportBlockedWorkflow = (
   command: ReportBlockedCommand,
-) => ResultAsync<ReportBlockedSuccess, DatabaseError>;
+) => ResultAsync<
+  ReportBlockedSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Pause Task
@@ -155,7 +174,10 @@ type PauseTaskSuccess = {
 
 export type PauseTaskWorkflow = (
   command: PauseTaskCommand,
-) => ResultAsync<PauseTaskSuccess, DatabaseError>;
+) => ResultAsync<
+  PauseTaskSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Resume Task
@@ -176,7 +198,10 @@ type ResumeTaskSuccess = {
 
 export type ResumeTaskWorkflow = (
   command: ResumeTaskCommand,
-) => ResultAsync<ResumeTaskSuccess, DatabaseError>;
+) => ResultAsync<
+  ResumeTaskSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * Resolve Blocked
@@ -198,7 +223,10 @@ type ResolveBlockedSuccess = {
 
 export type ResolveBlockedWorkflow = (
   command: ResolveBlockedCommand,
-) => ResultAsync<ResolveBlockedSuccess, DatabaseError>;
+) => ResultAsync<
+  ResolveBlockedSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;
 
 /**
  * List Tasks
@@ -229,3 +257,21 @@ type ListTasksSuccess = {
 export type ListTasksWorkflow = (
   command: ListTasksCommand,
 ) => ResultAsync<ListTasksSuccess, DatabaseError>;
+
+/**
+ * Task Execute Command (Internal)
+ */
+
+type TaskExecuteSuccess = {
+  events: import("@/objects/task/types").Event[];
+  persistedEvents: import("@ava/database/schema").TaskEvent[];
+  state: ReturnType<typeof import("@/objects/task/decider").replay>;
+  version: number;
+};
+
+export type TaskExecuteWorkflow = (
+  command: import("./executor/types").UnloadedCommand,
+) => ResultAsync<
+  TaskExecuteSuccess,
+  DatabaseError | BadRequestError | NotFoundError
+>;

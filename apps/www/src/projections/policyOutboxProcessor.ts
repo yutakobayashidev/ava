@@ -22,6 +22,8 @@ import {
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { and, eq } from "drizzle-orm";
+import { DatabaseError } from "@/lib/db";
+import { ResultAsync } from "neverthrow";
 import type { NotifyPayload } from "./taskPolicyOutbox";
 
 type NotifyTemplate = NotifyPayload["template"];
@@ -477,17 +479,30 @@ async function processSinglePolicy(
   });
 }
 
-export async function processTaskPolicyOutbox(db: Database) {
-  const workspaceRepo = createWorkspaceRepository(db);
-  const slackService = createSlackNotificationService(workspaceRepo);
+export function processTaskPolicyOutbox(
+  db: Database,
+): ResultAsync<void, DatabaseError> {
+  return ResultAsync.fromPromise(
+    (async () => {
+      const workspaceRepo = createWorkspaceRepository(db);
+      const slackService = createSlackNotificationService(workspaceRepo);
 
-  const pending = await db
-    .select()
-    .from(schema.taskPolicyOutbox)
-    .where(eq(schema.taskPolicyOutbox.status, "pending"))
-    .limit(50);
+      const pending = await db
+        .select()
+        .from(schema.taskPolicyOutbox)
+        .where(eq(schema.taskPolicyOutbox.status, "pending"))
+        .limit(50);
 
-  for (const policy of pending) {
-    await processSinglePolicy(db, policy, workspaceRepo, slackService);
-  }
+      for (const policy of pending) {
+        await processSinglePolicy(db, policy, workspaceRepo, slackService);
+      }
+    })(),
+    (error) =>
+      new DatabaseError(
+        error instanceof Error
+          ? error.message
+          : "Failed to process task policy outbox",
+        error,
+      ),
+  );
 }

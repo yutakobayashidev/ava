@@ -118,3 +118,35 @@ AI が自動で外部化と情報共有を手伝ってくれる世界をつく�
 Slack でリアルタイムにスレッド更新が行われます。
 
 ---
+
+## テストコーディング規約
+
+### Result型のテストでの型縛り
+
+Result型（neverthrowなど）のテストで、`.isOk()`や`.isErr()`の結果に基づいて型を縛りたい場合は、`expect.assert()`を使用する。
+
+**良い例:**
+
+```typescript
+it("should return err with descriptive error", () => {
+  const result = validateTransition("blocked", "completed");
+  expect.assert(result.isErr());
+  // この時点でTypeScriptはresult.errorが存在することを理解する
+  expect(result.error.message).toBe("...");
+});
+```
+
+**悪い例:**
+
+```typescript
+it("should return err with descriptive error", () => {
+  const result = validateTransition("blocked", "completed");
+  expect(result.isErr()).toBe(true);
+  if (result.isErr()) {
+    // 不要な条件分岐
+    expect(result.error.message).toBe("...");
+  }
+});
+```
+
+---

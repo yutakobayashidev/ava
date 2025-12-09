@@ -1,3 +1,5 @@
+import { BadRequestError, NotFoundError } from "@/errors";
+import { err, ok, type Result } from "neverthrow";
 import { validateTransition } from "./task-status";
 import {
   Command,
@@ -93,17 +95,19 @@ export function decide(
   state: TaskState,
   command: Command,
   now = new Date(),
-): Event[] {
+): Result<Event[], BadRequestError | NotFoundError> {
   const hasUnresolvedBlocks = state.unresolvedBlocks.length > 0;
 
   if (!state.createdAt && command.type !== "StartTask") {
-    throw new Error("Task session not found");
+    return err(new NotFoundError("Task session not found"));
   }
 
   switch (command.type) {
     case "StartTask": {
-      if (state.createdAt) throw new Error("Task already started");
-      return [
+      if (state.createdAt) {
+        return err(new BadRequestError("Task already started"));
+      }
+      return ok([
         {
           type: "TaskStarted",
           schemaVersion: 1,
@@ -113,14 +117,17 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "AddProgress": {
       if (hasUnresolvedBlocks) {
-        throw new Error("Resolve blocking issues before updating progress");
+        return err(
+          new BadRequestError(
+            "Resolve blocking issues before updating progress",
+          ),
+        );
       }
-      validateTransition(state.status, "in_progress");
-      return [
+      return validateTransition(state.status, "in_progress").map(() => [
         {
           type: "TaskUpdated",
           schemaVersion: 1,
@@ -129,11 +136,10 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "ReportBlock": {
-      validateTransition(state.status, "blocked");
-      return [
+      return validateTransition(state.status, "blocked").map(() => [
         {
           type: "TaskBlocked",
           schemaVersion: 1,
@@ -143,19 +149,20 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "ResolveBlock": {
       const block = state.unresolvedBlocks.find(
         (b) => b.id === command.payload.blockId,
       );
-      if (!block) throw new Error("Block not found or already resolved");
+      if (!block) {
+        return err(new NotFoundError("Block not found or already resolved"));
+      }
       const remaining = state.unresolvedBlocks.filter(
         (b) => b.id !== command.payload.blockId,
       );
       const nextStatus = remaining.length > 0 ? "blocked" : "in_progress";
-      validateTransition(state.status, nextStatus);
-      return [
+      return validateTransition(state.status, nextStatus).map(() => [
         {
           type: "BlockResolved",
           schemaVersion: 1,
@@ -165,11 +172,10 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "PauseTask": {
-      validateTransition(state.status, "paused");
-      return [
+      return validateTransition(state.status, "paused").map(() => [
         {
           type: "TaskPaused",
           schemaVersion: 1,
@@ -179,14 +185,15 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "ResumeTask": {
       if (hasUnresolvedBlocks) {
-        throw new Error("Resolve blocking issues before resuming");
+        return err(
+          new BadRequestError("Resolve blocking issues before resuming"),
+        );
       }
-      validateTransition(state.status, "in_progress");
-      return [
+      return validateTransition(state.status, "in_progress").map(() => [
         {
           type: "TaskResumed",
           schemaVersion: 1,
@@ -196,30 +203,28 @@ export function decide(
             occurredAt: now,
           },
         },
-      ];
+      ]);
     }
     case "CompleteTask": {
-      validateTransition(state.status, "completed");
-      return [
+      return validateTransition(state.status, "completed").map(() => [
         {
           type: "TaskCompleted",
           schemaVersion: 1,
           payload: { summary: command.payload.summary, occurredAt: now },
         },
-      ];
+      ]);
     }
     case "CancelTask": {
-      validateTransition(state.status, "cancelled");
-      return [
+      return validateTransition(state.status, "cancelled").map(() => [
         {
           type: "TaskCancelled",
           schemaVersion: 1,
           payload: { reason: command.payload.reason, occurredAt: now },
         },
-      ];
+      ]);
     }
     default:
-      return [];
+      return ok([]);
   }
 }
 
