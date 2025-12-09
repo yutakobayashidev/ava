@@ -262,13 +262,6 @@ export type ListTasksWorkflow = (
  * Task Execute Command (Internal)
  */
 
-type TaskExecuteParams = {
-  streamId: string;
-  workspace: HonoEnv["Variables"]["workspace"];
-  user: HonoEnv["Variables"]["user"];
-  command: import("@/objects/task/types").Command;
-};
-
 type TaskExecuteSuccess = {
   events: import("@/objects/task/types").Event[];
   persistedEvents: import("@ava/database/schema").TaskEvent[];
@@ -276,8 +269,8 @@ type TaskExecuteSuccess = {
   version: number;
 };
 
-export type TaskExecuteCommand = (
-  params: TaskExecuteParams,
+export type TaskExecuteWorkflow = (
+  command: import("./executor/types").UnloadedCommand,
 ) => ResultAsync<
   TaskExecuteSuccess,
   DatabaseError | BadRequestError | NotFoundError

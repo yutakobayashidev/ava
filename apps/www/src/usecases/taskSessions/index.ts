@@ -8,7 +8,6 @@ import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import type { HonoEnv } from "@/types";
 import { ok, okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
-import type { TaskExecuteCommand } from "./interface";
 import type {
   CancelTaskWorkflow,
   CompleteTaskSuccess,
@@ -19,6 +18,7 @@ import type {
   ResolveBlockedWorkflow,
   ResumeTaskWorkflow,
   StartTaskWorkflow,
+  TaskExecuteWorkflow,
   UpdateTaskWorkflow,
 } from "./interface";
 
@@ -119,9 +119,10 @@ const generateStreamId = (
  * Step 3: コマンド実行
  */
 const executeStartTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (params: PreparedStartTask): ResultAsync<StartedTask, DatabaseError> => {
     return executeCommand({
+      kind: "unloaded",
       streamId: params.streamId,
       workspace: params.workspace,
       user: params.user,
@@ -146,7 +147,7 @@ const executeStartTask =
 
 export const createStartTaskWorkflow = (
   subscriptionRepository: SubscriptionRepository,
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): StartTaskWorkflow => {
   return withSpanAsync(
     "startTask",
@@ -171,9 +172,10 @@ export const createStartTaskWorkflow = (
 };
 
 const executeUpdateTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<UpdateTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -193,7 +195,7 @@ const executeUpdateTask =
   };
 
 export const createUpdateTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): UpdateTaskWorkflow => {
   return withSpanAsync(
     "updateTask",
@@ -209,9 +211,10 @@ export const createUpdateTaskWorkflow = (
 };
 
 const executeCompleteTask =
-  (executeCommand: TaskExecuteCommand, taskRepository: TaskQueryRepository) =>
+  (executeCommand: TaskExecuteWorkflow, taskRepository: TaskQueryRepository) =>
   (command: Parameters<CompleteTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -247,7 +250,7 @@ const executeCompleteTask =
 
 export const createCompleteTaskWorkflow = (
   taskRepository: TaskQueryRepository,
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): CompleteTaskWorkflow => {
   return withSpanAsync(
     "completeTask",
@@ -265,9 +268,10 @@ export const createCompleteTaskWorkflow = (
 };
 
 const executeReportBlocked =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ReportBlockedWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -287,7 +291,7 @@ const executeReportBlocked =
   };
 
 export const createReportBlockedWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ReportBlockedWorkflow => {
   return withSpanAsync(
     "reportBlocked",
@@ -303,9 +307,10 @@ export const createReportBlockedWorkflow = (
 };
 
 const executePauseTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<PauseTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -325,7 +330,7 @@ const executePauseTask =
   };
 
 export const createPauseTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): PauseTaskWorkflow => {
   return withSpanAsync(
     "pauseTask",
@@ -341,9 +346,10 @@ export const createPauseTaskWorkflow = (
 };
 
 const executeResumeTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ResumeTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -362,7 +368,7 @@ const executeResumeTask =
   };
 
 export const createResumeTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ResumeTaskWorkflow => {
   return withSpanAsync(
     "resumeTask",
@@ -378,9 +384,10 @@ export const createResumeTaskWorkflow = (
 };
 
 const executeResolveBlocked =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<ResolveBlockedWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -400,7 +407,7 @@ const executeResolveBlocked =
   };
 
 export const createResolveBlockedWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): ResolveBlockedWorkflow => {
   return withSpanAsync(
     "resolveBlocked",
@@ -417,9 +424,10 @@ export const createResolveBlockedWorkflow = (
 };
 
 const executeCancelTask =
-  (executeCommand: TaskExecuteCommand) =>
+  (executeCommand: TaskExecuteWorkflow) =>
   (command: Parameters<CancelTaskWorkflow>[0]) => {
     return executeCommand({
+      kind: "unloaded",
       streamId: command.input.taskSessionId,
       workspace: command.workspace,
       user: command.user,
@@ -439,7 +447,7 @@ const executeCancelTask =
   };
 
 export const createCancelTaskWorkflow = (
-  executeCommand: TaskExecuteCommand,
+  executeCommand: TaskExecuteWorkflow,
 ): CancelTaskWorkflow => {
   return withSpanAsync(
     "cancelTask",
