@@ -73,6 +73,7 @@ type PreparedStartTask = {
       title: string;
     };
     initialSummary: string;
+    taskSessionId: string;
   };
   streamId: string;
 };
@@ -103,10 +104,15 @@ const validatePlanLimit =
 const generateStreamId = (
   params: ValidatedStartTask,
 ): ResultAsync<PreparedStartTask, never> => {
+  const streamId = uuidv7();
   return okAsync({
     ...params,
     kind: "prepared",
-    streamId: uuidv7(),
+    streamId,
+    input: {
+      ...params.input,
+      taskSessionId: streamId,
+    },
   });
 };
 
@@ -140,33 +146,6 @@ const toUnloadedCommand = <TInput extends { taskSessionId: string }>(
   });
 };
 
-/**
- * StartTask用: streamIdを生成してUnloadedCommandを作成する
- */
-const toUnloadedStartCommand = (
-  params: PreparedStartTask,
-): ResultAsync<UnloadedCommand, DatabaseError> => {
-  if (!params.streamId) {
-    return ResultAsync.fromSafePromise(
-      Promise.reject(new DatabaseError("Missing streamId")),
-    );
-  }
-
-  return okAsync({
-    kind: "unloaded" as const,
-    streamId: params.streamId,
-    workspace: params.workspace,
-    user: params.user,
-    command: {
-      type: "StartTask",
-      payload: {
-        issue: params.input.issue,
-        initialSummary: params.input.initialSummary,
-      },
-    },
-  });
-};
-
 // ============================================================================
 // Start Task: Workflow
 // ============================================================================
@@ -181,7 +160,15 @@ export const createStartTaskWorkflow = (
       return ok(command)
         .asyncAndThen(validatePlanLimit(subscriptionRepository))
         .andThen(generateStreamId)
-        .andThen(toUnloadedStartCommand)
+        .andThen((params) =>
+          toUnloadedCommand(params, {
+            type: "StartTask",
+            payload: {
+              issue: params.input.issue,
+              initialSummary: params.input.initialSummary,
+            },
+          }),
+        )
         .andThen(executeCommand)
         .map((result) => ({
           taskSessionId: result.state.streamId,
