@@ -11,7 +11,7 @@ import { createEventStore } from "@/repos/event-store";
 import { checkFreePlanLimitResult } from "@/services/subscriptionService";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
-import { okAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 import { PlanLimitError } from "./errors";
 import type {
@@ -31,11 +31,11 @@ import type {
 // Command Executor
 // ============================================================================
 
-type TaskCommandExecutorDeps = {
+type TaskExecuteCommandDeps = {
   db: Database;
 };
 
-export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
+export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
   const eventStore = createEventStore(deps.db);
 
   return (params: {
@@ -114,7 +114,7 @@ export const createTaskCommandExecutor = (deps: TaskCommandExecutorDeps) => {
   };
 };
 
-export type TaskCommandExecutor = ReturnType<typeof createTaskCommandExecutor>;
+export type TaskExecuteCommand = ReturnType<typeof createTaskExecuteCommand>;
 
 // ============================================================================
 // Workflow Functions
@@ -213,7 +213,7 @@ const generateStreamId = (
  * Step 3: コマンド実行
  */
 const executeStartTask =
-  (executeCommand: TaskCommandExecutor) =>
+  (executeCommand: TaskExecuteCommand) =>
   (params: PreparedStartTask): ResultAsync<StartedTask, DatabaseError> => {
     return executeCommand({
       streamId: params.streamId,
@@ -240,13 +240,13 @@ const executeStartTask =
 
 export const createStartTaskWorkflow = (
   subscriptionRepository: SubscriptionRepository,
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): StartTaskWorkflow => {
   return withSpanAsync(
     "startTask",
     (command) => {
-      return okAsync(command)
-        .andThen(validatePlanLimit(subscriptionRepository))
+      return ok(command)
+        .asyncAndThen(validatePlanLimit(subscriptionRepository))
         .andThen(generateStreamId)
         .andThen(executeStartTask(executeCommand))
         .map((result) => ({
@@ -264,262 +264,285 @@ export const createStartTaskWorkflow = (
   );
 };
 
+const executeUpdateTask =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<UpdateTaskWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "AddProgress",
+        payload: { summary: command.input.summary },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        updateId: result.persistedEvents[0].id,
+        status: nextState.status,
+        summary: command.input.summary,
+      };
+    });
+  };
+
 export const createUpdateTaskWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): UpdateTaskWorkflow => {
   return withSpanAsync(
     "updateTask",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, summary } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "AddProgress",
-          payload: { summary },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId: taskSessionId,
-          updateId: result.persistedEvents[0].id,
-          status: nextState.status,
-          summary,
-        };
-      });
+      return ok(command).asyncAndThen(executeUpdateTask(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
 };
 
+const executeCompleteTask =
+  (executeCommand: TaskExecuteCommand, taskRepository: TaskQueryRepository) =>
+  (command: Parameters<CompleteTaskWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "CompleteTask",
+        payload: { summary: command.input.summary },
+      },
+    })
+      .andThen((result) =>
+        taskRepository
+          .getUnresolvedBlockReports(command.input.taskSessionId)
+          .map((unresolvedBlocks) => ({ result, unresolvedBlocks })),
+      )
+      .map(({ result, unresolvedBlocks }) => {
+        const nextState = apply(result.state, result.events);
+        const data: CompleteTaskSuccess = {
+          taskSessionId: command.input.taskSessionId,
+          completionId: result.persistedEvents[0].id,
+          status: nextState.status,
+        };
+
+        if (unresolvedBlocks.length > 0) {
+          data.unresolvedBlocks = unresolvedBlocks.map((block) => ({
+            blockReportId: block.id,
+            reason: block.reason,
+            createdAt: block.createdAt,
+          }));
+        }
+
+        return data;
+      });
+  };
+
 export const createCompleteTaskWorkflow = (
   taskRepository: TaskQueryRepository,
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): CompleteTaskWorkflow => {
   return withSpanAsync(
     "completeTask",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, summary } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "CompleteTask",
-          payload: { summary },
-        },
-      })
-        .andThen((result) =>
-          taskRepository
-            .getUnresolvedBlockReports(taskSessionId)
-            .map((unresolvedBlocks) => ({ result, unresolvedBlocks })),
-        )
-        .map(({ result, unresolvedBlocks }) => {
-          const nextState = apply(result.state, result.events);
-          const data: CompleteTaskSuccess = {
-            taskSessionId: taskSessionId,
-            completionId: result.persistedEvents[0].id,
-            status: nextState.status,
-          };
-
-          if (unresolvedBlocks.length > 0) {
-            data.unresolvedBlocks = unresolvedBlocks.map((block) => ({
-              blockReportId: block.id,
-              reason: block.reason,
-              createdAt: block.createdAt,
-            }));
-          }
-
-          return data;
-        });
+      return ok(command).asyncAndThen(
+        executeCompleteTask(executeCommand, taskRepository),
+      );
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
 };
 
+const executeReportBlocked =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<ReportBlockedWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "ReportBlock",
+        payload: { reason: command.input.reason },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        blockReportId: result.persistedEvents[0].id,
+        status: nextState.status,
+        reason: command.input.reason,
+      };
+    });
+  };
+
 export const createReportBlockedWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): ReportBlockedWorkflow => {
   return withSpanAsync(
     "reportBlocked",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, reason } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "ReportBlock",
-          payload: { reason },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId: taskSessionId,
-          blockReportId: result.persistedEvents[0].id,
-          status: nextState.status,
-          reason,
-        };
-      });
+      return ok(command).asyncAndThen(executeReportBlocked(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
 };
 
+const executePauseTask =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<PauseTaskWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "PauseTask",
+        payload: { reason: command.input.reason },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        pauseReportId: result.persistedEvents[0].id,
+        status: nextState.status,
+        pausedAt: result.persistedEvents[0].createdAt,
+      };
+    });
+  };
+
 export const createPauseTaskWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): PauseTaskWorkflow => {
   return withSpanAsync(
     "pauseTask",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, reason } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "PauseTask",
-          payload: { reason },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId: taskSessionId,
-          pauseReportId: result.persistedEvents[0].id,
-          status: nextState.status,
-          pausedAt: result.persistedEvents[0].createdAt,
-        };
-      });
+      return ok(command).asyncAndThen(executePauseTask(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
 };
 
+const executeResumeTask =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<ResumeTaskWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "ResumeTask",
+        payload: { summary: command.input.summary },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        status: nextState.status,
+        resumedAt: result.persistedEvents[0].createdAt,
+      };
+    });
+  };
+
 export const createResumeTaskWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): ResumeTaskWorkflow => {
   return withSpanAsync(
     "resumeTask",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, summary } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "ResumeTask",
-          payload: { summary },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId: taskSessionId,
-          status: nextState.status,
-          resumedAt: result.persistedEvents[0].createdAt,
-        };
-      });
+      return ok(command).asyncAndThen(executeResumeTask(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
 };
 
+const executeResolveBlocked =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<ResolveBlockedWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "ResolveBlock",
+        payload: { blockId: command.input.blockReportId },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        blockReportId: command.input.blockReportId,
+        status: nextState.status,
+        resolvedAt: result.persistedEvents[0].createdAt,
+      };
+    });
+  };
+
 export const createResolveBlockedWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): ResolveBlockedWorkflow => {
   return withSpanAsync(
     "resolveBlocked",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, blockReportId } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "ResolveBlock",
-          payload: { blockId: blockReportId },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId: taskSessionId,
-          blockReportId: blockReportId,
-          status: nextState.status,
-          resolvedAt: result.persistedEvents[0].createdAt,
-        };
-      });
+      return ok(command).asyncAndThen(executeResolveBlocked(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
-        "task.block.report.id": args[0].params.blockReportId,
+        "task.session.id": args[0].input.taskSessionId,
+        "task.block.report.id": args[0].input.blockReportId,
       }),
     },
   );
 };
 
+const executeCancelTask =
+  (executeCommand: TaskExecuteCommand) =>
+  (command: Parameters<CancelTaskWorkflow>[0]) => {
+    return executeCommand({
+      streamId: command.input.taskSessionId,
+      workspace: command.workspace,
+      user: command.user,
+      command: {
+        type: "CancelTask",
+        payload: { reason: command.input.reason },
+      },
+    }).map((result) => {
+      const nextState = apply(result.state, result.events);
+      return {
+        taskSessionId: command.input.taskSessionId,
+        cancellationId: result.persistedEvents[0].id,
+        status: nextState.status,
+        cancelledAt: result.persistedEvents[0].createdAt,
+      };
+    });
+  };
+
 export const createCancelTaskWorkflow = (
-  executeCommand: TaskCommandExecutor,
+  executeCommand: TaskExecuteCommand,
 ): CancelTaskWorkflow => {
   return withSpanAsync(
     "cancelTask",
     (command) => {
-      const { workspace, user, params } = command;
-      const { taskSessionId, reason } = params;
-
-      return executeCommand({
-        streamId: taskSessionId,
-        workspace,
-        user,
-        command: {
-          type: "CancelTask",
-          payload: { reason },
-        },
-      }).map((result) => {
-        const nextState = apply(result.state, result.events);
-        return {
-          taskSessionId,
-          cancellationId: result.persistedEvents[0].id,
-          status: nextState.status,
-          cancelledAt: result.persistedEvents[0].createdAt,
-        };
-      });
+      return ok(command).asyncAndThen(executeCancelTask(executeCommand));
     },
     {
       spanAttrs: (args) => ({
-        "task.session.id": args[0].params.taskSessionId,
+        "task.session.id": args[0].input.taskSessionId,
       }),
     },
   );
@@ -536,8 +559,8 @@ export const createListTasksWorkflow = (
           taskRepository.listTaskSessions({
             userId: command.user.id,
             workspaceId: command.workspace.id,
-            status: toTaskStatus(command.params.status),
-            limit: command.params.limit,
+            status: toTaskStatus(command.input.status),
+            limit: command.input.limit,
           }),
         )
         .map((sessions) => ({

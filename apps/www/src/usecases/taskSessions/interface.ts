@@ -8,10 +8,10 @@ import type { PlanLimitError } from "./errors";
  * 共通型
  */
 
-type BaseCommand<Params> = {
+type BaseCommand<Input> = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
-  params: Params;
+  input: Input;
 };
 
 /**
