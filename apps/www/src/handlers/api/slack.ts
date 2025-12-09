@@ -4,9 +4,9 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createHonoApp } from "@/create-app";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
-import { validateSessionToken } from "@/lib/server/session";
 import { getWorkspaceBotToken } from "@/lib/slack";
 import { absoluteUrl } from "@/lib/utils";
+import { sessionMiddleware } from "@/middleware/session";
 import { verifySlackSignature } from "@/middleware/slack";
 import { createUserRepository } from "@/repos/users";
 import { createWorkspaceRepository } from "@/repos/workspaces";
@@ -43,16 +43,7 @@ const slackConfig: SlackOAuthConfig = {
   redirectUri: absoluteUrl("/api/slack/install/callback"),
 };
 
-app.get("/install/start", async (ctx) => {
-  const sessionToken = getCookie(ctx, "session");
-
-  const { user } = sessionToken
-    ? await validateSessionToken(sessionToken)
-    : { user: null };
-  if (!user) {
-    return ctx.json({ error: "Unauthorized" }, 401);
-  }
-
+app.get("/install/start", sessionMiddleware(), async (ctx) => {
   const state = generateState();
   const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
   const { NODE_ENV } = env(ctx);
@@ -68,16 +59,8 @@ app.get("/install/start", async (ctx) => {
   return ctx.redirect(authorizeUrl);
 });
 
-app.get("/install/callback", async (ctx) => {
-  const sessionToken = getCookie(ctx, "session");
-
-  const { user } = sessionToken
-    ? await validateSessionToken(sessionToken)
-    : { user: null };
-  if (!user) {
-    return ctx.json({ error: "Unauthorized" }, 401);
-  }
-
+app.get("/install/callback", sessionMiddleware(), async (ctx) => {
+  const user = ctx.get("user");
   const code = ctx.req.query("code");
   const state = ctx.req.query("state");
   const storedState = getCookie(ctx, STATE_COOKIE);
