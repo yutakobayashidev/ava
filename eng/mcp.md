@@ -1,0 +1,2 @@
+- https://github.com/modelcontextprotocol/modelcontextprotocol/issues/205
+- https://github.com/modelcontextprotocol/typescript-sdk/blob/06a4fd2332cd0ba8884e18b21ef4f7d03dea7b0d/src/server/auth/providers/proxyProvider.ts#L47
