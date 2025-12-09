@@ -7,7 +7,7 @@ import type { Command } from "@/objects/task/types";
 import { checkFreePlanLimitResult } from "@/policies/planLimit";
 import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import type { HonoEnv } from "@/types";
-import { ok, okAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, Result, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 import type { UnloadedCommand } from "./executor/types";
 import type {
@@ -118,9 +118,9 @@ const generateStreamId = (
  */
 const toUnloadedCommand = <C extends Command>(
   baseCommand: BaseCommand<C>,
-): ResultAsync<UnloadedCommand, never> => {
+): Result<UnloadedCommand, never> => {
   const { taskSessionId, ...rest } = baseCommand;
-  return okAsync({
+  return ok({
     kind: "unloaded" as const,
     streamId: taskSessionId,
     ...rest,
@@ -165,8 +165,8 @@ export const createUpdateTaskWorkflow = (
     "updateTask",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
@@ -193,8 +193,8 @@ export const createCompleteTaskWorkflow = (
     "completeTask",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .andThen((result) =>
           taskRepository
             .getUnresolvedBlockReports(command.taskSessionId)
@@ -234,8 +234,8 @@ export const createReportBlockedWorkflow = (
     "reportBlocked",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
@@ -261,8 +261,8 @@ export const createPauseTaskWorkflow = (
     "pauseTask",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
@@ -288,8 +288,8 @@ export const createResumeTaskWorkflow = (
     "resumeTask",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
@@ -314,8 +314,8 @@ export const createResolveBlockedWorkflow = (
     "resolveBlocked",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
@@ -342,8 +342,8 @@ export const createCancelTaskWorkflow = (
     "cancelTask",
     (command) => {
       return ok(command)
-        .asyncAndThen(toUnloadedCommand)
-        .andThen(executeCommand)
+        .andThen(toUnloadedCommand)
+        .asyncAndThen(executeCommand)
         .map((result) => {
           const nextState = apply(result.state, result.events);
           return {
