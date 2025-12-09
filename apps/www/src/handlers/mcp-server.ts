@@ -1,3 +1,5 @@
+import type { Command } from "@/objects/task/types";
+import type { BaseCommand } from "@/usecases/taskSessions/interface";
 import { Context } from "@/types";
 import {
   constructCancelTaskWorkflow,
@@ -31,6 +33,16 @@ export function createMcpServer(ctx: Context) {
     version: "1.0.0",
   });
 
+  const createCommand = <C extends Command>(
+    taskSessionId: string,
+    command: C,
+  ): BaseCommand<C> => ({
+    workspace: ctx.get("workspace"),
+    user: ctx.get("user"),
+    taskSessionId,
+    command,
+  });
+
   server.registerTool(
     "startTask",
     {
@@ -59,11 +71,10 @@ export function createMcpServer(ctx: Context) {
       inputSchema: updateTaskInputSchema,
     },
     (input) => {
-      const result = constructUpdateTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        input,
-      });
+      const { taskSessionId, ...payload } = input;
+      const result = constructUpdateTaskWorkflow(ctx)(
+        createCommand(taskSessionId, { type: "AddProgress", input: payload }),
+      );
       return result.match(
         (data) => formatSuccessResponse(data, "進捗を保存しました。"),
         (error) => formatErrorResponse(error),
@@ -79,11 +90,10 @@ export function createMcpServer(ctx: Context) {
       inputSchema: reportBlockedInputSchema,
     },
     (input) => {
-      const result = constructReportBlockedWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        input,
-      });
+      const { taskSessionId, ...payload } = input;
+      const result = constructReportBlockedWorkflow(ctx)(
+        createCommand(taskSessionId, { type: "ReportBlock", input: payload }),
+      );
       return result.match(
         (data) =>
           formatSuccessResponse(data, "ブロッキング情報を登録しました。"),
@@ -100,11 +110,10 @@ export function createMcpServer(ctx: Context) {
       inputSchema: pauseTaskInputSchema,
     },
     (input) => {
-      const result = constructPauseTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        input,
-      });
+      const { taskSessionId, ...payload } = input;
+      const result = constructPauseTaskWorkflow(ctx)(
+        createCommand(taskSessionId, { type: "PauseTask", input: payload }),
+      );
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを一時休止しました。"),
         (error) => formatErrorResponse(error),
@@ -120,11 +129,10 @@ export function createMcpServer(ctx: Context) {
       inputSchema: resumeTaskInputSchema,
     },
     (input) => {
-      const result = constructResumeTaskWorkflow(ctx)({
-        workspace: ctx.get("workspace"),
-        user: ctx.get("user"),
-        input,
-      });
+      const { taskSessionId, ...payload } = input;
+      const result = constructResumeTaskWorkflow(ctx)(
+        createCommand(taskSessionId, { type: "ResumeTask", input: payload }),
+      );
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを再開しました。"),
         (error) => formatErrorResponse(error),
@@ -140,10 +148,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: completeTaskInputSchema,
     },
     (input) => {
+      const { taskSessionId, ...payload } = input;
       const result = constructCompleteTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        input,
+        taskSessionId,
+        command: { type: "CompleteTask", input: payload },
       });
       return result.match(
         (data) =>
@@ -166,10 +176,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: cancelTaskInputSchema,
     },
     (input) => {
+      const { taskSessionId, ...payload } = input;
       const result = constructCancelTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        input,
+        taskSessionId,
+        command: { type: "CancelTask", input: payload },
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを中止しました。"),
@@ -186,10 +198,12 @@ export function createMcpServer(ctx: Context) {
       inputSchema: resolveBlockedInputSchema,
     },
     (input) => {
+      const { taskSessionId, blockReportId } = input;
       const result = constructResolveBlockedWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        input,
+        taskSessionId,
+        command: { type: "ResolveBlock", input: { blockId: blockReportId } },
       });
       return result.match(
         (data) =>
