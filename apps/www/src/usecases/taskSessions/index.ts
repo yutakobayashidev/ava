@@ -8,7 +8,7 @@ import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
 import type { SubscriptionRepository, TaskQueryRepository } from "@/repos";
 import { createEventStore } from "@/repos/event-store";
-import { checkFreePlanLimitResult } from "@/services/subscriptionService";
+import { checkFreePlanLimitResult } from "@/policies/planLimit";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
