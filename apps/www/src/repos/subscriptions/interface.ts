@@ -1,3 +1,5 @@
+import type { DatabaseError } from "@/lib/db";
+import type { ResultAsync } from "neverthrow";
 import type * as schema from "@ava/database/schema";
 
 export type SubscriptionRepository = {
@@ -6,10 +8,10 @@ export type SubscriptionRepository = {
    */
   getActiveSubscription: (
     userId: string,
-  ) => Promise<schema.Subscription | null>;
+  ) => ResultAsync<schema.Subscription | null, DatabaseError>;
 
   /**
    * ユーザーが作成したタスクセッション数をカウント
    */
-  countUserTaskSessions: (userId: string) => Promise<number>;
+  countUserTaskSessions: (userId: string) => ResultAsync<number, DatabaseError>;
 };
