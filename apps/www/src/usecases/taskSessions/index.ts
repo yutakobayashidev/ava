@@ -75,7 +75,6 @@ type PreparedStartTask = {
     initialSummary: string;
     taskSessionId: string;
   };
-  streamId: string;
 };
 
 // ============================================================================
@@ -108,7 +107,6 @@ const generateStreamId = (
   return okAsync({
     ...params,
     kind: "prepared",
-    streamId,
     input: {
       ...params.input,
       taskSessionId: streamId,
