@@ -1,3 +1,4 @@
+import { BadRequestError, NotFoundError, PaymentRequiredError } from "@/errors";
 import { DatabaseError } from "@/lib/db";
 import { withSpanAsync } from "@/lib/otel";
 import { apply, decide, replay } from "@/objects/task/decider";
@@ -12,9 +13,8 @@ import { checkFreePlanLimitResult } from "@/policies/planLimit";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
-import { ok, okAsync, ResultAsync } from "neverthrow";
+import { ok, okAsync, Result, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
-import { PlanLimitError } from "./errors";
 import type {
   CancelTaskWorkflow,
   CompleteTaskSuccess,
@@ -56,7 +56,7 @@ type DecidedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
+  newEvents: Event[];
   expectedVersion: number;
 };
 
@@ -66,14 +66,14 @@ type CommittedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
+  newEvents: Event[];
   persistedEvents: schema.TaskEvent[];
   version: number;
 };
 
 type ProjectedCommand = {
   kind: "projected";
-  events: ReturnType<typeof decide>;
+  events: Event[];
   persistedEvents: schema.TaskEvent[];
   state: ReturnType<typeof replay>;
   version: number;
@@ -102,22 +102,14 @@ const loadEvents =
  */
 const decideEvents = (
   command: LoadedCommand,
-): ResultAsync<DecidedCommand, DatabaseError> => {
-  return ResultAsync.fromPromise(
-    (async () => {
-      const newEvents = decide(command.state, command.command, new Date());
-      return {
-        ...command,
-        kind: "decided" as const,
-        newEvents,
-        expectedVersion: command.history.length - 1,
-      };
-    })(),
-    (error) =>
-      new DatabaseError(
-        error instanceof Error ? error.message : "Failed to decide events",
-        error,
-      ),
+): Result<DecidedCommand, BadRequestError | NotFoundError> => {
+  return decide(command.state, command.command, new Date()).map(
+    (newEvents) => ({
+      ...command,
+      kind: "decided" as const,
+      newEvents,
+      expectedVersion: command.history.length - 1,
+    }),
   );
 };
 
@@ -206,12 +198,12 @@ export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
     command: Command;
   }): ResultAsync<
     {
-      events: ReturnType<typeof decide>;
+      events: Event[];
       persistedEvents: schema.TaskEvent[];
       state: ReturnType<typeof replay>;
       version: number;
     },
-    DatabaseError
+    DatabaseError | BadRequestError | NotFoundError
   > => {
     const command: UnloadedCommand = {
       kind: "unloaded",
@@ -305,7 +297,7 @@ const validatePlanLimit =
   (subscriptionRepository: SubscriptionRepository) =>
   (
     params: StartTaskInput,
-  ): ResultAsync<ValidatedStartTask, PlanLimitError | DatabaseError> => {
+  ): ResultAsync<ValidatedStartTask, PaymentRequiredError | DatabaseError> => {
     return checkFreePlanLimitResult(params.user.id, subscriptionRepository).map(
       () => ({
         ...params,

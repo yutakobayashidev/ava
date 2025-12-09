@@ -1,3 +1,6 @@
+import { BadRequestError } from "@/errors";
+import { err, ok, type Result } from "neverthrow";
+
 /**
  * タスクステータスの値の配列
  * この配列がステータスの唯一の真実の源（Single Source of Truth）
@@ -57,17 +60,23 @@ export function isValidTransition(from: TaskStatus, to: TaskStatus): boolean {
 }
 
 /**
- * 状態遷移を検証し、無効な場合はエラーをスローする
+ * 状態遷移を検証する
  * @param from 現在の状態
  * @param to 遷移先の状態
- * @throws {Error} 無効な遷移の場合
+ * @returns 成功時は ok(undefined)、無効な遷移の場合は err(BadRequestError)
  */
-export function validateTransition(from: TaskStatus, to: TaskStatus): void {
+export function validateTransition(
+  from: TaskStatus,
+  to: TaskStatus,
+): Result<void, BadRequestError> {
   if (!isValidTransition(from, to)) {
-    throw new Error(
-      `Invalid status transition: ${from} → ${to}. Allowed transitions from ${from}: [${ALLOWED_TRANSITIONS[from].join(", ")}]`,
+    return err(
+      new BadRequestError(
+        `Invalid status transition: ${from} → ${to}. Allowed transitions from ${from}: [${ALLOWED_TRANSITIONS[from].join(", ")}]`,
+      ),
     );
   }
+  return ok(undefined);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { DatabaseError, wrapDrizzle } from "@/lib/db";
-import { ValidationError } from "@/errors";
+import { BadRequestError } from "@/errors";
 import type { Event, Issue } from "@/objects/task/types";
 import { upcastEvent } from "@/objects/task/upcaster";
 import type { Database } from "@ava/database/client";
@@ -140,7 +140,7 @@ type EventStore = {
     streamId: string,
     expectedVersion: number,
     events: Event[],
-  ) => ResultAsync<AppendResult, ValidationError | DatabaseError>;
+  ) => ResultAsync<AppendResult, BadRequestError | DatabaseError>;
 };
 
 function mapDbToDomain(event: schema.TaskEvent): Event {
@@ -285,7 +285,7 @@ export const createEventStore = (db: Database): EventStore => {
 
           const currentVersion = latest?.version ?? -1;
           if (currentVersion !== expectedVersion) {
-            throw new ValidationError(
+            throw new BadRequestError(
               `Concurrency conflict: expected version ${expectedVersion}, got ${currentVersion}`,
             );
           }
@@ -305,7 +305,7 @@ export const createEventStore = (db: Database): EventStore => {
           } satisfies AppendResult;
         }),
         (error) => {
-          if (error instanceof ValidationError) return error;
+          if (error instanceof BadRequestError) return error;
           if (error instanceof DatabaseError) return error;
           return new DatabaseError("Failed to append events", error);
         },
