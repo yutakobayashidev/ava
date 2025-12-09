@@ -158,8 +158,8 @@ const decideEvents = (
 return ok(command)
   .asyncAndThen(loadEvents(eventStore))
   .andThen(decideEvents)
-  .asyncAndThen(commitEvents(eventStore))
-  .asyncAndThen(projectEvents(db));
+  .andThen(commitEvents(eventStore))
+  .andThen(projectEvents(db));
 ```
 
 ### 利点
