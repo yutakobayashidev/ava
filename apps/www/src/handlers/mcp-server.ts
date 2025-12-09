@@ -42,7 +42,7 @@ export function createMcpServer(ctx: Context) {
       const result = constructStartTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input: params,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクの追跡を開始しました。"),

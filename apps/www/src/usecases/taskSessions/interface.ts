@@ -2,6 +2,7 @@ import type { DatabaseError } from "@/lib/db";
 import type { TaskStatus, TaskStatusFilter } from "@/objects/task/task-status";
 import { HonoEnv } from "@/types";
 import type { ResultAsync } from "neverthrow";
+import type { PlanLimitError } from "./errors";
 
 /**
  * 共通型
@@ -26,7 +27,11 @@ type StartTaskParams = {
   initialSummary: string;
 };
 
-type StartTaskCommand = BaseCommand<StartTaskParams>;
+type StartTaskCommand = {
+  workspace: HonoEnv["Variables"]["workspace"];
+  user: HonoEnv["Variables"]["user"];
+  input: StartTaskParams;
+};
 
 type StartTaskSuccess = {
   taskSessionId: string;
@@ -36,7 +41,7 @@ type StartTaskSuccess = {
 
 export type StartTaskWorkflow = (
   command: StartTaskCommand,
-) => ResultAsync<StartTaskSuccess, DatabaseError>;
+) => ResultAsync<StartTaskSuccess, DatabaseError | PlanLimitError>;
 
 /**
  * Update Task
