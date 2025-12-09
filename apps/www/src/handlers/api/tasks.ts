@@ -7,7 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 const app = createHonoApp()
-  .use("/*", sessionMiddleware)
+  .use("/*", sessionMiddleware({ requiredWorkspace: true }))
   /**
    * GET /api/tasks
    * タスク一覧を取得

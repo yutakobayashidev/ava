@@ -4,9 +4,9 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createHonoApp } from "@/create-app";
 import dailyReportInteraction from "@/interactions/daily-report";
 import { handleApplicationCommands } from "@/interactions/handleSlackCommands";
-import { validateSessionToken } from "@/lib/server/session";
 import { getWorkspaceBotToken } from "@/lib/slack";
 import { absoluteUrl } from "@/lib/utils";
+import { sessionMiddleware } from "@/middleware/session";
 import { verifySlackSignature } from "@/middleware/slack";
 import { createUserRepository } from "@/repos/users";
 import { createWorkspaceRepository } from "@/repos/workspaces";
@@ -43,103 +43,98 @@ const slackConfig: SlackOAuthConfig = {
   redirectUri: absoluteUrl("/api/slack/install/callback"),
 };
 
-app.get("/install/start", async (ctx) => {
-  const sessionToken = getCookie(ctx, "session");
+// ワークスペースのインストール開始（ワークスペースはまだ不要）
+app.get(
+  "/install/start",
+  sessionMiddleware({ requiredWorkspace: false }),
+  async (ctx) => {
+    const state = generateState();
+    const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
+    const { NODE_ENV } = env(ctx);
 
-  const { user } = sessionToken
-    ? await validateSessionToken(sessionToken)
-    : { user: null };
-  if (!user) {
-    return ctx.json({ error: "Unauthorized" }, 401);
-  }
+    setCookie(ctx, STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: NODE_ENV === "production",
+      path: "/",
+      maxAge: 600,
+    });
 
-  const state = generateState();
-  const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
-  const { NODE_ENV } = env(ctx);
+    return ctx.redirect(authorizeUrl);
+  },
+);
 
-  setCookie(ctx, STATE_COOKIE, state, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: NODE_ENV === "production",
-    path: "/",
-    maxAge: 600,
-  });
+// ワークスペースのインストールコールバック（このタイミングでワークスペースが作成される）
+app.get(
+  "/install/callback",
+  sessionMiddleware({ requiredWorkspace: false }),
+  async (ctx) => {
+    const user = ctx.get("user");
+    const code = ctx.req.query("code");
+    const state = ctx.req.query("state");
+    const storedState = getCookie(ctx, STATE_COOKIE);
+    const { NODE_ENV } = env(ctx);
 
-  return ctx.redirect(authorizeUrl);
-});
+    // オンボーディング完了済みかどうかで戻り先を決定
+    const isOnboarding = !user.onboardingCompletedAt;
+    const fallbackPath = isOnboarding
+      ? "/onboarding/connect-slack"
+      : "/settings";
 
-app.get("/install/callback", async (ctx) => {
-  const sessionToken = getCookie(ctx, "session");
+    if (!code) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: "missing_code",
+        }),
+      );
+    }
 
-  const { user } = sessionToken
-    ? await validateSessionToken(sessionToken)
-    : { user: null };
-  if (!user) {
-    return ctx.json({ error: "Unauthorized" }, 401);
-  }
+    if (!storedState || storedState !== state) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: "state_mismatch",
+        }),
+      );
+    }
 
-  const code = ctx.req.query("code");
-  const state = ctx.req.query("state");
-  const storedState = getCookie(ctx, STATE_COOKIE);
-  const { NODE_ENV } = env(ctx);
-
-  // オンボーディング完了済みかどうかで戻り先を決定
-  const isOnboarding = !user.onboardingCompletedAt;
-  const fallbackPath = isOnboarding ? "/onboarding/connect-slack" : "/settings";
-
-  if (!code) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: "missing_code",
-      }),
+    const result = await installWorkspace(
+      {
+        code,
+        userId: user.id,
+      },
+      {
+        db: ctx.get("db"),
+        ai: ctx.get("ai"),
+        stripe: ctx.get("stripe"),
+        user: ctx.get("user"),
+        workspace: ctx.get("workspace"),
+      },
     );
-  }
 
-  if (!storedState || storedState !== state) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: "state_mismatch",
-      }),
-    );
-  }
+    // Cookie削除（成功/失敗に関わらず）
+    deleteCookie(ctx, STATE_COOKIE, {
+      path: "/",
+      sameSite: "lax",
+      secure: NODE_ENV === "production",
+    });
 
-  const result = await installWorkspace(
-    {
-      code,
-      userId: user.id,
-    },
-    {
-      db: ctx.get("db"),
-      ai: ctx.get("ai"),
-      stripe: ctx.get("stripe"),
-      user: ctx.get("user"),
-      workspace: ctx.get("workspace"),
-    },
-  );
-
-  // Cookie削除（成功/失敗に関わらず）
-  deleteCookie(ctx, STATE_COOKIE, {
-    path: "/",
-    sameSite: "lax",
-    secure: NODE_ENV === "production",
-  });
-
-  // 結果に応じてリダイレクト
-  if (result.success) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        installed: "1",
-        team: result.teamName,
-      }),
-    );
-  } else {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: result.error,
-      }),
-    );
-  }
-});
+    // 結果に応じてリダイレクト
+    if (result.success) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          installed: "1",
+          team: result.teamName,
+        }),
+      );
+    } else {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: result.error,
+        }),
+      );
+    }
+  },
+);
 
 app.post(
   "/commands",
