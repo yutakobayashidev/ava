@@ -43,86 +43,98 @@ const slackConfig: SlackOAuthConfig = {
   redirectUri: absoluteUrl("/api/slack/install/callback"),
 };
 
-app.get("/install/start", sessionMiddleware(), async (ctx) => {
-  const state = generateState();
-  const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
-  const { NODE_ENV } = env(ctx);
+// ワークスペースのインストール開始（ワークスペースはまだ不要）
+app.get(
+  "/install/start",
+  sessionMiddleware({ requiredWorkspace: false }),
+  async (ctx) => {
+    const state = generateState();
+    const authorizeUrl = buildSlackInstallUrl(slackConfig, state);
+    const { NODE_ENV } = env(ctx);
 
-  setCookie(ctx, STATE_COOKIE, state, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: NODE_ENV === "production",
-    path: "/",
-    maxAge: 600,
-  });
+    setCookie(ctx, STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: NODE_ENV === "production",
+      path: "/",
+      maxAge: 600,
+    });
 
-  return ctx.redirect(authorizeUrl);
-});
+    return ctx.redirect(authorizeUrl);
+  },
+);
 
-app.get("/install/callback", sessionMiddleware(), async (ctx) => {
-  const user = ctx.get("user");
-  const code = ctx.req.query("code");
-  const state = ctx.req.query("state");
-  const storedState = getCookie(ctx, STATE_COOKIE);
-  const { NODE_ENV } = env(ctx);
+// ワークスペースのインストールコールバック（このタイミングでワークスペースが作成される）
+app.get(
+  "/install/callback",
+  sessionMiddleware({ requiredWorkspace: false }),
+  async (ctx) => {
+    const user = ctx.get("user");
+    const code = ctx.req.query("code");
+    const state = ctx.req.query("state");
+    const storedState = getCookie(ctx, STATE_COOKIE);
+    const { NODE_ENV } = env(ctx);
 
-  // オンボーディング完了済みかどうかで戻り先を決定
-  const isOnboarding = !user.onboardingCompletedAt;
-  const fallbackPath = isOnboarding ? "/onboarding/connect-slack" : "/settings";
+    // オンボーディング完了済みかどうかで戻り先を決定
+    const isOnboarding = !user.onboardingCompletedAt;
+    const fallbackPath = isOnboarding
+      ? "/onboarding/connect-slack"
+      : "/settings";
 
-  if (!code) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: "missing_code",
-      }),
+    if (!code) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: "missing_code",
+        }),
+      );
+    }
+
+    if (!storedState || storedState !== state) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: "state_mismatch",
+        }),
+      );
+    }
+
+    const result = await installWorkspace(
+      {
+        code,
+        userId: user.id,
+      },
+      {
+        db: ctx.get("db"),
+        ai: ctx.get("ai"),
+        stripe: ctx.get("stripe"),
+        user: ctx.get("user"),
+        workspace: ctx.get("workspace"),
+      },
     );
-  }
 
-  if (!storedState || storedState !== state) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: "state_mismatch",
-      }),
-    );
-  }
+    // Cookie削除（成功/失敗に関わらず）
+    deleteCookie(ctx, STATE_COOKIE, {
+      path: "/",
+      sameSite: "lax",
+      secure: NODE_ENV === "production",
+    });
 
-  const result = await installWorkspace(
-    {
-      code,
-      userId: user.id,
-    },
-    {
-      db: ctx.get("db"),
-      ai: ctx.get("ai"),
-      stripe: ctx.get("stripe"),
-      user: ctx.get("user"),
-      workspace: ctx.get("workspace"),
-    },
-  );
-
-  // Cookie削除（成功/失敗に関わらず）
-  deleteCookie(ctx, STATE_COOKIE, {
-    path: "/",
-    sameSite: "lax",
-    secure: NODE_ENV === "production",
-  });
-
-  // 結果に応じてリダイレクト
-  if (result.success) {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        installed: "1",
-        team: result.teamName,
-      }),
-    );
-  } else {
-    return ctx.redirect(
-      buildRedirectUrl(ctx.req.raw, fallbackPath, {
-        error: result.error,
-      }),
-    );
-  }
-});
+    // 結果に応じてリダイレクト
+    if (result.success) {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          installed: "1",
+          team: result.teamName,
+        }),
+      );
+    } else {
+      return ctx.redirect(
+        buildRedirectUrl(ctx.req.raw, fallbackPath, {
+          error: result.error,
+        }),
+      );
+    }
+  },
+);
 
 app.post(
   "/commands",
