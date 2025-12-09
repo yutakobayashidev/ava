@@ -6,3 +6,10 @@ export class InternalServerError extends HTTPException {
     this.name = "ServiceError";
   }
 }
+
+export class ValidationError extends HTTPException {
+  constructor(message: string, cause?: unknown) {
+    super(400, { message, cause });
+    this.name = "ValidationError";
+  }
+}

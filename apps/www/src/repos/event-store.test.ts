@@ -73,7 +73,8 @@ describe("event-store", () => {
       completedEvent,
     ]);
 
-    expect(appendResult.newVersion).toBe(2);
+    expect.assert(appendResult.isOk());
+    expect(appendResult.value.newVersion).toBe(2);
 
     const persisted = await db
       .select({
@@ -95,7 +96,9 @@ describe("event-store", () => {
     expect(persisted[1]?.summary).toBe("progressing");
     expect(persisted[2]?.summary).toBe("done");
 
-    const loaded = await store.load(streamId);
+    const loadedResult = await store.load(streamId);
+    expect.assert(loadedResult.isOk());
+    const loaded = loadedResult.value;
     expect(loaded.map((event) => event.type)).toEqual([
       "TaskStarted",
       "TaskUpdated",
@@ -123,18 +126,21 @@ describe("event-store", () => {
       },
     ]);
 
-    await expect(
-      store.append(streamId, -1, [
-        {
-          type: "TaskUpdated" as const,
-          schemaVersion: 1 as const,
-          payload: {
-            summary: "late update",
-            occurredAt: new Date(base.getTime() + 1000),
-          },
+    const result = await store.append(streamId, -1, [
+      {
+        type: "TaskUpdated" as const,
+        schemaVersion: 1 as const,
+        payload: {
+          summary: "late update",
+          occurredAt: new Date(base.getTime() + 1000),
         },
-      ]),
-    ).rejects.toThrow(/Concurrency conflict: expected version -1, got 0/);
+      },
+    ]);
+
+    expect.assert(result.isErr());
+    expect(result.error.message).toMatch(
+      /Concurrency conflict: expected version -1, got 0/,
+    );
   });
 
   it("maps related identifiers for block, pause/resume, slack link, and cancel events", async () => {
@@ -223,7 +229,9 @@ describe("event-store", () => {
     expect(slackLinkedRow?.summary).toBe("thread-123");
     expect(slackLinkedRow?.reason).toBe("C123");
 
-    const loaded = await store.load(streamId);
+    const loadedResult = await store.load(streamId);
+    expect.assert(loadedResult.isOk());
+    const loaded = loadedResult.value;
     expect(loaded.map((event) => event.type)).toEqual([
       "TaskBlocked",
       "BlockResolved",

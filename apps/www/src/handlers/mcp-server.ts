@@ -38,11 +38,11 @@ export function createMcpServer(ctx: Context) {
       description: "開始サマリをSlackに共有するための入力仕様。",
       inputSchema: startTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructStartTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクの追跡を開始しました。"),
@@ -58,11 +58,11 @@ export function createMcpServer(ctx: Context) {
       description: "進捗の抽象的サマリを共有するための入力仕様。",
       inputSchema: updateTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructUpdateTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "進捗を保存しました。"),
@@ -78,11 +78,11 @@ export function createMcpServer(ctx: Context) {
       description: "ブロッキング情報を共有するための入力仕様。",
       inputSchema: reportBlockedInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructReportBlockedWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) =>
@@ -99,11 +99,11 @@ export function createMcpServer(ctx: Context) {
       description: "タスクを一時休止するための入力仕様。",
       inputSchema: pauseTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructPauseTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを一時休止しました。"),
@@ -119,11 +119,11 @@ export function createMcpServer(ctx: Context) {
       description: "一時休止したタスクを再開するための入力仕様。",
       inputSchema: resumeTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructResumeTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを再開しました。"),
@@ -139,11 +139,11 @@ export function createMcpServer(ctx: Context) {
       description: "完了報告を共有するための入力仕様。",
       inputSchema: completeTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructCompleteTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) =>
@@ -165,11 +165,11 @@ export function createMcpServer(ctx: Context) {
       description: "タスク中止を受け付けるための入力仕様。",
       inputSchema: cancelTaskInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructCancelTaskWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => formatSuccessResponse(data, "タスクを中止しました。"),
@@ -185,11 +185,11 @@ export function createMcpServer(ctx: Context) {
       description: "ブロッキングが解決したことを報告する入力仕様。",
       inputSchema: resolveBlockedInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructResolveBlockedWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) =>
@@ -206,11 +206,11 @@ export function createMcpServer(ctx: Context) {
       description: "ユーザーのタスク一覧を取得する。",
       inputSchema: listTasksInputSchema,
     },
-    (params) => {
+    (input) => {
       const result = constructListTasksWorkflow(ctx)({
         workspace: ctx.get("workspace"),
         user: ctx.get("user"),
-        params,
+        input,
       });
       return result.match(
         (data) => ({

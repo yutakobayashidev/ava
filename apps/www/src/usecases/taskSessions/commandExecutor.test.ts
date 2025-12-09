@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@ava/database/schema";
-import { createTaskCommandExecutor, type TaskCommandExecutor } from "./index";
+import { createTaskExecuteCommand, type TaskExecuteCommand } from "./index";
 import { setup } from "../../../tests/vitest.helper";
 
 const { db, createTestUserAndWorkspace } = await setup();
@@ -16,17 +16,17 @@ vi.mock("@/services/slackNotificationService", () => ({
   }),
 }));
 
-describe("createTaskCommandExecutor", () => {
+describe("createTaskExecuteCommand", () => {
   let workspace: Awaited<
     ReturnType<typeof createTestUserAndWorkspace>
   >["workspace"];
   let user: Awaited<ReturnType<typeof createTestUserAndWorkspace>>["user"];
-  let executeCommand: TaskCommandExecutor;
+  let executeCommand: TaskExecuteCommand;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     ({ user, workspace } = await createTestUserAndWorkspace());
-    executeCommand = createTaskCommandExecutor({ db });
+    executeCommand = createTaskExecuteCommand({ db });
 
     mockPostMessage.mockResolvedValue({
       delivered: true,
@@ -137,17 +137,20 @@ describe("createTaskCommandExecutor", () => {
       command: { type: "ReportBlock", payload: { reason: "waiting" } },
     });
 
-    await expect(
-      executeCommand({
-        streamId,
-        workspace,
-        user,
-        command: {
-          type: "AddProgress",
-          payload: { summary: "should fail" },
-        },
-      }),
-    ).rejects.toThrow("Resolve blocking issues before updating progress");
+    const result = await executeCommand({
+      streamId,
+      workspace,
+      user,
+      command: {
+        type: "AddProgress",
+        payload: { summary: "should fail" },
+      },
+    });
+
+    expect.assert(result.isErr());
+    expect(result.error.message).toBe(
+      "Resolve blocking issues before updating progress",
+    );
 
     const events = await db
       .select({ eventType: schema.taskEvents.eventType })
