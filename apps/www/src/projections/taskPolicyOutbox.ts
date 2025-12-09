@@ -1,6 +1,8 @@
+import { DatabaseError } from "@/lib/db";
 import type { Event } from "@/objects/task/types";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
+import { ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 
 const POLICY_TYPES = {
@@ -171,30 +173,41 @@ function toPolicyPayload(event: Event, envelope: Envelope): PolicyPayload[] {
   }
 }
 
-export async function queuePolicyEvents(
+export function queuePolicyEvents(
   db: Database,
   streamId: string,
   events: Event[],
   envelope: Envelope,
-) {
-  const rows = events.flatMap((event) =>
-    toPolicyPayload(event, envelope).map((policy) => ({
-      id: uuidv7(),
-      taskSessionId: streamId,
-      policyType: policy.policyType,
-      payload: {
-        workspaceId: policy.workspaceId,
-        userId: policy.user.id,
-        user: policy.user,
-        channel: policy.channel,
-        threadTs: policy.threadTs,
-        ...policy.data,
-      },
-      status: "pending" as const,
-    })),
+): ResultAsync<void, DatabaseError> {
+  return ResultAsync.fromPromise(
+    (async () => {
+      const rows = events.flatMap((event) =>
+        toPolicyPayload(event, envelope).map((policy) => ({
+          id: uuidv7(),
+          taskSessionId: streamId,
+          policyType: policy.policyType,
+          payload: {
+            workspaceId: policy.workspaceId,
+            userId: policy.user.id,
+            user: policy.user,
+            channel: policy.channel,
+            threadTs: policy.threadTs,
+            ...policy.data,
+          },
+          status: "pending" as const,
+        })),
+      );
+
+      if (rows.length === 0) return;
+
+      await db.insert(schema.taskPolicyOutbox).values(rows);
+    })(),
+    (error) =>
+      new DatabaseError(
+        error instanceof Error
+          ? error.message
+          : "Failed to queue policy events",
+        error,
+      ),
   );
-
-  if (rows.length === 0) return;
-
-  await db.insert(schema.taskPolicyOutbox).values(rows);
 }

@@ -135,14 +135,12 @@ const commitEvents =
 const projectEvents =
   (db: Database) =>
   (command: CommittedCommand): ResultAsync<ProjectedCommand, DatabaseError> => {
-    return ResultAsync.fromPromise(
-      (async () => {
-        await projectTaskEvents(db, command.streamId, command.newEvents, {
-          workspaceId: command.workspace.id,
-          userId: command.user.id,
-        });
-
-        await queuePolicyEvents(db, command.streamId, command.newEvents, {
+    return projectTaskEvents(db, command.streamId, command.newEvents, {
+      workspaceId: command.workspace.id,
+      userId: command.user.id,
+    })
+      .andThen(() =>
+        queuePolicyEvents(db, command.streamId, command.newEvents, {
           workspaceId: command.workspace.id,
           user: {
             id: command.user.id,
@@ -155,29 +153,23 @@ const projectEvents =
             command.workspace.notificationChannelId ??
             null,
           threadTs: command.state.slackThread?.threadTs ?? null,
-        });
-
+        }),
+      )
+      .andThen(() =>
         // 可能な限り即時に通知するため、アウトボックスをその場で処理する
-        try {
-          await processTaskPolicyOutbox(db);
-        } catch (err) {
-          console.error("Failed to process task policy outbox", err);
-        }
-
-        return {
-          kind: "projected" as const,
-          events: command.newEvents,
-          persistedEvents: command.persistedEvents,
-          state: command.state,
-          version: command.version,
-        };
-      })(),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to project events",
-          error,
-        ),
-    );
+        // エラーは記録するが、プロジェクション全体は失敗させない
+        processTaskPolicyOutbox(db).orElse((error) => {
+          console.error("Failed to process task policy outbox", error);
+          return okAsync(undefined);
+        }),
+      )
+      .map(() => ({
+        kind: "projected" as const,
+        events: command.newEvents,
+        persistedEvents: command.persistedEvents,
+        state: command.state,
+        version: command.version,
+      }));
   };
 
 // ============================================================================
