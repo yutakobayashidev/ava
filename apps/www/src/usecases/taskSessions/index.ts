@@ -2,7 +2,7 @@ import { DatabaseError } from "@/lib/db";
 import { withSpanAsync } from "@/lib/otel";
 import { apply, decide, replay } from "@/objects/task/decider";
 import { toTaskStatus } from "@/objects/task/task-status";
-import type { Command } from "@/objects/task/types";
+import type { Command, Event } from "@/objects/task/types";
 import { processTaskPolicyOutbox } from "@/projections/policyOutboxProcessor";
 import { queuePolicyEvents } from "@/projections/taskPolicyOutbox";
 import { projectTaskEvents } from "@/projections/taskSessionProjector";
@@ -11,6 +11,7 @@ import { createEventStore } from "@/repos/event-store";
 import { checkFreePlanLimitResult } from "@/services/subscriptionService";
 import type { HonoEnv } from "@/types";
 import type { Database } from "@ava/database/client";
+import * as schema from "@ava/database/schema";
 import { ok, okAsync, ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 import { PlanLimitError } from "./errors";
@@ -45,7 +46,7 @@ type LoadedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   command: Command;
-  history: Awaited<ReturnType<ReturnType<typeof createEventStore>["load"]>>;
+  history: Event[];
   state: ReturnType<typeof replay>;
 };
 
@@ -66,24 +67,16 @@ type CommittedCommand = {
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
   newEvents: ReturnType<typeof decide>;
-  persistedEvents: Awaited<
-    ReturnType<ReturnType<typeof createEventStore>["append"]>
-  >["persistedEvents"];
-  version: Awaited<
-    ReturnType<ReturnType<typeof createEventStore>["append"]>
-  >["newVersion"];
+  persistedEvents: schema.TaskEvent[];
+  version: number;
 };
 
 type ProjectedCommand = {
   kind: "projected";
   events: ReturnType<typeof decide>;
-  persistedEvents: Awaited<
-    ReturnType<ReturnType<typeof createEventStore>["append"]>
-  >["persistedEvents"];
+  persistedEvents: schema.TaskEvent[];
   state: ReturnType<typeof replay>;
-  version: Awaited<
-    ReturnType<ReturnType<typeof createEventStore>["append"]>
-  >["newVersion"];
+  version: number;
 };
 
 // ============================================================================
@@ -96,14 +89,7 @@ type ProjectedCommand = {
 const loadEvents =
   (eventStore: ReturnType<typeof createEventStore>) =>
   (command: UnloadedCommand): ResultAsync<LoadedCommand, DatabaseError> => {
-    return ResultAsync.fromPromise(
-      eventStore.load(command.streamId),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to load events",
-          error,
-        ),
-    ).map((history) => ({
+    return eventStore.load(command.streamId).map((history) => ({
       ...command,
       kind: "loaded",
       history,
@@ -121,11 +107,8 @@ const decideEvents = (
     (async () => {
       const newEvents = decide(command.state, command.command, new Date());
       return {
+        ...command,
         kind: "decided" as const,
-        streamId: command.streamId,
-        workspace: command.workspace,
-        user: command.user,
-        state: command.state,
         newEvents,
         expectedVersion: command.history.length - 1,
       };
@@ -144,27 +127,14 @@ const decideEvents = (
 const commitEvents =
   (eventStore: ReturnType<typeof createEventStore>) =>
   (command: DecidedCommand): ResultAsync<CommittedCommand, DatabaseError> => {
-    return ResultAsync.fromPromise(
-      eventStore.append(
-        command.streamId,
-        command.expectedVersion,
-        command.newEvents,
-      ),
-      (error) =>
-        new DatabaseError(
-          error instanceof Error ? error.message : "Failed to commit events",
-          error,
-        ),
-    ).map((appendResult) => ({
-      kind: "committed" as const,
-      streamId: command.streamId,
-      workspace: command.workspace,
-      user: command.user,
-      state: command.state,
-      newEvents: command.newEvents,
-      persistedEvents: appendResult.persistedEvents,
-      version: appendResult.newVersion,
-    }));
+    return eventStore
+      .append(command.streamId, command.expectedVersion, command.newEvents)
+      .map((appendResult) => ({
+        ...command,
+        kind: "committed" as const,
+        persistedEvents: appendResult.persistedEvents,
+        version: appendResult.newVersion,
+      }));
   };
 
 /**
@@ -237,13 +207,9 @@ export const createTaskExecuteCommand = (deps: TaskExecuteCommandDeps) => {
   }): ResultAsync<
     {
       events: ReturnType<typeof decide>;
-      persistedEvents: Awaited<
-        ReturnType<ReturnType<typeof createEventStore>["append"]>
-      >["persistedEvents"];
+      persistedEvents: schema.TaskEvent[];
       state: ReturnType<typeof replay>;
-      version: Awaited<
-        ReturnType<ReturnType<typeof createEventStore>["append"]>
-      >["newVersion"];
+      version: number;
     },
     DatabaseError
   > => {

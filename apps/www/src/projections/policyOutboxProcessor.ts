@@ -224,7 +224,11 @@ async function appendSlackThreadLink(params: {
   const eventStore = createEventStore(db);
 
   const tryAppend = async () => {
-    const history = await eventStore.load(taskSessionId);
+    const historyResult = await eventStore.load(taskSessionId);
+    if (historyResult.isErr()) {
+      throw historyResult.error;
+    }
+    const history = historyResult.value;
     const expectedVersion = history.length - 1;
     const event = {
       type: "SlackThreadLinked",
@@ -237,6 +241,9 @@ async function appendSlackThreadLink(params: {
       expectedVersion,
       [event],
     );
+    if (appendResult.isErr()) {
+      throw appendResult.error;
+    }
 
     await projectTaskEvents(db, taskSessionId, [event], {
       workspaceId,

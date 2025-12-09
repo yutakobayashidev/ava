@@ -1,8 +1,11 @@
+import { DatabaseError, wrapDrizzle } from "@/lib/db";
+import { ValidationError } from "@/errors";
 import type { Event, Issue } from "@/objects/task/types";
 import { upcastEvent } from "@/objects/task/upcaster";
 import type { Database } from "@ava/database/client";
 import * as schema from "@ava/database/schema";
 import { asc, eq, sql } from "drizzle-orm";
+import { ResultAsync } from "neverthrow";
 import { uuidv7 } from "uuidv7";
 
 type AppendResult = {
@@ -132,12 +135,12 @@ function mapEventToDb(event: Event, version: number, streamId: string) {
 }
 
 type EventStore = {
-  load: (streamId: string) => Promise<Event[]>;
+  load: (streamId: string) => ResultAsync<Event[], DatabaseError>;
   append: (
     streamId: string,
     expectedVersion: number,
     events: Event[],
-  ) => Promise<AppendResult>;
+  ) => ResultAsync<AppendResult, ValidationError | DatabaseError>;
 };
 
 function mapDbToDomain(event: schema.TaskEvent): Event {
@@ -261,45 +264,52 @@ function mapDbToDomain(event: schema.TaskEvent): Event {
 
 export const createEventStore = (db: Database): EventStore => {
   return {
-    load: async (streamId: string) => {
-      const rows = await db
-        .select()
-        .from(schema.taskEvents)
-        .where(eq(schema.taskEvents.taskSessionId, streamId))
-        .orderBy(asc(schema.taskEvents.version));
-
-      return rows.map(mapDbToDomain);
-    },
-    append: async (streamId, expectedVersion, events) => {
-      return db.transaction(async (tx) => {
-        const [latest] = await tx
-          .select({
-            version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
-          })
+    load: (streamId: string) => {
+      return wrapDrizzle(
+        db
+          .select()
           .from(schema.taskEvents)
-          .where(eq(schema.taskEvents.taskSessionId, streamId));
+          .where(eq(schema.taskEvents.taskSessionId, streamId))
+          .orderBy(asc(schema.taskEvents.version)),
+      ).map((rows) => rows.map(mapDbToDomain));
+    },
+    append: (streamId, expectedVersion, events) => {
+      return ResultAsync.fromPromise(
+        db.transaction(async (tx) => {
+          const [latest] = await tx
+            .select({
+              version: sql<number>`COALESCE(MAX(${schema.taskEvents.version}), -1)`,
+            })
+            .from(schema.taskEvents)
+            .where(eq(schema.taskEvents.taskSessionId, streamId));
 
-        const currentVersion = latest?.version ?? -1;
-        if (currentVersion !== expectedVersion) {
-          throw new Error(
-            `Concurrency conflict: expected version ${expectedVersion}, got ${currentVersion}`,
+          const currentVersion = latest?.version ?? -1;
+          if (currentVersion !== expectedVersion) {
+            throw new ValidationError(
+              `Concurrency conflict: expected version ${expectedVersion}, got ${currentVersion}`,
+            );
+          }
+
+          const rows = events.map((event, idx) =>
+            mapEventToDb(event, expectedVersion + 1 + idx, streamId),
           );
-        }
 
-        const rows = events.map((event, idx) =>
-          mapEventToDb(event, expectedVersion + 1 + idx, streamId),
-        );
+          const persisted = await tx
+            .insert(schema.taskEvents)
+            .values(rows)
+            .returning();
 
-        const persisted = await tx
-          .insert(schema.taskEvents)
-          .values(rows)
-          .returning();
-
-        return {
-          newVersion: expectedVersion + events.length,
-          persistedEvents: persisted,
-        } satisfies AppendResult;
-      });
+          return {
+            newVersion: expectedVersion + events.length,
+            persistedEvents: persisted,
+          } satisfies AppendResult;
+        }),
+        (error) => {
+          if (error instanceof ValidationError) return error;
+          if (error instanceof DatabaseError) return error;
+          return new DatabaseError("Failed to append events", error);
+        },
+      );
     },
   };
 };
