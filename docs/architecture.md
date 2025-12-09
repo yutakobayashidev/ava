@@ -67,15 +67,16 @@ type DecidedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
+  newEvents: ReturnType<typeof apply>;
   expectedVersion: number;
 };
 ```
 
 **処理内容:**
 
-- `decide()`関数でコマンドと現在の状態から新しいイベントを生成
-- ビジネスルールの検証（例: ブロック中は進捗更新不可）
+- `apply()`関数でコマンドと現在の状態から新しいイベントを生成
+- ビジネスルールの検証（例: ブロック中は進捗更新不可）をResult型で表現
+- 無効な状態遷移の場合は`err(BadRequestError)`を返す
 - 楽観的同時実行制御のためのバージョン番号を記録
 
 #### 4. Committed
@@ -89,7 +90,7 @@ type CommittedCommand = {
   workspace: HonoEnv["Variables"]["workspace"];
   user: HonoEnv["Variables"]["user"];
   state: ReturnType<typeof replay>;
-  newEvents: ReturnType<typeof decide>;
+  newEvents: ReturnType<typeof apply>;
   persistedEvents: schema.TaskEvent[];
   version: number;
 };
@@ -108,7 +109,7 @@ type CommittedCommand = {
 ```typescript
 type ProjectedCommand = {
   kind: "projected";
-  events: ReturnType<typeof decide>;
+  events: ReturnType<typeof apply>;
   persistedEvents: schema.TaskEvent[];
   state: ReturnType<typeof replay>;
   version: number;
@@ -139,23 +140,13 @@ const loadEvents =
 
 const decideEvents = (
   command: LoadedCommand,
-): ResultAsync<DecidedCommand, DatabaseError> => {
-  return ResultAsync.fromPromise(
-    (async () => {
-      const newEvents = decide(command.state, command.command, new Date());
-      return {
-        ...command,
-        kind: "decided",
-        newEvents,
-        expectedVersion: command.history.length - 1,
-      };
-    })(),
-    (error) =>
-      new DatabaseError(
-        error instanceof Error ? error.message : "Failed to decide events",
-        error,
-      ),
-  );
+): Result<DecidedCommand, BadRequestError> => {
+  return apply(command.state, command.command, new Date()).map((newEvents) => ({
+    ...command,
+    kind: "decided",
+    newEvents,
+    expectedVersion: command.history.length - 1,
+  }));
 };
 
 // ... commitEvents, projectEvents
@@ -167,8 +158,8 @@ const decideEvents = (
 return ok(command)
   .asyncAndThen(loadEvents(eventStore))
   .andThen(decideEvents)
-  .andThen(commitEvents(eventStore))
-  .andThen(projectEvents(db));
+  .asyncAndThen(commitEvents(eventStore))
+  .asyncAndThen(projectEvents(db));
 ```
 
 ### 利点

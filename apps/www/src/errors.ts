@@ -33,17 +33,6 @@ export class PaymentRequiredError extends HTTPException {
 }
 
 /**
- * 403 Forbidden - リソースへのアクセス権限がない
- * 権限不足など
- */
-export class ForbiddenError extends HTTPException {
-  constructor(message: string, cause?: unknown) {
-    super(403, { message, cause });
-    this.name = "ForbiddenError";
-  }
-}
-
-/**
  * 404 Not Found - リソースが見つからない
  */
 export class NotFoundError extends HTTPException {
@@ -52,10 +41,3 @@ export class NotFoundError extends HTTPException {
     this.name = "NotFoundError";
   }
 }
-
-export type AppError =
-  | InternalServerError
-  | BadRequestError
-  | PaymentRequiredError
-  | ForbiddenError
-  | NotFoundError;

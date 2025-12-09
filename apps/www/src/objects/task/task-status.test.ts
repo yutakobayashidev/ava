@@ -99,33 +99,41 @@ describe("task-status", () => {
   });
 
   describe("validateTransition", () => {
-    it("should not throw for valid transitions", () => {
-      expect(() => validateTransition("in_progress", "blocked")).not.toThrow();
-      expect(() => validateTransition("blocked", "in_progress")).not.toThrow();
-      expect(() => validateTransition("paused", "in_progress")).not.toThrow();
+    it("should return ok for valid transitions", () => {
+      expect(validateTransition("in_progress", "blocked").isOk()).toBe(true);
+      expect(validateTransition("blocked", "in_progress").isOk()).toBe(true);
+      expect(validateTransition("paused", "in_progress").isOk()).toBe(true);
     });
 
-    it("should not throw for same state transition", () => {
-      expect(() =>
-        validateTransition("in_progress", "in_progress"),
-      ).not.toThrow();
-      expect(() => validateTransition("completed", "completed")).not.toThrow();
+    it("should return ok for same state transition", () => {
+      expect(validateTransition("in_progress", "in_progress").isOk()).toBe(
+        true,
+      );
+      expect(validateTransition("completed", "completed").isOk()).toBe(true);
     });
 
-    it("should throw descriptive error for invalid transitions", () => {
-      expect(() => validateTransition("blocked", "completed")).toThrow(
+    it("should return err with descriptive error for invalid transitions", () => {
+      const result1 = validateTransition("blocked", "completed");
+      expect.assert(result1.isErr());
+      expect(result1.error.message).toBe(
         "Invalid status transition: blocked → completed. Allowed transitions from blocked: [in_progress, paused, cancelled]",
       );
 
-      expect(() => validateTransition("paused", "blocked")).toThrow(
+      const result2 = validateTransition("paused", "blocked");
+      expect.assert(result2.isErr());
+      expect(result2.error.message).toBe(
         "Invalid status transition: paused → blocked. Allowed transitions from paused: [in_progress, cancelled]",
       );
 
-      expect(() => validateTransition("completed", "in_progress")).toThrow(
+      const result3 = validateTransition("completed", "in_progress");
+      expect.assert(result3.isErr());
+      expect(result3.error.message).toBe(
         "Invalid status transition: completed → in_progress. Allowed transitions from completed: []",
       );
 
-      expect(() => validateTransition("cancelled", "in_progress")).toThrow(
+      const result4 = validateTransition("cancelled", "in_progress");
+      expect.assert(result4.isErr());
+      expect(result4.error.message).toBe(
         "Invalid status transition: cancelled → in_progress. Allowed transitions from cancelled: []",
       );
     });
