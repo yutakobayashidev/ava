@@ -1,3 +1,4 @@
 - https://kiririmode.hatenablog.jp/entry/20170205/1486287614
 - https://datatracker.ietf.org/doc/html/rfc7591
 - https://www.authlete.com/ja/developers/cimd/
+- https://mcp-use.com/docs/typescript/server/creating-apps-sdk-server?utm_source=chatgpt.com
