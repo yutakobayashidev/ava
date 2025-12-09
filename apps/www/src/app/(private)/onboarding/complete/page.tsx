@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { createWorkspaceRepository } from "@/repos";
 import { db } from "@ava/database/client";
 import { users } from "@ava/database/schema";
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CompletePage() {
-  const { user } = await requireAuth();
+  const { user } = await auth();
 
   const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);

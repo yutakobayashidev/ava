@@ -1,6 +1,7 @@
 import { getCurrentSession } from "@/lib/server/session";
 import { createWorkspaceRepository } from "@/repos";
 import type { Database } from "@ava/database/client";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 type RequireAuthResult = {
@@ -19,13 +20,17 @@ type RequireWorkspaceResult = RequireAuthResult & {
 
 /**
  * 認証が必要なページで使用するヘルパー関数
- * 未認証の場合は /login にリダイレクト
+ * 未認証の場合は /login にリダイレクト（現在のURLをcallbackUrlとして保持）
  */
-export async function requireAuth(): Promise<RequireAuthResult> {
+export async function auth(): Promise<RequireAuthResult> {
   const { user } = await getCurrentSession();
 
   if (!user) {
-    redirect("/login");
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") || "/";
+    const loginUrl = new URL("/login", "http://localhost");
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    redirect(loginUrl.pathname + loginUrl.search);
   }
 
   return { user };
@@ -38,7 +43,7 @@ export async function requireAuth(): Promise<RequireAuthResult> {
 export async function requireWorkspace(
   db: Database,
 ): Promise<RequireWorkspaceResult> {
-  const { user } = await requireAuth();
+  const { user } = await auth();
 
   const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);

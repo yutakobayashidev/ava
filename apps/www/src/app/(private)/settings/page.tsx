@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 import { absoluteUrl } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function SettingsPage({
   searchParams,
 }: PageProps<"/settings">) {
-  const { user } = await requireAuth();
+  const { user } = await auth();
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);

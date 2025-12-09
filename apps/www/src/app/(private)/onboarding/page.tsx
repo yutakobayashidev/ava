@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { createWorkspaceRepository } from "@/repos";
 import { db } from "@ava/database/client";
 import type { Metadata } from "next";
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OnboardingPage() {
-  const { user } = await requireAuth();
+  const { user } = await auth();
 
   const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);

@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import {
   createLoginRedirectUrl,
   validateAuthorizeRequest,
@@ -64,7 +64,7 @@ export default async function AuthorizePage({
   async function handleConsent(formData: FormData) {
     "use server";
 
-    const { user } = await requireAuth();
+    const { user } = await auth();
 
     if (!client) throw new Error("Client not found during consent handling.");
 

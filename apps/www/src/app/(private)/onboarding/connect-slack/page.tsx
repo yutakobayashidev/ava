@@ -2,7 +2,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getWorkspaceBotToken } from "@/lib/slack";
 import { getSlackStatusMessage, isSuccessMessage } from "@/lib/slackMessages";
 import { getInitials } from "@/lib/utils";
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default async function ConnectSlackPage({
   searchParams,
 }: PageProps<"/onboarding/connect-slack">) {
-  const { user } = await requireAuth();
+  const { user } = await auth();
 
   const params = await searchParams;
   const workspaceRepository = createWorkspaceRepository(db);
@@ -72,7 +72,7 @@ export default async function ConnectSlackPage({
   async function saveNotificationChannel(formData: FormData) {
     "use server";
 
-    const { user } = await requireAuth();
+    const { user } = await auth();
 
     const channelId = formData.get("channel_id");
 

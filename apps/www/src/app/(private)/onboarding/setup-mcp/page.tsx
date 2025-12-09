@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { absoluteUrl } from "@/lib/utils";
 import { createWorkspaceRepository } from "@/repos";
 import { db } from "@ava/database/client";
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SetupMcpPage() {
-  const { user } = await requireAuth();
+  const { user } = await auth();
 
   const workspaceRepository = createWorkspaceRepository(db);
   const workspace = await workspaceRepository.findWorkspaceByUser(user.id);

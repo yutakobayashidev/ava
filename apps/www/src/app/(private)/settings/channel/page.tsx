@@ -2,7 +2,7 @@ import { Header } from "@/components/header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getWorkspaceBotToken } from "@/lib/slack";
 import { createWorkspaceRepository } from "@/repos";
 import { db } from "@ava/database/client";
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default async function ChannelSettingsPage({
   searchParams,
 }: PageProps<"/settings/channel">) {
-  const { user } = await requireAuth();
+  const { user } = await auth();
   const params = await searchParams;
 
   const workspaceRepository = createWorkspaceRepository(db);
@@ -46,7 +46,7 @@ export default async function ChannelSettingsPage({
   async function saveNotificationChannel(formData: FormData) {
     "use server";
 
-    const { user } = await requireAuth();
+    const { user } = await auth();
 
     const channelId = formData.get("channel_id");
 
