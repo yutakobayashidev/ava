@@ -2,7 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@ava/database/schema";
 import { createTaskExecuteCommand, type TaskExecuteCommand } from "./index";
-import { setup } from "../../../tests/vitest.helper";
+import { setup } from "../../../../tests/vitest.helper";
 
 const { db, createTestUserAndWorkspace } = await setup();
 
