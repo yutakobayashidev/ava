@@ -1,9 +1,8 @@
 import type { AssetMap } from "./assets.js";
 
 /**
- * Renders the HTML shell for a widget with proper script tags
- * In dev mode: includes Vite HMR client and direct module import
- * In prod mode: includes bundled JS (with inlined Tailwind CSS)
+ * Renders the HTML shell for a widget with inlined JS and CSS
+ * Always inlines the bundled assets
  */
 export function renderWidgetHtml(assets: AssetMap): string {
   const todoAsset = assets.todo;
@@ -11,18 +10,11 @@ export function renderWidgetHtml(assets: AssetMap): string {
     throw new Error("Todo widget assets not found");
   }
 
-  const isDev = todoAsset.js.startsWith("http");
+  // Always inline the JS content
+  const scriptTag = `<script>${todoAsset.js}</script>`;
 
-  // In development, we need to include the Vite client for HMR
-  const viteClient = isDev
-    ? `<script type="module" src="${new URL(todoAsset.js).origin}/@vite/client"></script>`
-    : "";
-
-  // Script tag: in dev use type="module", in prod use regular script (IIFE bundle)
-  // CSS (Tailwind) is automatically included in the JS bundle by @tailwindcss/vite
-  const scriptTag = isDev
-    ? `<script type="module" src="${todoAsset.js}"></script>`
-    : `<script src="${todoAsset.js}"></script>`;
+  // Inline CSS if it exists
+  const styleTag = todoAsset.css ? `<style>${todoAsset.css}</style>` : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -30,7 +22,7 @@ export function renderWidgetHtml(assets: AssetMap): string {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task List Widget</title>
-    ${viteClient}
+    ${styleTag}
   </head>
   <body>
     <div id="root"></div>

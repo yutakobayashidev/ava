@@ -2,13 +2,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
- * Asset map interface
- * In dev: uses VITE_DEV_SERVER_ORIGIN environment variable (e.g., "http://localhost:5173")
- * In prod: reads dist/manifest.json to get hashed asset paths
+ * Asset map interface - always contains inline content
  */
 export interface AssetMap {
   [entryName: string]: {
-    js: string;
+    js: string; // JS file content (always inlined)
+    css?: string; // CSS file content if exists (always inlined)
   };
 }
 
@@ -40,26 +39,12 @@ async function loadManifest(
 }
 
 /**
- * Resolves asset URLs for development mode
- * Returns HMR client script and module URL for hot reloading
+ * Resolves and reads asset files, always returning inline content
  */
-function resolveDevAssets(origin: string, entryName: string): { js: string } {
-  // In dev mode, we load the virtual entry from Vite dev server
-  // The vite-plugin-multi-widget creates virtual /{name}.js endpoints
-  // CSS (Tailwind) is automatically included by the Vite plugin
-  return {
-    js: `${origin}/${entryName}.js`,
-  };
-}
-
-/**
- * Resolves asset URLs for production mode
- * Reads manifest.json to find the built JS/CSS files
- */
-async function resolveProdAssets(
+async function resolveAssets(
   manifestPath: string,
   entryName: string,
-): Promise<{ js: string }> {
+): Promise<{ js: string; css?: string }> {
   const manifest = await loadManifest(manifestPath);
 
   // Find the entry in the manifest
@@ -72,35 +57,33 @@ async function resolveProdAssets(
     );
   }
 
-  // CSS (Tailwind) is inlined in the JS bundle by @tailwindcss/vite
+  // Read the JS file content
+  const distDir = join(process.cwd(), "dist");
+  const jsPath = join(distDir, chunk.file);
+  const jsContent = await readFile(jsPath, "utf-8");
+
+  // Read CSS file content if it exists
+  let cssContent: string | undefined;
+  if (chunk.css && chunk.css.length > 0) {
+    const cssPath = join(distDir, chunk.css[0]);
+    cssContent = await readFile(cssPath, "utf-8");
+  }
+
   return {
-    js: `/${chunk.file}`,
+    js: jsContent,
+    css: cssContent,
   };
 }
 
 /**
  * Main function to load asset map for all widgets
- * Reads from Node.js environment variables:
- * - VITE_DEV_SERVER_ORIGIN: if set, uses dev mode (e.g., "http://localhost:5173")
- * - VITE_MANIFEST_PATH: custom path to manifest.json (defaults to "dist/manifest.json")
+ * Always reads from dist/manifest.json and inlines the content
  */
 export async function loadAssetMap(): Promise<AssetMap> {
-  const devOrigin = process.env.VITE_DEV_SERVER_ORIGIN;
-  const isDev = !!devOrigin;
-
-  if (isDev) {
-    // For now, we only have one widget: "todo"
-    // You can extend this to support multiple widgets
-    return {
-      todo: resolveDevAssets(devOrigin!, "todo"),
-    };
-  }
-
-  // Production mode
   const manifestPath =
     process.env.VITE_MANIFEST_PATH ?? join(process.cwd(), "dist/manifest.json");
 
   return {
-    todo: await resolveProdAssets(manifestPath, "todo"),
+    todo: await resolveAssets(manifestPath, "todo"),
   };
 }
