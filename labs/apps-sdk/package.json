@@ -5,7 +5,7 @@
     "dev:client": "vite",
     "dev:server": "tsx watch src/server.ts",
     "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
-    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-2 --port 3000",
+    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 3000",
     "build:client": "vite build",
     "start": "NODE_ENV=production tsx src/server.ts"
   },

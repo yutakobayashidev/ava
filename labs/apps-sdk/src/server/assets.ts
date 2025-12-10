@@ -78,12 +78,26 @@ async function resolveAssets(
 /**
  * Main function to load asset map for all widgets
  * Always reads from dist/manifest.json and inlines the content
+ * Automatically discovers all widget entries from the manifest
  */
 export async function loadAssetMap(): Promise<AssetMap> {
   const manifestPath =
     process.env.VITE_MANIFEST_PATH ?? join(process.cwd(), "dist/manifest.json");
 
-  return {
-    todo: await resolveAssets(manifestPath, "todo"),
-  };
+  const manifest = await loadManifest(manifestPath);
+  const assetMap: AssetMap = {};
+
+  // Find all widget entries in the manifest
+  for (const [key, chunk] of Object.entries(manifest)) {
+    if (key.startsWith("src/widgets/") && chunk.isEntry) {
+      // Extract widget name from path: src/widgets/{name}/index.tsx
+      const match = key.match(/^src\/widgets\/([^/]+)\/index\.tsx$/);
+      if (match) {
+        const widgetName = match[1];
+        assetMap[widgetName] = await resolveAssets(manifestPath, widgetName);
+      }
+    }
+  }
+
+  return assetMap;
 }

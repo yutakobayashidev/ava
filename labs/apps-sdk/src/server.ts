@@ -1,7 +1,7 @@
-import "dotenv/config";
-import { serve } from "@hono/node-server";
 import { StreamableHTTPTransport } from "@hono/mcp";
+import { serve } from "@hono/node-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import "dotenv/config";
 import { Hono } from "hono";
 import { loadAssetMap } from "./server/assets.js";
 import { renderWidgetHtml } from "./server/widget.js";
@@ -38,9 +38,9 @@ const getDummyTasks = (): Task[] => [
   },
 ];
 
-async function renderWidget(): Promise<string> {
+async function renderWidget(widgetName: string = "todo"): Promise<string> {
   const assets = await loadAssetMap();
-  return renderWidgetHtml(assets);
+  return renderWidgetHtml(assets, widgetName);
 }
 
 function createTaskServer(): McpServer {
@@ -66,6 +66,11 @@ function createTaskServer(): McpServer {
           text: await renderWidget(),
           _meta: {
             "openai/widgetPrefersBorder": true,
+            "openai/widgetDomain": "https://chatgpt.com",
+            "openai/widgetCSP": {
+              connect_domains: ["https://chatgpt.com"],
+              resource_domains: ["https://*.oaistatic.com"],
+            },
           },
         },
       ],
