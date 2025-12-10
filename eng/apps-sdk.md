@@ -4,3 +4,4 @@
 - https://openai.com/ja-JP/index/introducing-apps-in-chatgpt/
 - https://azukiazusa.dev/blog/mcp-standard-ui-extension/#mcp-%E3%82%B5%E3%83%BC%E3%83%90%E3%83%BC%E3%81%AE%E5%AE%9F%E8%A3%85
 - https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865
+- https://developers.cloudflare.com/workers/static-assets/
