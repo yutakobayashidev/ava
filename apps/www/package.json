@@ -115,7 +115,7 @@
     "@next/env": "16.0.7",
     "@playwright/test": "1.57.0",
     "@tailwindcss/postcss": "4",
-    "@types/node": "20",
+    "@types/node": "24.10.1",
     "@types/react": "19",
     "@types/react-dom": "19",
     "@vitejs/plugin-react": "5.1.1",

@@ -20,7 +20,7 @@
   "dependencies": {
     "@hono/mcp": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.23.0",
-    "@types/node": "^24.10.1",
+    "@types/node": "24.10.1",
     "hono": "^4.10.7",
     "react": "^19",
     "react-dom": "^19",
