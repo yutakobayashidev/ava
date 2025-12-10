@@ -1,0 +1,22 @@
+{
+  "name": "apps-sdk",
+  "scripts": {
+    "dev:client": "vite",
+    "build:client": "vite build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.24.3",
+    "@tailwindcss/vite": "4.1.17",
+    "hono": "4.10.8",
+    "tailwindcss": "^4.1.17",
+    "zod": "4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "25.0.0",
+    "fast-glob": "3.3.3",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vite": "^7.2.7",
+    "wrangler": "4.53.0"
+  }
+}
