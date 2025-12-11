@@ -17,3 +17,21 @@ resource "axiom_dataset" "ava_otel_traces" {
   name        = "ava"
   description = "ava's otel traces"
 }
+
+module "storage" {
+  source        = "../../modules/cloudflare-r2"
+  project_name  = var.project_name
+  environment   = "prod"
+  account_id    = var.cloudflare_account_id
+  r2_location   = "apac"
+  custom_domain = var.cloudflare_r2_custom_domain
+}
+
+module "cloudflare_r2_token" {
+  source                = "../../modules/cloudflare-account-token"
+  project_name          = var.project_name
+  environment           = "prod"
+  token_name            = "r2-management"
+  bucket_name           = module.storage.main_bucket_name
+  cloudflare_account_id = var.cloudflare_account_id
+}
