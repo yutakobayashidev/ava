@@ -43,16 +43,13 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
 </body>
 </html>`;
 
-  const renderWidgetHtml = (
-    name: string,
-    origin: string,
-  ): string => `<!doctype html>
+  const renderWidgetHtml = (name: string): string => `<!doctype html>
   <html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${name} Widget - Development</title>
-    <script type="module" src="${origin}/${name}.js"></script>
+    <script type="module" src="/${name}.js"></script>
   </head>
   <body>
     <div id="${name}-root"></div>
@@ -70,18 +67,6 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
         const run = async () => {
           if (req.method !== "GET" || !req.url) return next();
           const url = req.url.split("?")[0];
-          const configuredOrigin =
-            typeof server.config.server.origin === "string"
-              ? server.config.server.origin
-              : undefined;
-          const host = req.headers.host ?? "localhost:5173";
-          const protoHeader =
-            (req.headers["x-forwarded-proto"] as string | undefined) ?? "";
-          const proto =
-            protoHeader.split(",")[0]?.trim() ||
-            (server.config.server.https ? "https" : "http");
-          const origin = configuredOrigin ?? `${proto}://${host}`;
-
           // Index page
           if (url === "/" || url === "" || url === "/index.html") {
             const html = renderIndexHtml(names);
@@ -94,7 +79,7 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
           if (url.endsWith(".html")) {
             const m = url.match(/^\/?([\w-]+)\.html$/);
             if (m && entries[m[1]]) {
-              const html = renderWidgetHtml(m[1], origin);
+              const html = renderWidgetHtml(m[1]);
               res.setHeader("Content-Type", "text/html; charset=utf-8");
               res.end(html);
               return;

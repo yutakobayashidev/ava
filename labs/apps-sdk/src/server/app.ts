@@ -83,16 +83,8 @@ function createTaskServer(): McpServer {
             "openai/widgetPrefersBorder": true,
             "openai/widgetDomain": "https://chatgpt.com",
             "openai/widgetCSP": {
-              connect_domains: [
-                "https://chatgpt.com",
-                "https://apps-sdk-dev-3.tunnelto.dev",
-                devWidgetOrigin,
-              ],
-              resource_domains: [
-                "https://*.oaistatic.com",
-                "https://apps-sdk-dev-3.tunnelto.dev",
-                devWidgetOrigin,
-              ],
+              connect_domains: ["https://chatgpt.com", devWidgetOrigin],
+              resource_domains: ["https://*.oaistatic.com", devWidgetOrigin],
             },
           },
         },

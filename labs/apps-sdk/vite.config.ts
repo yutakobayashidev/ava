@@ -2,6 +2,7 @@ import devServer, { defaultOptions } from "@hono/vite-dev-server";
 import nodeAdapter from "@hono/vite-dev-server/node";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import Inspect from "vite-plugin-inspect";
 
 import {
   buildWidgetEntries,
@@ -33,7 +34,11 @@ export default defineConfig(({ mode }) => {
         devWidgetHost && devWidgetHost !== "localhost" ? devWidgetHost : null,
       ].filter(Boolean) as string[],
       cors: {
-        origin: "*",
+        origin: [
+          "https://chatgpt.com",
+          "https://*.oaiusercontent.com",
+          devWidgetBase,
+        ],
         methods: ["GET", "OPTIONS"],
       },
       port: 5173,
@@ -45,6 +50,7 @@ export default defineConfig(({ mode }) => {
     return {
       ...shared,
       plugins: [
+        Inspect(),
         multiWidgetDevEndpoints({
           entries: widgetEntries,
         }),
@@ -72,6 +78,7 @@ export default defineConfig(({ mode }) => {
   return {
     ...shared,
     plugins: [
+      Inspect(),
       devServer({
         entry: "src/server/app.ts",
         adapter: nodeAdapter,

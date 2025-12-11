@@ -23,6 +23,7 @@
     "fast-glob": "3.3.3",
     "typescript": "5.9.3",
     "vite": "npm:rolldown-vite@latest",
+    "vite-plugin-inspect": "11.3.3",
     "wrangler": "4.53.0"
   }
 }
