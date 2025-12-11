@@ -55,7 +55,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
-      - run: pnpm --filter www test
+      - run: turbo test --filter=www
     timeout-minutes: 5
 
   e2e-test:
@@ -68,7 +68,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-node
       - run: pnpm --filter www exec playwright install chromium
-      - run: pnpm --filter www build
+      - run: turbo build --filter=www
       - run: pnpm --filter www test:e2e
       - name: Upload Playwright report
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
