@@ -149,21 +149,8 @@ app.all("/mcp", async (c) => {
   return transport.handleRequest(c);
 });
 
-// Start server if running directly (not imported)
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = Number(process.env.PORT) || 3000;
-  console.log(`Starting Ava Task Manager MCP server on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  if (process.env.VITE_DEV_SERVER_ORIGIN) {
-    console.log(`Vite dev server: ${process.env.VITE_DEV_SERVER_ORIGIN}`);
-  }
-
-  serve({
-    fetch: app.fetch,
-    port,
-  });
-
-  console.log(`Server running at http://localhost:${port}`);
-}
+serve({
+  fetch: app.fetch,
+});
 
 export default app;
