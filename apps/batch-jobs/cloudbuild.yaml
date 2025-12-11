@@ -43,6 +43,9 @@ steps:
 
 timeout: 2000s
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 substitutions:
   _REGION: by-terraform
   _ARTIFACT_REPOSITORY_IMAGE_NAME: by-terraform
