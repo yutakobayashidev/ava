@@ -38,7 +38,7 @@ const getDummyTasks = (): Task[] => [
   },
 ];
 
-async function renderWidget(widgetName: string = "tasks"): Promise<string> {
+async function renderWidget(widgetName: string): Promise<string> {
   const assets = await loadAssetMap();
   return renderWidgetHtml(assets, widgetName);
 }
@@ -63,7 +63,7 @@ function createTaskServer(): McpServer {
         {
           uri: uri.href,
           mimeType: "text/html+skybridge",
-          text: await renderWidget(),
+          text: await renderWidget("tasks"),
           _meta: {
             "openai/widgetPrefersBorder": true,
             "openai/widgetDomain": "https://chatgpt.com",
@@ -83,7 +83,9 @@ function createTaskServer(): McpServer {
     {
       title: "Show Task List",
       description: "Display the task list widget",
-      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+      },
       _meta: {
         "openai/outputTemplate": "ui://widget/task-list.html",
         "openai/toolInvocation/invoking": "Rendering task list…",
