@@ -16,3 +16,14 @@ project_name = "ava"
 # Webhook のベース URL (本番環境のドメイン)
 # 例: webhook_base_url = "https://yourdomain.com"
 webhook_base_url = "https://yourdomain.com"
+
+# Cloudflare の認証情報
+# cloudflare_api_token = "あなたの Cloudflare API トークン"
+# cloudflare_account_id = "あなたの Cloudflare アカウントID"
+
+# Cloudflare R2 のカスタムドメイン
+# cloudflare_r2_custom_domain = "example.com"
+
+# Google Workspace OAuth 認証情報（Zero Trust用）
+# google_workspace_client_id = "あなたの Google OAuth クライアント ID"
+# google_workspace_secret = "あなたの Google OAuth クライアントシークレット"

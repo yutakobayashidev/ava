@@ -8,6 +8,10 @@ terraform {
     axiom = {
       source = "axiomhq/axiom"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "5.10.1"
+    }
   }
 }
 
@@ -17,4 +21,8 @@ provider "stripe" {
 
 provider "axiom" {
   api_token = var.axiom_api_key
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }

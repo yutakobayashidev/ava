@@ -23,3 +23,27 @@ variable "axiom_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "cloudflare_api_token" {
+  description = "認証用のCloudflare APIトークン"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare アカウント ID"
+  type        = string
+  validation {
+    condition     = can(regex("^[a-f0-9]{32}$", var.cloudflare_account_id))
+    error_message = "アカウント ID は 32 文字の 16 進数文字列である必要があります。"
+  }
+}
+
+variable "cloudflare_r2_custom_domain" {
+  description = "Cloudflare R2 および Zero Trust で利用するカスタムドメイン"
+  type        = string
+  validation {
+    condition     = length(trimspace(var.cloudflare_r2_custom_domain)) > 0
+    error_message = "カスタムドメインは空白以外の文字を含める必要があります。"
+  }
+}
