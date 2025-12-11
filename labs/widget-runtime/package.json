@@ -14,8 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
-    "dev": "tsdown --watch"
+    "build": "tsdown"
   },
   "dependencies": {
     "hono": "4.10.8"

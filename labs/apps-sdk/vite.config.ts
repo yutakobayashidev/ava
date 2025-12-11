@@ -1,10 +1,10 @@
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
-import Inspect from "vite-plugin-inspect";
 import {
   buildWidgetEntries,
   multiWidgetDevEndpoints,
 } from "@apps-sdk/vite-plugin-widget";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+import Inspect from "vite-plugin-inspect";
 
 const widgetEntries = buildWidgetEntries();
 const devWidgetBase =
