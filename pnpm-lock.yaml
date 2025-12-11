@@ -367,9 +367,6 @@ importers:
       '@apps-sdk/vite-plugin-widget':
         specifier: workspace:*
         version: link:../vite-plugin-widget
-      '@apps-sdk/widget-runtime':
-        specifier: workspace:*
-        version: link:../widget-runtime
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1

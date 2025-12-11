@@ -28,18 +28,9 @@ variable "account_id" {
 variable "r2_location" {
   description = "R2 バケットのリージョン"
   type        = string
-  default     = "apac"
+  default     = "enam"
   validation {
     condition     = contains(["apac", "eeur", "enam", "weur", "wnam", "oc"], var.r2_location)
     error_message = "R2 のリージョンは次のいずれかである必要があります: apac, eeur, enam, weur, wnam, oc。"
-  }
-}
-
-variable "custom_domain" {
-  description = "Cloudflare R2 のカスタムドメイン"
-  type        = string
-  validation {
-    condition     = length(trimspace(var.custom_domain)) > 0
-    error_message = "カスタムドメインは空白以外の文字を含める必要があります。"
   }
 }

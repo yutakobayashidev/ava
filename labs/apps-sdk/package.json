@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@apps-sdk/vite-plugin-widget": "workspace:*",
-    "@apps-sdk/widget-runtime": "workspace:*",
     "@types/node": "24.10.1",
     "typescript": "5.9.3",
     "vite": "npm:rolldown-vite@latest",

@@ -23,8 +23,7 @@ module "storage" {
   project_name  = var.project_name
   environment   = "prod"
   account_id    = var.cloudflare_account_id
-  r2_location   = "apac"
-  custom_domain = var.cloudflare_r2_custom_domain
+  r2_location   = "enam"
 }
 
 module "cloudflare_r2_token" {
