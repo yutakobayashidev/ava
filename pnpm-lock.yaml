@@ -356,7 +356,7 @@ importers:
         version: 1.24.3(zod@4.1.13)
       '@tailwindcss/vite':
         specifier: 4.1.17
-        version: 4.1.17(rolldown-vite@7.2.10(@types/node@25.0.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1))
+        version: 4.1.17(rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1))
       dotenv:
         specifier: 17.2.3
         version: 17.2.3
@@ -371,8 +371,8 @@ importers:
         version: 4.1.13
     devDependencies:
       '@types/node':
-        specifier: 25.0.0
-        version: 25.0.0
+        specifier: 24.10.1
+        version: 24.10.1
       fast-glob:
         specifier: 3.3.3
         version: 3.3.3
@@ -384,7 +384,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: npm:rolldown-vite@latest
-        version: rolldown-vite@7.2.10(@types/node@25.0.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
+        version: rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
       wrangler:
         specifier: 4.53.0
         version: 4.53.0
@@ -9311,7 +9311,7 @@ snapshots:
 
   '@slack/logger@4.0.0':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
 
   '@slack/types@2.19.0': {}
 
@@ -9319,7 +9319,7 @@ snapshots:
     dependencies:
       '@slack/logger': 4.0.0
       '@slack/types': 2.19.0
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       '@types/retry': 0.12.0
       axios: 1.13.2
       eventemitter3: 5.0.1
@@ -9428,12 +9428,12 @@ snapshots:
       postcss: 8.5.6
       tailwindcss: 4.1.17
 
-  '@tailwindcss/vite@4.1.17(rolldown-vite@7.2.10(@types/node@25.0.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1))':
+  '@tailwindcss/vite@4.1.17(rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1))':
     dependencies:
       '@tailwindcss/node': 4.1.17
       '@tailwindcss/oxide': 4.1.17
       tailwindcss: 4.1.17
-      vite: rolldown-vite@7.2.10(@types/node@25.0.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
+      vite: rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
@@ -9498,13 +9498,13 @@ snapshots:
 
   '@types/docker-modem@3.0.6':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       '@types/ssh2': 1.15.5
 
   '@types/dockerode@3.3.47':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       '@types/ssh2': 1.15.5
 
   '@types/estree-jsx@1.0.5':
@@ -9547,7 +9547,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
@@ -9563,11 +9563,11 @@ snapshots:
 
   '@types/ssh2-streams@0.1.13':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
 
   '@types/ssh2@0.5.52':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       '@types/ssh2-streams': 0.1.13
 
   '@types/ssh2@1.15.5':
@@ -9580,7 +9580,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
 
   '@typescript-eslint/eslint-plugin@8.48.0(@typescript-eslint/parser@8.48.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
@@ -12833,7 +12833,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -13142,7 +13142,7 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  rolldown-vite@7.2.10(@types/node@25.0.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1):
+  rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1):
     dependencies:
       '@oxc-project/runtime': 0.101.0
       fdir: 6.5.0(picomatch@4.0.3)
@@ -13152,7 +13152,7 @@ snapshots:
       rolldown: 1.0.0-beta.53
       tinyglobby: 0.2.15
     optionalDependencies:
-      '@types/node': 25.0.0
+      '@types/node': 24.10.1
       esbuild: 0.25.12
       fsevents: 2.3.3
       jiti: 2.6.1

@@ -108,7 +108,7 @@ function createTaskServer(): McpServer {
           total: tasks.length,
         },
         _meta: {
-          "openai/outputTemplate": "ui://widget/todo-list.html",
+          "openai/outputTemplate": "ui://widget/task-list.html",
           "openai/toolInvocation/invoking": "Rendering task list…",
           "openai/toolInvocation/invoked": "Task list ready",
           "openai/widgetAccessible": true,
