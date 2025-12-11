@@ -2,8 +2,8 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Hono } from "hono";
 import type { Task } from "../types.js";
+import { renderWidgetHtml } from "../widget-runtime/index.js";
 import { loadAssetMap } from "./assets.js";
-import { renderWidgetHtml } from "./widget.js";
 
 const isViteDev =
   typeof import.meta !== "undefined"
