@@ -1,5 +1,6 @@
 {
   "name": "apps-sdk",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build --mode client && vite build",
