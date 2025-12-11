@@ -38,3 +38,7 @@ variable "cloudflare_account_id" {
     error_message = "アカウント ID は 32 文字の 16 進数文字列である必要があります。"
   }
 }
+
+
+variable "gcp_project_id" {}
+variable "primary_region" {}
