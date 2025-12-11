@@ -6,7 +6,7 @@
     "dev": "pnpm db:up && pnpm db:migrate && next dev --experimental-https",
     "dev:http": "pnpm db:up && next dev",
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
-    "dev:slack": "tunnelto --subdomain ava-dev --port 3000",
+    "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
     "build": "fumadocs-mdx && next build",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
