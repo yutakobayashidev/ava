@@ -31,3 +31,18 @@ output "axiom_dataset_name" {
   description = "Axiom Dataset Name"
   value       = axiom_dataset.ava_otel_traces.name
 }
+
+output "artifact_registry_id" {
+  description = "The ID of the Artifact Registry repository"
+  value       = module.artifact-registry.repository_id
+}
+
+output "artifact_registry_name" {
+  description = "The name of the Artifact Registry repository"
+  value       = module.artifact-registry.repository_name
+}
+
+output "artifact_registry_uri" {
+  description = "The URI of the Artifact Registry repository for Docker push/pull"
+  value       = module.artifact-registry.registry_uri
+}

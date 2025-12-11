@@ -23,3 +23,6 @@ webhook_base_url = "https://yourdomain.com"
 
 # Cloudflare R2 のカスタムドメイン
 # cloudflare_r2_custom_domain = "example.com"
+
+# github_owner      =
+# github_repo_name  =

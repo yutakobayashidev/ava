@@ -119,6 +119,45 @@ Slack でリアルタイムにスレッド更新が行われます。
 
 ---
 
+## インフラ / Terraform
+
+### Terraform コマンドの実行
+
+**重要**: Terraform コマンドは必ず `infra/tf.sh` スクリプトを使用して実行すること。直接 `terraform` コマンドを実行しない。
+
+```bash
+# 良い例
+cd infra/enviroments/prod
+../../tf.sh init
+../../tf.sh plan
+../../tf.sh apply
+
+# 悪い例
+terraform init  # ❌ terraform コマンドが存在しない環境では動作しない
+```
+
+**理由**:
+
+- プロジェクトでは Docker 経由で Terraform を実行する
+- `tf.sh` スクリプトが適切なバージョンの Terraform を Docker コンテナで実行
+- バージョン管理は `.terraform-version` ファイルで行う
+
+**フォーマット**:
+
+```bash
+cd infra
+./tf.sh fmt -recursive
+```
+
+**ドキュメント生成**:
+
+```bash
+cd infra
+./terraform-docs.sh markdown modules/<module-name> > modules/<module-name>/README.md
+```
+
+---
+
 ## テストコーディング規約
 
 ### Result型のテストでの型縛り
