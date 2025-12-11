@@ -54,13 +54,13 @@ module "batch_jobs_service_account" {
 module "batch_jobs_deploy_trigger" {
   source = "../../modules/cloud-build-trigger"
 
-  gcp_project_id     = var.gcp_project_id
-  trigger_name       = "deploy-batch-jobs"
-  description        = "Batch Jobs を Cloud Run へdeployする"
-  github_owner       = var.github_owner
-  github_repo_name   = var.github_repo_name
-  branch_pattern     = "^main$"
-  included_files     = ["apps/batch-jobs/**"]
+  gcp_project_id       = var.gcp_project_id
+  trigger_name         = "deploy-batch-jobs"
+  description          = "Batch Jobs を Cloud Run へdeployする"
+  github_owner         = var.github_owner
+  github_repo_name     = var.github_repo_name
+  branch_pattern       = "^main$"
+  included_files       = ["apps/batch-jobs/**"]
   cloudbuild_file_path = "apps/batch-jobs/cloudbuild.yaml"
 
   substitutions = {
