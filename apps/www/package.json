@@ -8,7 +8,7 @@
     "dev:mcp": "pnpm dev & pnpm dev:tunnel",
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
     "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
-    "build": "pnpm --filter apps-sdk build && fumadocs-mdx && next build",
+    "build": "fumadocs-mdx && next build",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
@@ -112,6 +112,7 @@
     "zod": "4.1.13"
   },
   "devDependencies": {
+    "apps-sdk": "workspace:*",
     "@axe-core/playwright": "4.11.0",
     "@next/bundle-analyzer": "16.0.7",
     "@next/env": "16.0.7",

@@ -303,6 +303,9 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.5.0
         version: 1.5.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)(vitest@4.0.14(@opentelemetry/api@1.9.0)(@types/node@24.10.1)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1))
+      apps-sdk:
+        specifier: workspace:*
+        version: link:../../labs/apps-sdk
       dotenv-flow-cli:
         specifier: 1.1.1
         version: 1.1.1
