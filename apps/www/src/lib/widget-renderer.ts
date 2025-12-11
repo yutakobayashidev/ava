@@ -1,5 +1,5 @@
-import { renderWidgetHtml } from "@apps-sdk/widget-runtime";
 import type { WidgetAsset } from "@apps-sdk/widget-runtime";
+import { renderWidgetHtml } from "@apps-sdk/widget-runtime";
 import fs from "fs/promises";
 import path from "path";
 
@@ -13,10 +13,9 @@ const devWidgetOrigin =
  * Load asset manifest from built widget
  */
 async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
-  const manifestPath = path.resolve(
-    process.cwd(),
-    "../../labs/apps-sdk/dist/manifest.json",
-  );
+  const assetDir = path.join(__dirname, "../../../labs/apps-sdk/dist");
+  const manifestPath = path.join(assetDir, "manifest.json");
+
   const manifestContent = await fs.readFile(manifestPath, "utf-8");
   const manifest = JSON.parse(manifestContent);
 

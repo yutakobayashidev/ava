@@ -20,7 +20,7 @@ let nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../../"),
   // labs/apps-sdk/dist をビルドに含める
   outputFileTracingIncludes: {
-    "/mcp": ["../../labs/apps-sdk/dist/**/*"],
+    "*": ["../../labs/apps-sdk/dist/**/*"],
   },
   compiler: {
     removeConsole:
