@@ -14,7 +14,7 @@ steps:
     dir: "."
 
   - id: push-batch-jobs
-    name: "docker"
+    name: "gcr.io/cloud-builders/docker"
     args:
       - push
       - --all-tags
