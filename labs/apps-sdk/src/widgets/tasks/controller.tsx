@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "hono/jsx";
 
 import type { DisplayMode, SafeArea, Task } from "../../types";
-import { TaskListView } from "./components/TodoListView";
+import { TaskListView } from "./components/TaskListView";
 import {
   createSafeArea,
   extractTasksFromPayload,

@@ -38,7 +38,7 @@ const getDummyTasks = (): Task[] => [
   },
 ];
 
-async function renderWidget(widgetName: string = "todo"): Promise<string> {
+async function renderWidget(widgetName: string = "tasks"): Promise<string> {
   const assets = await loadAssetMap();
   return renderWidgetHtml(assets, widgetName);
 }
@@ -52,7 +52,7 @@ function createTaskServer(): McpServer {
   // Register the task list widget resource
   server.registerResource(
     "task-list-widget",
-    "ui://widget/todo-list.html",
+    "ui://widget/task-list.html",
     {
       title: "Ava Task Manager Widget",
       description: "Interactive task list powered by hono/jsx",
@@ -85,7 +85,7 @@ function createTaskServer(): McpServer {
       description: "Display the task list widget",
       inputSchema: {},
       _meta: {
-        "openai/outputTemplate": "ui://widget/todo-list.html",
+        "openai/outputTemplate": "ui://widget/task-list.html",
         "openai/toolInvocation/invoking": "Rendering task list…",
         "openai/toolInvocation/invoked": "Task list ready",
         "openai/widgetAccessible": true,

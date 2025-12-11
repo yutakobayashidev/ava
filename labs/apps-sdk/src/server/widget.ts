@@ -4,7 +4,7 @@ import type { AssetMap } from "./assets.js";
  * Renders the HTML shell for a widget with inlined JS and CSS
  * Always inlines the bundled assets
  * @param assets - The asset map containing all widget assets
- * @param widgetName - The name of the widget to render (e.g., "todo")
+ * @param widgetName - The name of the widget to render (e.g., "tasks")
  */
 export function renderWidgetHtml(assets: AssetMap, widgetName: string): string {
   const widgetAsset = assets[widgetName];
