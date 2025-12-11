@@ -57,8 +57,6 @@ export default defineConfig({
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name][extname]",
-        format: "es", // Use ES modules instead of IIFE for multi-entry builds
-        manualChunks: undefined,
       },
     },
   },
