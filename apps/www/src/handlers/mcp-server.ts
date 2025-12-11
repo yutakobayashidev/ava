@@ -49,7 +49,7 @@ export function createMcpServer(ctx: Context) {
         {
           uri: uri.href,
           mimeType: "text/html+skybridge",
-          text: await renderWidget("tasks"),
+          text: await renderWidget("task-list"),
           _meta: {
             "openai/widgetPrefersBorder": true,
             "openai/widgetDomain": "https://chatgpt.com",

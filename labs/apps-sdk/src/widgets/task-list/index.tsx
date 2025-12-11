@@ -27,13 +27,13 @@ function getInitialData(): { tasks: Task[]; total: number } {
   return { tasks: [], total: 0 };
 }
 
-const root = document.getElementById("tasks-root");
+const root = document.getElementById("task-list-root");
 
 if (root) {
   const { tasks, total } = getInitialData();
   render(<TaskApp initialTasks={tasks} initialTotal={total} />, root);
 } else {
-  console.warn("Tasks root element was not found.");
+  console.warn("Task list root element was not found.");
 }
 
 export {};
