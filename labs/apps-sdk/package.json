@@ -3,29 +3,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode client",
-    "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:5173/mcp",
-    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 5173",
-    "build:client": "vite build --mode client"
+    "build": "vite build",
+    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 5173"
   },
   "dependencies": {
-    "@hono/mcp": "0.2.2",
-    "@hono/node-server": "^1.19.6",
-    "@modelcontextprotocol/sdk": "1.24.3",
     "@tailwindcss/vite": "4.1.17",
-    "dotenv": "17.2.3",
     "hono": "4.10.8",
-    "tailwindcss": "^4.1.17",
-    "zod": "4.1.13"
+    "tailwindcss": "^4.1.17"
   },
   "devDependencies": {
     "@apps-sdk/vite-plugin-widget": "workspace:*",
     "@apps-sdk/widget-runtime": "workspace:*",
-    "@hono/vite-dev-server": "0.23.0",
     "@types/node": "24.10.1",
     "typescript": "5.9.3",
     "vite": "npm:rolldown-vite@latest",
-    "vite-plugin-inspect": "11.3.3",
-    "wrangler": "4.53.0"
+    "vite-plugin-inspect": "11.3.3"
   }
 }

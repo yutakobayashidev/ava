@@ -1,50 +1,51 @@
 # Apps SDK
 
-ChatGPT Widget 開発用の実験的なSDKプロジェクト。Hono + MCP + Vite で構築されたウィジェットフレームワーク。
+ChatGPT Widget 開発用の実験的なSDKプロジェクト。Hono JSX + Vite でウィジェットをビルドし、apps/www の MCP サーバーで配信します。
 
 ## 特徴
 
-- **MCP Server統合**: Model Context Protocol を使用してChatGPTにウィジェットを配信
 - **Hono JSX**: Reactを使わず軽量なHono JSXでウィジェットを構築
 - **HMR開発環境**: Vite + tunnelto でChatGPT内のウィジェットをリアルタイム更新
 - **マルチウィジェット対応**: `src/widgets/*` にウィジェットを追加するだけで自動認識
 - **Tailwind CSS 4.x**: 最新のTailwind CSSをサポート
+- **MCP統合**: ビルドされたウィジェットは apps/www の MCP サーバーからリソースとして配信
 
 ## アーキテクチャ解説
 
 ### 全体の仕組み
 
-このプロジェクトは、**ChatGPT内でインタラクティブなウィジェットをHMRで開発できる**という一見不可能に見えることを実現しています。以下がその仕組みです。
+このプロジェクトは、**ChatGPT内でインタラクティブなウィジェットをHMRで開発できる**という一見不可能に見えることを実現しています。
 
-#### 1. デュアルビルドシステム
+#### 1. クライアント専用ビルドシステム
 
-Viteの設定で2つのモードを切り替え可能:
+labs/apps-sdk は純粋なクライアントサイドのビルド環境です:
 
 ```typescript
 // vite.config.ts
-export default defineConfig(({ mode }) => {
-  const isClientMode = mode === "client";
-
-  if (isClientMode) {
-    // ウィジェットJSのみをIIFE形式でビルド (本番用)
-    return { plugins: [...], build: { format: "iife" } };
-  }
-
-  // 開発モード: Honoサーバー + Vite dev server が共存
-  return { plugins: [devServer(), multiWidgetDevEndpoints()] };
+export default defineConfig({
+  // ウィジェットJSをIIFE形式でビルド
+  plugins: [multiWidgetDevEndpoints(), tailwindcss()],
+  build: { format: "iife" },
 });
 ```
 
 **開発時の動作:**
 
 - Vite dev server (port 5173) が起動
-- `/mcp` エンドポイント → Honoサーバーが処理 (MCP protocol)
-- その他のリクエスト (`.js`, `.css`, `.html`) → Vite dev serverが処理 (HMR対応)
+- ウィジェットJS/CSS/HTMLを配信
+- HMR対応で即座に更新を反映
 
-#### 2. MCP経由でのウィジェット配信
+**本番時の動作:**
+
+- `pnpm build` でウィジェットをビルド
+- apps/www の MCP サーバーがビルド成果物を読み込んでリソースとして配信
+
+#### 2. MCP経由でのウィジェット配信 (apps/www)
+
+MCP サーバーは apps/www に統合されています:
 
 ```typescript
-// src/server/app.ts
+// apps/www/src/handlers/mcp-server.ts
 server.registerResource(
   "task-list-widget",
   "ui://widget/task-list.html",
@@ -52,7 +53,7 @@ server.registerResource(
     contents: [
       {
         mimeType: "text/html+skybridge",
-        text: await renderWidget("tasks"),
+        text: await renderWidget("tasks"), // labs/apps-sdk からビルドされたウィジェット
         _meta: {
           "openai/widgetCSP": {
             connect_domains: ["https://chatgpt.com", devWidgetOrigin],
@@ -65,11 +66,13 @@ server.registerResource(
 );
 ```
 
-**ポイント:**
+**開発時:**
 
-- `ui://widget/task-list.html` という仮想URIでウィジェットを登録
-- ChatGPTがMCP経由でこのHTMLを取得
-- HTMLには `<script src="/tasks.js">` が含まれる (相対パス)
+- labs/apps-sdk の dev server から `<script src="https://apps-sdk-dev-3.tunnelto.dev/tasks.js">` を配信
+
+**本番時:**
+
+- labs/apps-sdk/dist からビルド済みのJS/CSSを読み込んでインライン化
 
 #### 3. tunnelto によるローカル公開
 

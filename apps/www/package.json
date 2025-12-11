@@ -29,6 +29,7 @@
   "dependencies": {
     "@ai-sdk/openai": "2.0.74",
     "@ai-sdk/provider": "2.0.0",
+    "@apps-sdk/widget-runtime": "workspace:*",
     "@ava/database": "workspace:*",
     "@ava/integrations": "workspace:*",
     "@hono/mcp": "0.2.0",

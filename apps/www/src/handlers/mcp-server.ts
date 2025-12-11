@@ -1,3 +1,4 @@
+import { renderWidget } from "@/lib/widget-renderer";
 import { Context } from "@/types";
 import {
   constructCancelTaskWorkflow,
@@ -25,11 +26,42 @@ import {
 } from "@/usecases/taskSessions/controller";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
+const devWidgetOrigin =
+  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+
 export function createMcpServer(ctx: Context) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
   });
+
+  // Register task list widget resource
+  server.registerResource(
+    "task-list-widget",
+    "ui://widget/task-list.html",
+    {
+      title: "Ava Task Manager Widget",
+      description: "Interactive task list powered by hono/jsx",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("tasks"),
+          _meta: {
+            "openai/widgetPrefersBorder": true,
+            "openai/widgetDomain": "https://chatgpt.com",
+            "openai/widgetCSP": {
+              connect_domains: ["https://chatgpt.com", devWidgetOrigin],
+              resource_domains: ["https://*.oaistatic.com", devWidgetOrigin],
+            },
+          },
+        },
+      ],
+    }),
+  );
 
   server.registerTool(
     "startTask",

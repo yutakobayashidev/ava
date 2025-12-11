@@ -1,5 +1,3 @@
-import devServer, { defaultOptions } from "@hono/vite-dev-server";
-import nodeAdapter from "@hono/vite-dev-server/node";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import Inspect from "vite-plugin-inspect";
@@ -19,78 +17,48 @@ const devWidgetHost = (() => {
   }
 })();
 
-export default defineConfig(({ mode }) => {
-  const isClientMode = mode === "client";
-
-  const shared = {
-    esbuild: {
-      jsxImportSource: "hono/jsx/dom",
-    },
-    server: {
-      origin: devWidgetBase,
-      allowedHosts: [
-        ".oaiusercontent.com",
-        devWidgetHost && devWidgetHost !== "localhost" ? devWidgetHost : null,
-      ].filter(Boolean) as string[],
-      cors: {
-        origin: [
-          "https://chatgpt.com",
-          "https://*.oaiusercontent.com",
-          devWidgetBase,
-        ],
-        methods: ["GET", "OPTIONS"],
-      },
-      port: 5173,
-      strictPort: true,
-    },
-  };
-
-  if (isClientMode) {
-    return {
-      ...shared,
-      plugins: [
-        Inspect(),
-        multiWidgetDevEndpoints({
-          entries: widgetEntries,
-        }),
-        tailwindcss(),
+export default defineConfig({
+  esbuild: {
+    jsxImportSource: "hono/jsx/dom",
+  },
+  server: {
+    origin: devWidgetBase,
+    allowedHosts: [
+      ".oaiusercontent.com",
+      devWidgetHost && devWidgetHost !== "localhost" ? devWidgetHost : null,
+    ].filter(Boolean) as string[],
+    cors: {
+      origin: [
+        "https://chatgpt.com",
+        "https://*.oaiusercontent.com",
+        devWidgetBase,
       ],
-      build: {
-        outDir: "dist",
-        assetsDir: "assets",
-        emptyOutDir: true,
-        manifest: "manifest.json",
-        sourcemap: true,
-        rollupOptions: {
-          input: widgetEntries,
-          output: {
-            entryFileNames: "assets/[name].js",
-            chunkFileNames: "assets/[name]-[hash].js",
-            assetFileNames: "assets/[name][extname]",
-            format: "iife",
-          },
-        },
+      methods: ["GET", "OPTIONS"],
+    },
+    port: 5173,
+    strictPort: true,
+  },
+  plugins: [
+    Inspect(),
+    multiWidgetDevEndpoints({
+      entries: widgetEntries,
+    }),
+    tailwindcss(),
+  ],
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    emptyOutDir: true,
+    manifest: "manifest.json",
+    sourcemap: true,
+    rollupOptions: {
+      input: widgetEntries,
+      output: {
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name][extname]",
+        format: "iife",
       },
-    };
-  }
-
-  return {
-    ...shared,
-    plugins: [
-      Inspect(),
-      devServer({
-        entry: "src/server/app.ts",
-        adapter: nodeAdapter,
-        exclude: [
-          // In dev, only /mcp should hit Hono; everything else goes to Vite
-          /^(?!\/mcp$).*/,
-          ...defaultOptions.exclude,
-        ],
-      }),
-      multiWidgetDevEndpoints({
-        entries: widgetEntries,
-      }),
-      tailwindcss(),
-    ],
-  };
+    },
+  },
 });
