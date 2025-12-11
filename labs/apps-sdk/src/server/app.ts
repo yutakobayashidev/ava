@@ -2,7 +2,7 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Hono } from "hono";
 import type { Task } from "../types.js";
-import { loadAssetMap, type WidgetAsset } from "./assets.js";
+import { loadAssetMap } from "./assets.js";
 import { renderWidgetHtml } from "./widget.js";
 
 const isViteDev =
@@ -14,10 +14,6 @@ const isDev = isViteDev ?? process.env.NODE_ENV !== "production";
 // Base URL for dev widget assets (set DEV_WIDGET_BASE_URL to your tunnel origin)
 const devWidgetOrigin =
   process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
-
-const getDevWidgetAsset = (widgetName: string): WidgetAsset => ({
-  scriptSrc: `${devWidgetOrigin.replace(/\/$/, "")}/${widgetName}.js`,
-});
 
 // ダミーのタスクデータ
 const getDummyTasks = (): Task[] => [
@@ -51,9 +47,11 @@ const getDummyTasks = (): Task[] => [
 ];
 
 async function renderWidget(widgetName: string): Promise<string> {
-  // Prefer explicit dev widget origin when provided, otherwise use dev mode heuristic
+  // In dev mode, use relative path (Vite dev server handles it)
   if (devWidgetOrigin || isDev) {
-    return renderWidgetHtml(widgetName, getDevWidgetAsset(widgetName));
+    return renderWidgetHtml(widgetName, {
+      scriptSrc: `/${widgetName}.js`,
+    });
   }
 
   const assets = await loadAssetMap();

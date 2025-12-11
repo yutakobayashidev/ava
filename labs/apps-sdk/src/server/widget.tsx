@@ -1,7 +1,7 @@
 import { raw } from "hono/html";
 import { renderToString } from "hono/jsx/dom/server";
 
-import type { AssetMap, WidgetAsset } from "./assets.js";
+import type { WidgetAsset } from "./assets.js";
 
 const WidgetShell = ({
   widgetName,
@@ -53,18 +53,4 @@ export function renderWidgetHtml(
       scriptSrc={widgetAsset.scriptSrc}
     />,
   );
-}
-
-export function renderWidgetHtmlFromMap(
-  assets: AssetMap,
-  widgetName: string,
-): string {
-  const widgetAsset = assets[widgetName];
-  if (!widgetAsset) {
-    throw new Error(
-      `Widget "${widgetName}" assets not found. Available: ${Object.keys(assets).join(", ")}`,
-    );
-  }
-
-  return renderWidgetHtml(widgetName, widgetAsset);
 }

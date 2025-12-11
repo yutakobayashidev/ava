@@ -13,17 +13,6 @@ export function buildWidgetEntries() {
   );
 }
 
-/**
- * Convert absolute path to Vite server root relative path
- */
-const toServerRoot = (abs: string) => {
-  const rel = path.relative(process.cwd(), abs).replace(/\\/g, "/");
-  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
-    return "/@fs/" + abs.replace(/\\/g, "/");
-  }
-  return "./" + rel;
-};
-
 export interface MultiWidgetOptions {
   entries: Record<string, string>;
 }
@@ -112,23 +101,6 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
             }
           }
 
-          // Widget JS served via Vite transform (absolute URL friendly)
-          if (url.endsWith(".js")) {
-            const m = url.match(/^\/?([\w-]+)\.js$/);
-            if (m && entries[m[1]]) {
-              const spec = toServerRoot(entries[m[1]]);
-              const transformed = await server.transformRequest(spec);
-              if (transformed?.code) {
-                res.setHeader(
-                  "Content-Type",
-                  "application/javascript; charset=utf-8",
-                );
-                res.end(transformed.code);
-                return;
-              }
-            }
-          }
-
           next();
         };
 
@@ -159,21 +131,14 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
     load(id: string) {
       if (!id.startsWith(V_PREFIX)) return null;
 
-      const rest = id.slice(V_PREFIX.length); // "entry:foo" or "style:foo.css"
-      const [kind, nameWithExt] = rest.split(":", 2);
-      const name = nameWithExt.replace(/\.css$/, "");
+      const rest = id.slice(V_PREFIX.length); // "entry:foo"
+      const [kind, name] = rest.split(":", 2);
       const entry = entries[name];
       if (!entry) return null;
 
       if (kind === "entry") {
-        // Generate virtual JS entry
-        const spec = toServerRoot(entry);
-        const lines: string[] = [];
-
-        // Import the widget entry
-        lines.push(`import ${JSON.stringify(spec)};`);
-
-        return lines.join("\n");
+        // Generate virtual JS entry - just import the entry point directly
+        return `import ${JSON.stringify(entry)};`;
       }
 
       return null;

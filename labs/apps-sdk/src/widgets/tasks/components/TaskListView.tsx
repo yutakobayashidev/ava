@@ -69,9 +69,7 @@ export const TaskListView = ({
     >
       <div class="max-w-2xl mx-auto">
         <header class="mb-6">
-          <h1 class="text-3xl font-bold text-slate-900 mb-2">
-            Ava Task Manager
-          </h1>
+          <h1 class="text-3xl font-bold text-slate-900 mb-2">Ava Task</h1>
           <p class="text-sm text-slate-600">
             MCPサーバーからタスク一覧を表示しています
           </p>
