@@ -11,12 +11,14 @@ ENV CI=true
 # Copy lock file and workspace config from root
 COPY pnpm-lock.yaml pnpm-workspace.yaml /app/
 COPY apps/batch-jobs/package.json /app/apps/batch-jobs/
+COPY packages/database/package.json /app/packages/database/
 
 WORKDIR /app
 RUN pnpm fetch --filter @ava/batch-jobs
 
 # Copy source code
 COPY apps/batch-jobs /app/apps/batch-jobs
+COPY packages/database /app/packages/database
 
 WORKDIR /app/apps/batch-jobs
 RUN pnpm install --offline --frozen-lockfile
@@ -27,6 +29,7 @@ FROM base
 COPY --from=build /app/apps/batch-jobs/node_modules /app/node_modules
 COPY --from=build /app/apps/batch-jobs/dist /app/dist
 COPY --from=build /app/apps/batch-jobs/package.json /app/package.json
+COPY --from=build /app/packages/database /app/packages/database
 
 WORKDIR /app
 CMD ["node", "dist/index.js"]
