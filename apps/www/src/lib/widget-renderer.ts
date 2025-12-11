@@ -13,9 +13,11 @@ const devWidgetOrigin =
  * Load asset manifest from built widget
  */
 async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
-  const assetDir = path.join(__dirname, "../../../labs/apps-sdk/dist");
-  const manifestPath = path.join(assetDir, "manifest.json");
+  // monorepo 内の dist フォルダを静的パスで指定
+  const distRoot = path.join(__dirname, "../../../labs/apps-sdk/dist");
+  const manifestPath = path.join(distRoot, "manifest.json");
 
+  // manifest.json がトレースされる
   const manifestContent = await fs.readFile(manifestPath, "utf-8");
   const manifest = JSON.parse(manifestContent);
 
@@ -26,18 +28,14 @@ async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
     { file: string; css?: string[] },
   ][]) {
     const widgetName = key.replace(/\.tsx?$/, "");
-    const assetPath = path.resolve(
-      process.cwd(),
-      `../../labs/apps-sdk/dist/${value.file}`,
-    );
-    const js = await fs.readFile(assetPath, "utf-8");
+
+    // distRoot を静的パスとして結合する
+    const jsPath = path.join(distRoot, value.file);
+    const js = await fs.readFile(jsPath, "utf-8");
 
     let css: string | undefined;
     if (value.css && value.css.length > 0) {
-      const cssPath = path.resolve(
-        process.cwd(),
-        `../../labs/apps-sdk/dist/${value.css[0]}`,
-      );
+      const cssPath = path.join(distRoot, value.css[0]);
       css = await fs.readFile(cssPath, "utf-8");
     }
 
