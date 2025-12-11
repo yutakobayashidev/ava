@@ -26,9 +26,10 @@ async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
 
   for (const [key, value] of Object.entries(manifest) as [
     string,
-    { file: string; css?: string[] },
+    { file: string; css?: string[]; name?: string },
   ][]) {
-    const widgetName = key.replace(/\.tsx?$/, "");
+    // Use the name field from manifest if available, otherwise extract from key
+    const widgetName = value.name || key.replace(/\.tsx?$/, "");
 
     // distRoot を静的パスとして結合する
     const jsPath = path.join(distRoot, value.file);
