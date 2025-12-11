@@ -19,11 +19,11 @@ resource "axiom_dataset" "ava_otel_traces" {
 }
 
 module "storage" {
-  source        = "../../modules/cloudflare-r2"
-  project_name  = var.project_name
-  environment   = "prod"
-  account_id    = var.cloudflare_account_id
-  r2_location   = "enam"
+  source       = "../../modules/cloudflare-r2"
+  project_name = var.project_name
+  environment  = "prod"
+  account_id   = var.cloudflare_account_id
+  r2_location  = "enam"
 }
 
 module "cloudflare_r2_token" {
