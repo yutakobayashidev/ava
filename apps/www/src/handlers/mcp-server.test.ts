@@ -89,13 +89,14 @@ describe("createMcpServer", async () => {
       expect(result.content[0].type).toBe("text");
 
       const textContent = result.content[0] as TextContent;
-      const responseData = JSON.parse(textContent.text);
-      expect(responseData).toMatchObject({
+      expect(textContent.text).toBe("タスクの追跡を開始しました。");
+
+      expect(result.structuredContent).toBeDefined();
+      expect(result.structuredContent).toMatchObject({
         status: "in_progress",
-        message: "タスクの追跡を開始しました。",
       });
-      expect(responseData.taskSessionId).toBeDefined();
-      expect(responseData.issuedAt).toBeDefined();
+      expect(result.structuredContent.taskSessionId).toBeDefined();
+      expect(result.structuredContent.issuedAt).toBeDefined();
     });
 
     it("手動タスクを開始できる", async () => {
@@ -111,12 +112,11 @@ describe("createMcpServer", async () => {
       })) as CallToolResult;
 
       const textContent = result.content[0] as TextContent;
-      const responseData = JSON.parse(textContent.text);
-      expect(responseData).toMatchObject({
+      expect(textContent.text).toBe("タスクの追跡を開始しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "in_progress",
-        message: "タスクの追跡を開始しました。",
       });
-      expect(responseData.taskSessionId).toBeDefined();
+      expect(result.structuredContent.taskSessionId).toBeDefined();
     });
   });
 
@@ -130,9 +130,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクを更新
       const result = (await client.callTool({
@@ -143,10 +141,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("進捗を保存しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "in_progress",
-        message: "進捗を保存しました。",
       });
     });
 
@@ -171,9 +169,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクを完了
       await client.callTool({
@@ -209,9 +205,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       const result = (await client.callTool({
         name: "reportBlocked",
@@ -221,10 +215,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("ブロッキング情報を登録しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "blocked",
-        message: "ブロッキング情報を登録しました。",
       });
     });
 
@@ -251,9 +245,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       const result = (await client.callTool({
         name: "pauseTask",
@@ -263,10 +255,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクを一時休止しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "paused",
-        message: "タスクを一時休止しました。",
       });
     });
 
@@ -293,9 +285,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // 一時停止
       await client.callTool({
@@ -315,10 +305,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスクを再開しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "in_progress",
-        message: "タスクを再開しました。",
       });
     });
 
@@ -343,9 +333,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクを完了
       await client.callTool({
@@ -382,9 +370,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       const result = (await client.callTool({
         name: "completeTask",
@@ -394,10 +380,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("完了報告を保存しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "completed",
-        message: "完了報告を保存しました。",
       });
     });
 
@@ -424,9 +410,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクをブロック状態にする
       const blockResult = (await client.callTool({
@@ -436,9 +420,7 @@ describe("createMcpServer", async () => {
           reason: "依存関係の問題",
         },
       })) as CallToolResult;
-      const { blockReportId } = JSON.parse(
-        (blockResult.content[0] as TextContent).text,
-      );
+      const { blockReportId } = blockResult.structuredContent;
 
       // ブロッキングを解決
       const result = (await client.callTool({
@@ -449,10 +431,10 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(responseData).toMatchObject({
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("ブロッキングの解決を報告しました。");
+      expect(result.structuredContent).toMatchObject({
         status: "in_progress",
-        message: "ブロッキングの解決を報告しました。",
       });
     });
 
@@ -477,9 +459,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // ブロック状態にする
       await client.callTool({
@@ -511,9 +491,7 @@ describe("createMcpServer", async () => {
           initialSummary: "初期サマリ",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクをブロック状態にする
       const blockResult = (await client.callTool({
@@ -523,9 +501,7 @@ describe("createMcpServer", async () => {
           reason: "テスト",
         },
       })) as CallToolResult;
-      const { blockReportId } = JSON.parse(
-        (blockResult.content[0] as TextContent).text,
-      );
+      const { blockReportId } = blockResult.structuredContent;
 
       // タスクを完了（blockedからcompletedへの遷移はできないので、まずin_progressに戻す）
       // ただし、この状態遷移は不正なので、ブロック解決してから完了する
@@ -583,11 +559,12 @@ describe("createMcpServer", async () => {
         arguments: {},
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(Array.isArray(responseData.tasks)).toBe(true);
-      expect(responseData.tasks.length).toBeGreaterThanOrEqual(2);
-      expect(responseData.tasks[0]).toHaveProperty("taskSessionId");
-      expect(responseData.tasks[0]).toHaveProperty("status");
+      const textContent = result.content[0] as TextContent;
+      expect(textContent.text).toBe("タスク一覧を表示しました。");
+      expect(Array.isArray(result.structuredContent.tasks)).toBe(true);
+      expect(result.structuredContent.tasks.length).toBeGreaterThanOrEqual(2);
+      expect(result.structuredContent.tasks[0]).toHaveProperty("taskSessionId");
+      expect(result.structuredContent.tasks[0]).toHaveProperty("status");
     });
 
     it("ステータスでフィルタリングできる", async () => {
@@ -598,9 +575,7 @@ describe("createMcpServer", async () => {
           initialSummary: "タスク",
         },
       })) as CallToolResult;
-      const { taskSessionId } = JSON.parse(
-        (startResult.content[0] as TextContent).text,
-      );
+      const { taskSessionId } = startResult.structuredContent;
 
       // タスクを完了
       await client.callTool({
@@ -619,9 +594,8 @@ describe("createMcpServer", async () => {
         },
       })) as CallToolResult;
 
-      const responseData = JSON.parse((result.content[0] as TextContent).text);
-      expect(Array.isArray(responseData.tasks)).toBe(true);
-      responseData.tasks.forEach((task: { status: string }) => {
+      expect(Array.isArray(result.structuredContent.tasks)).toBe(true);
+      result.structuredContent.tasks.forEach((task: { status: string }) => {
         expect(task.status).toBe("completed");
       });
     });
