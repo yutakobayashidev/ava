@@ -14,7 +14,7 @@ export function StartTaskApp() {
     initialOpenAI?.displayMode ?? "inline",
   );
   const [safeArea, setSafeArea] = useState<SafeArea>(() =>
-    createSafeArea(initialOpenAI?.safeArea),
+    createSafeArea(initialOpenAI?.safeArea?.insets),
   );
   const [status, setStatus] = useState("");
 
@@ -32,7 +32,7 @@ export function StartTaskApp() {
 
   // Sync safeArea from globals
   if (isSafeArea(safeAreaFromGlobals)) {
-    setSafeArea(createSafeArea(safeAreaFromGlobals));
+    setSafeArea(createSafeArea(safeAreaFromGlobals.insets));
   } else if (safeAreaFromGlobals === null) {
     setSafeArea(createSafeArea(undefined));
   }

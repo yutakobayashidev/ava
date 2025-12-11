@@ -18,7 +18,7 @@ export function ReportBlockedApp() {
     initialOpenAI?.displayMode ?? "inline",
   );
   const [safeArea, setSafeArea] = useState<SafeArea>(() =>
-    createSafeArea(initialOpenAI?.safeArea),
+    createSafeArea(initialOpenAI?.safeArea?.insets),
   );
   const [status, setStatus] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -39,7 +39,7 @@ export function ReportBlockedApp() {
 
   useEffect(() => {
     if (isSafeArea(safeAreaFromGlobals)) {
-      setSafeArea(createSafeArea(safeAreaFromGlobals));
+      setSafeArea(createSafeArea(safeAreaFromGlobals.insets));
     } else if (safeAreaFromGlobals === null) {
       setSafeArea(createSafeArea(undefined));
     }
