@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm db:up && pnpm db:migrate && next dev --experimental-https",
     "dev:http": "pnpm db:up && next dev",
+    "dev:mcp": "pnpm dev & pnpm dev:tunnel",
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
     "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
     "build": "fumadocs-mdx && next build",

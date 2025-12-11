@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:mcp": "pnpm dev & pnpm dev:tunnel",
     "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 5173"
   },
   "dependencies": {

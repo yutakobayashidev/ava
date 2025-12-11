@@ -9,6 +9,14 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "dev:mcp": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:tunnel": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
