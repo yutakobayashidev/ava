@@ -1,13 +1,11 @@
 {
   "name": "apps-sdk",
   "scripts": {
-    "preview": "vite preview",
-    "dev:client": "vite",
-    "dev:server": "tsx watch src/server.ts",
-    "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
-    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 3000",
-    "build:client": "vite build",
-    "start": "NODE_ENV=production tsx src/server.ts"
+    "dev": "vite",
+    "build": "vite build --mode client && vite build",
+    "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:5173/mcp",
+    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 5173",
+    "build:client": "vite build --mode client"
   },
   "dependencies": {
     "@hono/mcp": "0.2.2",
@@ -20,9 +18,9 @@
     "zod": "4.1.13"
   },
   "devDependencies": {
+    "@hono/vite-dev-server": "0.23.0",
     "@types/node": "24.10.1",
     "fast-glob": "3.3.3",
-    "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vite": "npm:rolldown-vite@latest",
     "wrangler": "4.53.0"

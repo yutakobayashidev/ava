@@ -1,7 +1,6 @@
-import type { Plugin } from "vite";
 import fg from "fast-glob";
-import fs from "node:fs";
 import path from "node:path";
+import type { Plugin } from "vite";
 
 /**
  * Build input entries from widget directories
@@ -95,6 +94,20 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
               const html = renderWidgetHtml(m[1]);
               res.setHeader("Content-Type", "text/html; charset=utf-8");
               res.end(html);
+              return;
+            }
+          }
+
+          // Widget JS entry stubs for direct access (dev only)
+          if (url.endsWith(".js")) {
+            const m = url.match(/^\/?([\w-]+)\.js$/);
+            if (m && entries[m[1]]) {
+              const spec = toServerRoot(entries[m[1]]);
+              res.setHeader(
+                "Content-Type",
+                "application/javascript; charset=utf-8",
+              );
+              res.end(`import ${JSON.stringify(spec)};`);
               return;
             }
           }

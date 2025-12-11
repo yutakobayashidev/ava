@@ -1,17 +1,23 @@
 import { raw } from "hono/html";
 import { renderToString } from "hono/jsx/dom/server";
 
-import type { AssetMap } from "./assets.js";
+import type { AssetMap, WidgetAsset } from "./assets.js";
 
 const WidgetShell = ({
   widgetName,
   css,
-  js,
+  inlineJs,
+  scriptSrc,
 }: {
   widgetName: string;
   css?: string;
-  js: string;
+  inlineJs?: string;
+  scriptSrc?: string;
 }) => {
+  if (!inlineJs && !scriptSrc) {
+    throw new Error(`No script provided for widget "${widgetName}"`);
+  }
+
   const title = widgetName.charAt(0).toUpperCase() + widgetName.slice(1);
   return (
     <html lang="ja">
@@ -23,19 +29,36 @@ const WidgetShell = ({
       </head>
       <body>
         <div id={`${widgetName}-root`}></div>
-        <script>{raw(js)}</script>
+        {inlineJs ? <script>{raw(inlineJs)}</script> : null}
+        {scriptSrc ? <script type="module" src={scriptSrc}></script> : null}
       </body>
     </html>
   );
 };
 
-/**
- * Renders the HTML shell for a widget with inlined JS and CSS
- * Always inlines the bundled assets
- * @param assets - The asset map containing all widget assets
- * @param widgetName - The name of the widget to render (e.g., "tasks")
- */
-export function renderWidgetHtml(assets: AssetMap, widgetName: string): string {
+// Renders the HTML shell for a widget using either inline JS (prod) or a dev server script
+export function renderWidgetHtml(
+  widgetName: string,
+  widgetAsset: WidgetAsset,
+): string {
+  if (!widgetAsset) {
+    throw new Error(`Widget "${widgetName}" assets not found.`);
+  }
+
+  return renderToString(
+    <WidgetShell
+      widgetName={widgetName}
+      css={widgetAsset.css}
+      inlineJs={widgetAsset.js}
+      scriptSrc={widgetAsset.scriptSrc}
+    />,
+  );
+}
+
+export function renderWidgetHtmlFromMap(
+  assets: AssetMap,
+  widgetName: string,
+): string {
   const widgetAsset = assets[widgetName];
   if (!widgetAsset) {
     throw new Error(
@@ -43,11 +66,5 @@ export function renderWidgetHtml(assets: AssetMap, widgetName: string): string {
     );
   }
 
-  return renderToString(
-    <WidgetShell
-      widgetName={widgetName}
-      css={widgetAsset.css}
-      js={widgetAsset.js}
-    />,
-  );
+  return renderWidgetHtml(widgetName, widgetAsset);
 }

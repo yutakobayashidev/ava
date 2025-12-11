@@ -1,14 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+export interface WidgetAsset {
+  js?: string; // JS file content (inlined in production)
+  css?: string; // CSS file content if exists (inlined in production)
+  scriptSrc?: string; // Dev server script URL (Vite serves the file)
+}
+
 /**
- * Asset map interface - always contains inline content
+ * Asset map interface
  */
 export interface AssetMap {
-  [entryName: string]: {
-    js: string; // JS file content (always inlined)
-    css?: string; // CSS file content if exists (always inlined)
-  };
+  [entryName: string]: WidgetAsset;
 }
 
 interface ViteManifestChunk {
@@ -44,7 +47,7 @@ async function loadManifest(
 async function resolveAssets(
   manifestPath: string,
   entryName: string,
-): Promise<{ js: string; css?: string }> {
+): Promise<WidgetAsset> {
   const manifest = await loadManifest(manifestPath);
 
   // Find the entry in the manifest
