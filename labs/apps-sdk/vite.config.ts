@@ -1,42 +1,90 @@
+import devServer, { defaultOptions } from "@hono/vite-dev-server";
+import nodeAdapter from "@hono/vite-dev-server/node";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
-import tailwindcss from "@tailwindcss/vite";
 import {
   buildWidgetEntries,
   multiWidgetDevEndpoints,
 } from "./vite-plugin-multi-widget";
 
 const widgetEntries = buildWidgetEntries();
+const devWidgetBase =
+  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+const devWidgetHost = (() => {
+  try {
+    return new URL(devWidgetBase).hostname;
+  } catch {
+    return undefined;
+  }
+})();
 
-export default defineConfig({
-  plugins: [
-    multiWidgetDevEndpoints({
-      entries: widgetEntries,
-    }),
-    tailwindcss(),
-  ],
-  esbuild: {
-    jsxImportSource: "hono/jsx/dom",
-  },
-  server: {
-    allowedHosts: [".oaiusercontent.com"],
-    port: 5173,
-    strictPort: true,
-  },
-  build: {
-    outDir: "dist",
-    assetsDir: "assets",
-    emptyOutDir: true,
-    manifest: "manifest.json",
-    sourcemap: true,
-    rollupOptions: {
-      input: widgetEntries,
-      output: {
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name][extname]",
-        format: "iife",
-      },
+export default defineConfig(({ mode }) => {
+  const isClientMode = mode === "client";
+
+  const shared = {
+    esbuild: {
+      jsxImportSource: "hono/jsx/dom",
     },
-  },
+    server: {
+      origin: devWidgetBase,
+      allowedHosts: [
+        ".oaiusercontent.com",
+        devWidgetHost && devWidgetHost !== "localhost" ? devWidgetHost : null,
+      ].filter(Boolean) as string[],
+      cors: {
+        origin: "*",
+        methods: ["GET", "OPTIONS"],
+      },
+      port: 5173,
+      strictPort: true,
+    },
+  };
+
+  if (isClientMode) {
+    return {
+      ...shared,
+      plugins: [
+        multiWidgetDevEndpoints({
+          entries: widgetEntries,
+        }),
+        tailwindcss(),
+      ],
+      build: {
+        outDir: "dist",
+        assetsDir: "assets",
+        emptyOutDir: true,
+        manifest: "manifest.json",
+        sourcemap: true,
+        rollupOptions: {
+          input: widgetEntries,
+          output: {
+            entryFileNames: "assets/[name].js",
+            chunkFileNames: "assets/[name]-[hash].js",
+            assetFileNames: "assets/[name][extname]",
+            format: "iife",
+          },
+        },
+      },
+    };
+  }
+
+  return {
+    ...shared,
+    plugins: [
+      devServer({
+        entry: "src/server/app.ts",
+        adapter: nodeAdapter,
+        exclude: [
+          // In dev, only /mcp should hit Hono; everything else goes to Vite
+          /^(?!\/mcp$).*/,
+          ...defaultOptions.exclude,
+        ],
+      }),
+      multiWidgetDevEndpoints({
+        entries: widgetEntries,
+      }),
+      tailwindcss(),
+    ],
+  };
 });
