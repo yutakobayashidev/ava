@@ -1,5 +1,6 @@
 import { render } from "hono/jsx/dom";
 
+import "../../globals.css";
 import type { Task } from "../../types";
 import { TaskApp } from "./controller";
 import { extractTasksFromPayload, isWidgetState } from "./lib/helpers";

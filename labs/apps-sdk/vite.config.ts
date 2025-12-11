@@ -12,7 +12,6 @@ export default defineConfig({
   plugins: [
     multiWidgetDevEndpoints({
       entries: widgetEntries,
-      globalCss: ["src/globals.css"],
     }),
     tailwindcss(),
   ],

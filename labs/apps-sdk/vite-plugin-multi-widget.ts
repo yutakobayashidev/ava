@@ -27,21 +27,13 @@ const toServerRoot = (abs: string) => {
 
 export interface MultiWidgetOptions {
   entries: Record<string, string>;
-  globalCss?: string[];
-  perWidgetCssGlob?: string;
-  perWidgetCssIgnore?: string[];
 }
 
 /**
  * Vite plugin for managing multiple widget entries in development mode
  */
 export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
-  const {
-    entries,
-    globalCss = [],
-    perWidgetCssGlob = "**/*.{css,pcss,scss,sass}",
-    perWidgetCssIgnore = ["**/*.module.*"],
-  } = options;
+  const { entries } = options;
 
   const V_PREFIX = "\0multi-widget:"; // Rollup virtual module prefix
 
@@ -64,18 +56,17 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
 </html>`;
 
   const renderWidgetHtml = (name: string): string => `<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${name} Widget - Development</title>
-  <script type="module" src="/${name}.js"></script>
-  <link rel="stylesheet" href="/${name}.css">
-</head>
-<body>
-  <div id="${name}-root"></div>
-</body>
-</html>`;
+  <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${name} Widget - Development</title>
+    <script type="module" src="/${name}.js"></script>
+  </head>
+  <body>
+    <div id="${name}-root"></div>
+  </body>
+  </html>`;
 
   return {
     name: "multi-widget-dev-endpoints",
@@ -123,12 +114,6 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
         if (entries[name]) return `${V_PREFIX}entry:${name}`;
       }
 
-      // Resolve CSS entry points
-      if (id.endsWith(".css")) {
-        const name = id.slice(0, -4);
-        if (entries[name]) return `${V_PREFIX}style:${name}.css`;
-      }
-
       // Keep our virtual IDs
       if (id.startsWith(V_PREFIX)) return id;
 
@@ -143,36 +128,10 @@ export function multiWidgetDevEndpoints(options: MultiWidgetOptions): Plugin {
       const entry = entries[name];
       if (!entry) return null;
 
-      const entryDir = path.dirname(entry);
-
-      if (kind === "style") {
-        // Collect CSS (global first, then widget-specific)
-        const globals = globalCss
-          .map((p) => path.resolve(p))
-          .filter((p) => fs.existsSync(p));
-
-        const perWidget = fg.sync(perWidgetCssGlob, {
-          cwd: entryDir,
-          absolute: true,
-          dot: false,
-          ignore: perWidgetCssIgnore,
-        });
-
-        const allCss = [...globals, ...perWidget];
-        const lines = [
-          `/* Virtual CSS entry for ${name} widget */`,
-          ...allCss.map((p) => `@import "${toServerRoot(p)}";`),
-        ];
-        return lines.join("\n");
-      }
-
       if (kind === "entry") {
         // Generate virtual JS entry
         const spec = toServerRoot(entry);
         const lines: string[] = [];
-
-        // Import CSS
-        lines.push(`import "/${name}.css";`);
 
         // Import the widget entry
         lines.push(`import ${JSON.stringify(spec)};`);
