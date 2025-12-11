@@ -1,0 +1,30 @@
+{
+  "name": "apps-sdk",
+  "scripts": {
+    "preview": "vite preview",
+    "dev:client": "vite",
+    "dev:server": "tsx watch src/server.ts",
+    "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
+    "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 3000",
+    "build:client": "vite build",
+    "start": "NODE_ENV=production tsx src/server.ts"
+  },
+  "dependencies": {
+    "@hono/mcp": "0.2.2",
+    "@hono/node-server": "^1.19.6",
+    "@modelcontextprotocol/sdk": "1.24.3",
+    "@tailwindcss/vite": "4.1.17",
+    "dotenv": "17.2.3",
+    "hono": "4.10.8",
+    "tailwindcss": "^4.1.17",
+    "zod": "4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "fast-glob": "3.3.3",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vite": "npm:rolldown-vite@latest",
+    "wrangler": "4.53.0"
+  }
+}

@@ -33,6 +33,6 @@
   "devDependencies": {
     "drizzle-kit": "0.31.7",
     "@types/ws": "8.18.1",
-    "@types/node": "20"
+    "@types/node": "24.10.1"
   }
 }
