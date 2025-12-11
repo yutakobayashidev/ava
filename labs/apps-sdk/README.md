@@ -6,9 +6,201 @@ ChatGPT Widget 開発用の実験的なSDKプロジェクト。Hono + MCP + Vite
 
 - **MCP Server統合**: Model Context Protocol を使用してChatGPTにウィジェットを配信
 - **Hono JSX**: Reactを使わず軽量なHono JSXでウィジェットを構築
-- **HMR開発環境**: Vite + tunneltoでChatGPT内のウィジェットをリアルタイム更新
+- **HMR開発環境**: Vite + tunnelto でChatGPT内のウィジェットをリアルタイム更新
 - **マルチウィジェット対応**: `src/widgets/*` にウィジェットを追加するだけで自動認識
 - **Tailwind CSS 4.x**: 最新のTailwind CSSをサポート
+
+## アーキテクチャ解説
+
+### 全体の仕組み
+
+このプロジェクトは、**ChatGPT内でインタラクティブなウィジェットをHMRで開発できる**という一見不可能に見えることを実現しています。以下がその仕組みです。
+
+#### 1. デュアルビルドシステム
+
+Viteの設定で2つのモードを切り替え可能:
+
+```typescript
+// vite.config.ts
+export default defineConfig(({ mode }) => {
+  const isClientMode = mode === "client";
+
+  if (isClientMode) {
+    // ウィジェットJSのみをIIFE形式でビルド (本番用)
+    return { plugins: [...], build: { format: "iife" } };
+  }
+
+  // 開発モード: Honoサーバー + Vite dev server が共存
+  return { plugins: [devServer(), multiWidgetDevEndpoints()] };
+});
+```
+
+**開発時の動作:**
+
+- Vite dev server (port 5173) が起動
+- `/mcp` エンドポイント → Honoサーバーが処理 (MCP protocol)
+- その他のリクエスト (`.js`, `.css`, `.html`) → Vite dev serverが処理 (HMR対応)
+
+#### 2. MCP経由でのウィジェット配信
+
+```typescript
+// src/server/app.ts
+server.registerResource(
+  "task-list-widget",
+  "ui://widget/task-list.html",
+  async (uri) => ({
+    contents: [
+      {
+        mimeType: "text/html+skybridge",
+        text: await renderWidget("tasks"),
+        _meta: {
+          "openai/widgetCSP": {
+            connect_domains: ["https://chatgpt.com", devWidgetOrigin],
+            resource_domains: ["https://*.oaistatic.com", devWidgetOrigin],
+          },
+        },
+      },
+    ],
+  }),
+);
+```
+
+**ポイント:**
+
+- `ui://widget/task-list.html` という仮想URIでウィジェットを登録
+- ChatGPTがMCP経由でこのHTMLを取得
+- HTMLには `<script src="/tasks.js">` が含まれる (相対パス)
+
+#### 3. tunnelto によるローカル公開
+
+```bash
+tunnelto --subdomain apps-sdk-dev-3 --port 5173
+```
+
+これにより:
+
+- `https://apps-sdk-dev-3.tunnelto.dev` → `localhost:5173` にトンネル
+- ChatGPTからローカルのVite dev serverに直接アクセス可能
+
+#### 4. HMRが動作する理由
+
+**通常の問題:**
+ChatGPTは外部ドメインで動作するため、ローカル開発サーバーのHMRは動かない
+
+**この実装の解決策:**
+
+1. **CSPで開発用ドメインを許可**
+
+   ```typescript
+   "openai/widgetCSP": {
+     connect_domains: [devWidgetOrigin],  // WebSocket接続許可
+     resource_domains: [devWidgetOrigin],  // JS/CSS読み込み許可
+   }
+   ```
+
+2. **Vite dev serverへの直接接続**
+   - ウィジェットHTMLの `<script src="/tasks.js">` は相対パス
+   - ChatGPTがこれを読み込む際、`https://apps-sdk-dev-3.tunnelto.dev/tasks.js` に解決
+   - Vite dev serverがこのリクエストを処理し、HMR用のWebSocketも確立
+
+3. **仮想モジュールシステム**
+
+   ```typescript
+   // vite-plugin-multi-widget.ts
+   resolveId(id) {
+     if (id === "/tasks.js") {
+       return "\0multi-widget:entry:tasks";
+     }
+   }
+
+   load(id) {
+     if (id === "\0multi-widget:entry:tasks") {
+       return `import "/absolute/path/to/src/widgets/tasks/index.tsx";`;
+     }
+   }
+   ```
+
+**結果:**
+
+- ファイル変更 → Vite がHMR更新を検知
+- WebSocket経由でChatGPT内のウィジェットに通知
+- ウィジェットが自動リロード
+
+#### 5. CORS/セキュリティ設定
+
+開発環境での安全な通信を確保:
+
+```typescript
+// vite.config.ts
+server: {
+  cors: {
+    origin: [
+      "https://chatgpt.com",              // ChatGPTメインドメイン
+      "https://*.oaiusercontent.com",     // サンドボックス
+      devWidgetBase,                       // 開発用トンネル
+    ]
+  },
+  allowedHosts: [".oaiusercontent.com", devWidgetHost]
+}
+```
+
+### データフロー図
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ChatGPT (https://chatgpt.com)                               │
+│                                                             │
+│  1. User: "Show task list"                                 │
+│     ↓                                                       │
+│  2. MCP Request: ui://widget/task-list.html                │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ↓ HTTPS (tunnel)
+┌─────────────────────────────────────────────────────────────┐
+│ https://apps-sdk-dev-3.tunnelto.dev                        │
+│ (tunnelto → localhost:5173)                                 │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│ localhost:5173 (Vite dev server + Hono)                     │
+│                                                             │
+│  /mcp         → Hono (MCP Server)                          │
+│  /tasks.js    → Vite (HMR enabled)                         │
+│  /tasks.html  → multiWidgetDevEndpoints plugin             │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3. MCP Server returns HTML:                                 │
+│    <script src="/tasks.js"></script>                        │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│ ChatGPT renders widget                                      │
+│  ↓                                                          │
+│ 4. Browser requests /tasks.js                               │
+│  ↓                                                          │
+│ 5. Vite serves transformed JS + establishes HMR WebSocket   │
+│  ↓                                                          │
+│ 6. File change detected → HMR update → Widget refreshes    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### なぜこれが凄いのか
+
+1. **本番環境とほぼ同じ環境で開発**
+   - ChatGPTの実際のサンドボックス内で動作確認
+   - CSP、iframe制約などを考慮した開発が可能
+
+2. **爆速フィードバックループ**
+   - コード変更 → 即座にChatGPT内で反映
+   - ビルド不要、ブラウザリロード不要
+
+3. **複数人での同時開発**
+   - 各開発者が独自のトンネルサブドメインを使用可能
+   - 環境変数 `DEV_WIDGET_BASE_URL` で切り替え
 
 ## 技術スタック
 
