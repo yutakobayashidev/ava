@@ -55,3 +55,6 @@ certificates
 storybook-static
 
 .auth
+
+# widget assets (copied during build)
+/public/widget-assets

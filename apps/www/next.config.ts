@@ -1,7 +1,6 @@
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
-import path from "path";
 import { config } from "./env";
 
 config();
@@ -16,12 +15,6 @@ let nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
   transpilePackages: ["@apps-sdk/widget-runtime"],
-  // monorepo のルートをトレーシングルートに設定
-  outputFileTracingRoot: path.join(__dirname, "../../"),
-  // labs/apps-sdk/dist をビルドに含める
-  outputFileTracingIncludes: {
-    "*": ["../../labs/apps-sdk/dist/**/*"],
-  },
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production"
