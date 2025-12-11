@@ -51,7 +51,7 @@ async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
  */
 export async function renderWidget(widgetName: string): Promise<string> {
   // In dev mode, use external script from labs/apps-sdk dev server
-  if (isDev || devWidgetOrigin) {
+  if (isDev) {
     return renderWidgetHtml(widgetName, {
       scriptSrc: `${devWidgetOrigin}/${widgetName}.js`,
     });

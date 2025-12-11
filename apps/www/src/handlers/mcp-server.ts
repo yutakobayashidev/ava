@@ -27,7 +27,9 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 const devWidgetOrigin =
-  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+  process.env.NODE_ENV === "development"
+    ? (process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev")
+    : undefined;
 
 export function createMcpServer(ctx: Context) {
   const server = new McpServer({
@@ -54,8 +56,14 @@ export function createMcpServer(ctx: Context) {
             "openai/widgetPrefersBorder": true,
             "openai/widgetDomain": "https://chatgpt.com",
             "openai/widgetCSP": {
-              connect_domains: ["https://chatgpt.com", devWidgetOrigin],
-              resource_domains: ["https://*.oaistatic.com", devWidgetOrigin],
+              connect_domains: [
+                "https://chatgpt.com",
+                ...(devWidgetOrigin ? [devWidgetOrigin] : []),
+              ],
+              resource_domains: [
+                "https://*.oaistatic.com",
+                ...(devWidgetOrigin ? [devWidgetOrigin] : []),
+              ],
             },
           },
         },
