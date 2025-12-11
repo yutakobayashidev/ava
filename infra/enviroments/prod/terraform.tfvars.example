@@ -23,7 +23,3 @@ webhook_base_url = "https://yourdomain.com"
 
 # Cloudflare R2 のカスタムドメイン
 # cloudflare_r2_custom_domain = "example.com"
-
-# Google Workspace OAuth 認証情報（Zero Trust用）
-# google_workspace_client_id = "あなたの Google OAuth クライアント ID"
-# google_workspace_secret = "あなたの Google OAuth クライアントシークレット"
