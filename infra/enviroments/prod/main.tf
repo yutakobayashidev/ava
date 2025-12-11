@@ -41,6 +41,18 @@ module "artifact-registry" {
   artifact_registry_location = var.primary_region
 }
 
+# Database secrets for batch-jobs
+module "database_secrets" {
+  source = "../../modules/database-secrets"
+
+  gcp_project_id    = var.gcp_project_id
+  database_user     = var.database_user
+  database_password = var.database_password
+  database_host     = var.database_host
+  database_port     = var.database_port
+  database_db       = var.database_db
+}
+
 # Service Account for batch-jobs Cloud Run
 module "batch_jobs_service_account" {
   source = "../../modules/cloud-run-service-account"

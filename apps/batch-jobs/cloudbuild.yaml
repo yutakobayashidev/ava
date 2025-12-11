@@ -39,6 +39,7 @@ steps:
       - --tasks=1
       - --cpu=1
       - --memory=512Mi
+      - --set-secrets=DATABASE_USER=DATABASE_USER:latest,DATABASE_PASSWORD=DATABASE_PASSWORD:latest,DATABASE_HOST=DATABASE_HOST:latest,DATABASE_PORT=DATABASE_PORT:latest,DATABASE_DB=DATABASE_DB:latest
     waitFor: ["push-batch-jobs"]
 
 timeout: 2000s

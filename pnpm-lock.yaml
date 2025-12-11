@@ -22,6 +22,10 @@ importers:
         version: 2.6.3
 
   apps/batch-jobs:
+    dependencies:
+      '@ava/database':
+        specifier: workspace:*
+        version: link:../../packages/database
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

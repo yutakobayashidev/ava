@@ -52,3 +52,33 @@ variable "github_repo_name" {
   description = "GitHub リポジトリ名"
   type        = string
 }
+
+variable "database_user" {
+  description = "Database user (環境変数 TF_VAR_database_user で設定)"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_password" {
+  description = "Database password (環境変数 TF_VAR_database_password で設定)"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_host" {
+  description = "Database host (環境変数 TF_VAR_database_host で設定)"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_port" {
+  description = "Database port (環境変数 TF_VAR_database_port で設定)"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_db" {
+  description = "Database name (環境変数 TF_VAR_database_db で設定)"
+  type        = string
+  sensitive   = true
+}
