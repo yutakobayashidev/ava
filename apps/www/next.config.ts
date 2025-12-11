@@ -28,6 +28,9 @@ let nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  outputFileTracingIncludes: {
+    "/*": [".widget-assets/**/*"],
+  },
   async headers() {
     return [
       {
