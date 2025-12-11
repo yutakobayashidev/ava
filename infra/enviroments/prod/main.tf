@@ -41,32 +41,31 @@ module "artifact-registry" {
   artifact_registry_location = var.primary_region
 }
 
-# Example: Firestore backup job (commented out by default)
-# module "firestore_backup_job" {
-#   source = "../../modules/cloud-run-job"
-#
-#   gcp_project_id  = var.gcp_project_id
-#   job_name        = "firestore-backup"
-#   location        = var.primary_region
-#   container_image = "${module.artifact-registry.registry_uri}/firestore-backup:latest"
-#
-#   container_command = ["gcloud", "firestore", "export"]
-#   container_args    = ["gs://your-backup-bucket"]
-#
-#   timeout = "1800s"
-#
-#   resource_limits = {
-#     cpu    = "1000m"
-#     memory = "1Gi"
-#   }
-#
-#   # Schedule: Daily at 3:00 AM JST
-#   schedule  = "0 3 * * *"
-#   time_zone = "Asia/Tokyo"
-#
-#   # Additional IAM roles for Firestore and Cloud Storage access
-#   additional_iam_roles = [
-#     "roles/datastore.importExportAdmin",
-#     "roles/storage.objectAdmin"
-#   ]
-# }
+# Service Account for batch-jobs Cloud Run
+module "batch_jobs_service_account" {
+  source = "../../modules/cloud-run-service-account"
+
+  gcp_project_id     = var.gcp_project_id
+  service_account_id = "batch-jobs-runner"
+  display_name       = "Cloud Run Batch Jobs Service Account"
+}
+
+# Cloud Build Trigger for batch-jobs deployment
+module "batch_jobs_deploy_trigger" {
+  source = "../../modules/cloud-build-trigger"
+
+  gcp_project_id     = var.gcp_project_id
+  trigger_name       = "deploy-batch-jobs"
+  description        = "Batch Jobs を Cloud Run へdeployする"
+  github_owner       = var.github_owner
+  github_repo_name   = var.github_repo_name
+  branch_pattern     = "^main$"
+  included_files     = ["apps/batch-jobs/**"]
+  cloudbuild_file_path = "apps/batch-jobs/cloudbuild.yaml"
+
+  substitutions = {
+    _REGION                         = var.primary_region
+    _SERVICE_ACCOUNT                = module.batch_jobs_service_account.service_account_email
+    _ARTIFACT_REPOSITORY_IMAGE_NAME = "${module.artifact-registry.registry_uri}/batch-jobs"
+  }
+}

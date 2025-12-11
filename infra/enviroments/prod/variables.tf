@@ -42,3 +42,13 @@ variable "cloudflare_account_id" {
 
 variable "gcp_project_id" {}
 variable "primary_region" {}
+
+variable "github_owner" {
+  description = "GitHub のオーナー名（organization または user）"
+  type        = string
+}
+
+variable "github_repo_name" {
+  description = "GitHub リポジトリ名"
+  type        = string
+}
