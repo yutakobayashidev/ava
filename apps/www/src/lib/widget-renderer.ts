@@ -13,9 +13,9 @@ const devWidgetOrigin =
  * Load asset manifest from built widget
  */
 async function loadAssetMap(): Promise<Record<string, WidgetAsset>> {
-  // production では public/widget-assets にコピーされたアセットを読み込む
+  // production では .widget-assets にコピーされたアセットを読み込む
   // process.cwd() は Next.js のプロジェクトルート (apps/www) を指す
-  const distRoot = path.join(process.cwd(), "public/widget-assets");
+  const distRoot = path.join(process.cwd(), ".widget-assets");
   const manifestPath = path.join(distRoot, "manifest.json");
 
   // manifest.json がトレースされる

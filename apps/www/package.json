@@ -9,7 +9,7 @@
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
     "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
     "build": "fumadocs-mdx && pnpm build:copy-widgets && next build",
-    "build:copy-widgets": "pnpm --filter apps-sdk build && mkdir -p public/widget-assets && cp -r ../../labs/apps-sdk/dist/* public/widget-assets/",
+    "build:copy-widgets": "turbo build --filter=apps-sdk && mkdir -p .widget-assets && cp -r ../../labs/apps-sdk/dist/* .widget-assets/",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
