@@ -12,5 +12,17 @@ resource "google_artifact_registry_repository" "batch-jobs-app" {
   description   = "Batch Jobs App"
   format        = "DOCKER"
 
+  cleanup_policy_dry_run = false
+
+  cleanup_policies {
+    id     = "keep-recent-5"
+    action = "KEEP"
+
+    most_recent_versions {
+      package_name_prefixes = ["batch-jobs"]
+      keep_count            = 5
+    }
+  }
+
   depends_on = [google_project_service.artifact_registry]
 }
