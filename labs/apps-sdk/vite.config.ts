@@ -9,6 +9,15 @@ import {
 } from "./vite-plugin-multi-widget";
 
 const widgetEntries = buildWidgetEntries();
+const devWidgetBase =
+  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+const devWidgetHost = (() => {
+  try {
+    return new URL(devWidgetBase).hostname;
+  } catch {
+    return undefined;
+  }
+})();
 
 export default defineConfig(({ mode }) => {
   const isClientMode = mode === "client";
@@ -18,7 +27,15 @@ export default defineConfig(({ mode }) => {
       jsxImportSource: "hono/jsx/dom",
     },
     server: {
-      allowedHosts: [".oaiusercontent.com", "apps-sdk-dev-3.tunn.dev"],
+      origin: devWidgetBase,
+      allowedHosts: [
+        ".oaiusercontent.com",
+        devWidgetHost && devWidgetHost !== "localhost" ? devWidgetHost : null,
+      ].filter(Boolean) as string[],
+      cors: {
+        origin: "*",
+        methods: ["GET", "OPTIONS"],
+      },
       port: 5173,
       strictPort: true,
     },

@@ -11,8 +11,12 @@ const isViteDev =
     : undefined;
 const isDev = isViteDev ?? process.env.NODE_ENV !== "production";
 
+// Base URL for dev widget assets (set DEV_WIDGET_BASE_URL to your tunnel origin)
+const devWidgetOrigin =
+  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+
 const getDevWidgetAsset = (widgetName: string): WidgetAsset => ({
-  scriptSrc: `/${widgetName}.js`,
+  scriptSrc: `${devWidgetOrigin.replace(/\/$/, "")}/${widgetName}.js`,
 });
 
 // ダミーのタスクデータ
@@ -47,7 +51,8 @@ const getDummyTasks = (): Task[] => [
 ];
 
 async function renderWidget(widgetName: string): Promise<string> {
-  if (isDev) {
+  // Prefer explicit dev widget origin when provided, otherwise use dev mode heuristic
+  if (devWidgetOrigin || isDev) {
     return renderWidgetHtml(widgetName, getDevWidgetAsset(widgetName));
   }
 
@@ -80,8 +85,16 @@ function createTaskServer(): McpServer {
             "openai/widgetPrefersBorder": true,
             "openai/widgetDomain": "https://chatgpt.com",
             "openai/widgetCSP": {
-              connect_domains: ["https://chatgpt.com"],
-              resource_domains: ["https://*.oaistatic.com"],
+              connect_domains: [
+                "https://chatgpt.com",
+                "https://apps-sdk-dev-3.tunnelto.dev",
+                devWidgetOrigin,
+              ],
+              resource_domains: [
+                "https://*.oaistatic.com",
+                "https://apps-sdk-dev-3.tunnelto.dev",
+                devWidgetOrigin,
+              ],
             },
           },
         },
