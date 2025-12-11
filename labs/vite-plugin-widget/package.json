@@ -1,0 +1,32 @@
+{
+  "name": "@apps-sdk/vite-plugin-widget",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "fast-glob": "3.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsup": "8.3.5",
+    "typescript": "5.9.3",
+    "vite": "npm:rolldown-vite@latest"
+  },
+  "peerDependencies": {
+    "vite": "^6.0.0"
+  }
+}

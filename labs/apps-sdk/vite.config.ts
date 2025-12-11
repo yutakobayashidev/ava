@@ -3,11 +3,10 @@ import nodeAdapter from "@hono/vite-dev-server/node";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import Inspect from "vite-plugin-inspect";
-
 import {
   buildWidgetEntries,
   multiWidgetDevEndpoints,
-} from "./vite-plugin-multi-widget";
+} from "@apps-sdk/vite-plugin-widget";
 
 const widgetEntries = buildWidgetEntries();
 const devWidgetBase =

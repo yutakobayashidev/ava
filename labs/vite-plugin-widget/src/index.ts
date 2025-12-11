@@ -4,7 +4,7 @@ import type { Plugin } from "vite";
 
 /**
  * Build input entries from widget directories
- * Looks for src/widgets/*\/index.tsx
+ * Looks for src/widgets/star/index.tsx (star = *)
  */
 export function buildWidgetEntries() {
   const files = fg.sync("src/widgets/*/index.tsx", { dot: false });
