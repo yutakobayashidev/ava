@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode client && vite build",
+    "build": "vite build --mode client",
     "dev:inspector": "npx @modelcontextprotocol/inspector http://localhost:5173/mcp",
     "dev:tunnel": "tunnelto --subdomain apps-sdk-dev-3 --port 5173",
     "build:client": "vite build --mode client"
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@apps-sdk/vite-plugin-widget": "workspace:*",
+    "@apps-sdk/widget-runtime": "workspace:*",
     "@hono/vite-dev-server": "0.23.0",
     "@types/node": "24.10.1",
     "typescript": "5.9.3",

@@ -1,0 +1,31 @@
+{
+  "name": "@apps-sdk/widget-runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch"
+  },
+  "dependencies": {
+    "hono": "4.10.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsdown": "0.17.2",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  }
+}

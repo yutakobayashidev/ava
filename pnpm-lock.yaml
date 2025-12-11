@@ -373,6 +373,9 @@ importers:
       '@apps-sdk/vite-plugin-widget':
         specifier: workspace:*
         version: link:../vite-plugin-widget
+      '@apps-sdk/widget-runtime':
+        specifier: workspace:*
+        version: link:../widget-runtime
       '@hono/vite-dev-server':
         specifier: 0.23.0
         version: 0.23.0(hono@4.10.8)(miniflare@4.20251202.1)(wrangler@4.53.0)
@@ -459,6 +462,22 @@ importers:
       vite:
         specifier: npm:rolldown-vite@latest
         version: rolldown-vite@7.2.10(@types/node@24.10.1)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.1)
+
+  labs/widget-runtime:
+    dependencies:
+      hono:
+        specifier: 4.10.8
+        version: 4.10.8
+    devDependencies:
+      '@types/node':
+        specifier: 24.10.1
+        version: 24.10.1
+      tsdown:
+        specifier: 0.17.2
+        version: 0.17.2(oxc-resolver@11.14.0)(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/database:
     dependencies:
