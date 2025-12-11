@@ -8,7 +8,7 @@
     "dev:mcp": "pnpm dev & pnpm dev:tunnel",
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
     "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
-    "build": "pnpm db:migrate && fumadocs-mdx && next build",
+    "build": "fumadocs-mdx && next build",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
