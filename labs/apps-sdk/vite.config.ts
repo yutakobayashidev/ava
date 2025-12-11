@@ -45,20 +45,4 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
-  build: {
-    outDir: "dist",
-    assetsDir: "assets",
-    emptyOutDir: true,
-    manifest: "manifest.json",
-    sourcemap: true,
-    rollupOptions: {
-      input: widgetEntries,
-      output: {
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name][extname]",
-        format: "iife",
-      },
-    },
-  },
 });

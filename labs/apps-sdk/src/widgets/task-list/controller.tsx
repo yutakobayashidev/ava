@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "hono/jsx";
 
 import type { DisplayMode, SafeArea, Task } from "../../types";
+import { useOpenAiGlobal } from "../../use-openai-global";
 import { TaskListView } from "./components/TaskListView";
 import {
   createSafeArea,
@@ -8,7 +9,6 @@ import {
   isSafeArea,
   isWidgetState,
 } from "./lib/helpers";
-import { useOpenAiGlobal } from "./lib/use-openai-global";
 
 export type TaskAppProps = {
   initialTasks: Task[];

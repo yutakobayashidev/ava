@@ -37,6 +37,22 @@ export function createMcpServer(ctx: Context) {
     version: "1.0.0",
   });
 
+  // Widget metadata helper
+  const createWidgetMeta = () => ({
+    "openai/widgetPrefersBorder": true,
+    "openai/widgetDomain": "https://chatgpt.com",
+    "openai/widgetCSP": {
+      connect_domains: [
+        "https://chatgpt.com",
+        ...(devWidgetOrigin ? [devWidgetOrigin] : []),
+      ],
+      resource_domains: [
+        "https://*.oaistatic.com",
+        ...(devWidgetOrigin ? [devWidgetOrigin] : []),
+      ],
+    },
+  });
+
   // Register task list widget resource
   server.registerResource(
     "task-list-widget",
@@ -52,20 +68,91 @@ export function createMcpServer(ctx: Context) {
           uri: uri.href,
           mimeType: "text/html+skybridge",
           text: await renderWidget("task-list"),
-          _meta: {
-            "openai/widgetPrefersBorder": true,
-            "openai/widgetDomain": "https://chatgpt.com",
-            "openai/widgetCSP": {
-              connect_domains: [
-                "https://chatgpt.com",
-                ...(devWidgetOrigin ? [devWidgetOrigin] : []),
-              ],
-              resource_domains: [
-                "https://*.oaistatic.com",
-                ...(devWidgetOrigin ? [devWidgetOrigin] : []),
-              ],
-            },
-          },
+          _meta: createWidgetMeta(),
+        },
+      ],
+    }),
+  );
+
+  // Register start task widget resource
+  server.registerResource(
+    "start-task-widget",
+    "ui://widget/start-task.html",
+    {
+      title: "Start Task Widget",
+      description: "Interactive form to start a new task",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("start-task"),
+          _meta: createWidgetMeta(),
+        },
+      ],
+    }),
+  );
+
+  // Register update task widget resource
+  server.registerResource(
+    "update-task-widget",
+    "ui://widget/update-task.html",
+    {
+      title: "Update Task Widget",
+      description: "Interactive form to update task progress",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("update-task"),
+          _meta: createWidgetMeta(),
+        },
+      ],
+    }),
+  );
+
+  // Register report blocked widget resource
+  server.registerResource(
+    "report-blocked-widget",
+    "ui://widget/report-blocked.html",
+    {
+      title: "Report Blocked Widget",
+      description: "Interactive form to report task blocking",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("report-blocked"),
+          _meta: createWidgetMeta(),
+        },
+      ],
+    }),
+  );
+
+  // Register complete task widget resource
+  server.registerResource(
+    "complete-task-widget",
+    "ui://widget/complete-task.html",
+    {
+      title: "Complete Task Widget",
+      description: "Interactive form to complete a task",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("complete-task"),
+          _meta: createWidgetMeta(),
         },
       ],
     }),
@@ -77,6 +164,13 @@ export function createMcpServer(ctx: Context) {
       title: "startTask",
       description: "開始サマリをSlackに共有するための入力仕様。",
       inputSchema: startTaskInputSchema,
+      _meta: {
+        "openai/outputTemplate": "ui://widget/start-task.html",
+        "openai/toolInvocation/invoking": "タスクを開始中…",
+        "openai/toolInvocation/invoked": "タスクを開始",
+        "openai/widgetAccessible": true,
+        "openai/resultCanProduceWidget": true,
+      },
     },
     (input) => {
       const result = constructStartTaskWorkflow(ctx)({
@@ -97,6 +191,13 @@ export function createMcpServer(ctx: Context) {
       title: "updateTask",
       description: "進捗の抽象的サマリを共有するための入力仕様。",
       inputSchema: updateTaskInputSchema,
+      _meta: {
+        "openai/outputTemplate": "ui://widget/update-task.html",
+        "openai/toolInvocation/invoking": "進捗を更新中…",
+        "openai/toolInvocation/invoked": "進捗を更新",
+        "openai/widgetAccessible": true,
+        "openai/resultCanProduceWidget": true,
+      },
     },
     (input) => {
       const { taskSessionId, ...commandInput } = input;
@@ -122,6 +223,13 @@ export function createMcpServer(ctx: Context) {
       title: "reportBlocked",
       description: "ブロッキング情報を共有するための入力仕様。",
       inputSchema: reportBlockedInputSchema,
+      _meta: {
+        "openai/outputTemplate": "ui://widget/report-blocked.html",
+        "openai/toolInvocation/invoking": "ブロッキングを報告中…",
+        "openai/toolInvocation/invoked": "ブロッキングを報告",
+        "openai/widgetAccessible": true,
+        "openai/resultCanProduceWidget": true,
+      },
     },
     (input) => {
       const { taskSessionId, ...commandInput } = input;
@@ -198,6 +306,13 @@ export function createMcpServer(ctx: Context) {
       title: "completeTask",
       description: "完了報告を共有するための入力仕様。",
       inputSchema: completeTaskInputSchema,
+      _meta: {
+        "openai/outputTemplate": "ui://widget/complete-task.html",
+        "openai/toolInvocation/invoking": "タスクを完了中…",
+        "openai/toolInvocation/invoked": "タスクを完了",
+        "openai/widgetAccessible": true,
+        "openai/resultCanProduceWidget": true,
+      },
     },
     (input) => {
       const { taskSessionId, ...commandInput } = input;
