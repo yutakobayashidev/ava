@@ -15,6 +15,7 @@ const staticEnv = z.object({
   NEXT_PUBLIC_SITE_NAME: z.string().min(1),
 
   // for server
+  DEV_WIDGET_BASE_URL: z.url().optional(),
   DATABASE_URL: z.url(),
   SLACK_APP_CLIENT_ID: z.string().min(1),
   SLACK_APP_CLIENT_SECRET: z.string().min(1),

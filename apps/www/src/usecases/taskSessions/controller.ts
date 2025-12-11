@@ -87,14 +87,18 @@ export const listTasksInputSchema = z.object({
 });
 
 // MCP レスポンス: 成功時
-export function formatSuccessResponse(data: object, message: string) {
+export function formatSuccessResponse(
+  data: Record<string, unknown>,
+  message: string,
+) {
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({ ...data, message }, null, 2),
+        text: message,
       },
     ],
+    structuredContent: data,
   };
 }
 

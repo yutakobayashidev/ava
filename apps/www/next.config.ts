@@ -14,6 +14,7 @@ export const withAnalyzer = (sourceConfig: NextConfig): NextConfig =>
 let nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
+  transpilePackages: ["@apps-sdk/widget-runtime"],
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production"
@@ -26,6 +27,9 @@ let nextConfig: NextConfig = {
     fetches: {
       fullUrl: true,
     },
+  },
+  outputFileTracingIncludes: {
+    "/*": [".widget-assets/**/*"],
   },
   async headers() {
     return [

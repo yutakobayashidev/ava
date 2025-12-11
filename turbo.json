@@ -1,0 +1,45 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "!dist/cache/**"],
+      "env": [
+        "DATABASE_URL",
+        "DATABASE_URL_UNPOOLED",
+        "POSTGRES_URL",
+        "POSTGRES_URL_NON_POOLING",
+        "POSTGRES_PRISMA_URL",
+        "POSTGRES_URL_NO_SSL",
+        "POSTGRES_HOST",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DATABASE",
+        "PGHOST",
+        "PGUSER",
+        "PGPASSWORD",
+        "PGDATABASE",
+        "PGHOST_UNPOOLED",
+        "OPENAI_API_KEY",
+        "SLACK_APP_CLIENT_ID",
+        "SLACK_APP_CLIENT_SECRET",
+        "SLACK_SIGNING_SECRET",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "NEON_PROJECT_ID",
+        "TRACE_EXPORTER_URL",
+        "AXIOM_API_TOKEN",
+        "AXIOM_DATASET_NAME"
+      ]
+    },
+
+    "test": { "dependsOn": ["^build"], "outputs": [] },
+
+    "lint": { "dependsOn": ["^build"] },
+
+    "dev": { "cache": false, "persistent": true },
+    "dev:mcp": { "cache": false, "persistent": true },
+    "dev:tunnel": { "cache": false, "persistent": true }
+  }
+}

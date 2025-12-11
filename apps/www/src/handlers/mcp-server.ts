@@ -1,3 +1,4 @@
+import { renderWidget } from "@/lib/widget-renderer";
 import { Context } from "@/types";
 import {
   constructCancelTaskWorkflow,
@@ -25,11 +26,42 @@ import {
 } from "@/usecases/taskSessions/controller";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
+const devWidgetOrigin =
+  process.env.DEV_WIDGET_BASE_URL ?? "https://apps-sdk-dev-3.tunnelto.dev";
+
 export function createMcpServer(ctx: Context) {
   const server = new McpServer({
     name: "ava-mcp",
     version: "1.0.0",
   });
+
+  // Register task list widget resource
+  server.registerResource(
+    "task-list-widget",
+    "ui://widget/task-list.html",
+    {
+      title: "Ava Task Manager Widget",
+      description: "Interactive task list powered by hono/jsx",
+      mimeType: "text/html+skybridge",
+    },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/html+skybridge",
+          text: await renderWidget("task-list"),
+          _meta: {
+            "openai/widgetPrefersBorder": true,
+            "openai/widgetDomain": "https://chatgpt.com",
+            "openai/widgetCSP": {
+              connect_domains: ["https://chatgpt.com", devWidgetOrigin],
+              resource_domains: ["https://*.oaistatic.com", devWidgetOrigin],
+            },
+          },
+        },
+      ],
+    }),
+  );
 
   server.registerTool(
     "startTask",
@@ -231,6 +263,16 @@ export function createMcpServer(ctx: Context) {
       title: "listTasks",
       description: "ユーザーのタスク一覧を取得する。",
       inputSchema: listTasksInputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+      _meta: {
+        "openai/outputTemplate": "ui://widget/task-list.html",
+        "openai/toolInvocation/invoking": "タスク一覧を取得中…",
+        "openai/toolInvocation/invoked": "タスク一覧を表示",
+        "openai/widgetAccessible": true,
+        "openai/resultCanProduceWidget": true,
+      },
     },
     (input) => {
       const result = constructListTasksWorkflow(ctx)({
@@ -243,9 +285,17 @@ export function createMcpServer(ctx: Context) {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(data, null, 2),
+              text: "タスク一覧を表示しました。",
             },
           ],
+          structuredContent: data,
+          _meta: {
+            "openai/outputTemplate": "ui://widget/task-list.html",
+            "openai/toolInvocation/invoking": "タスク一覧を取得中…",
+            "openai/toolInvocation/invoked": "タスク一覧を表示",
+            "openai/widgetAccessible": true,
+            "openai/resultCanProduceWidget": true,
+          },
         }),
         (error) => formatErrorResponse(error),
       );

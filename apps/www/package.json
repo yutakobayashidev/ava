@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "pnpm db:up && pnpm db:migrate && next dev --experimental-https",
     "dev:http": "pnpm db:up && next dev",
+    "dev:mcp": "pnpm dev & pnpm dev:tunnel",
     "dev:stripe": "stripe listen --forward-to https://localhost:3000/api/stripe/webhook --skip-verify",
-    "dev:slack": "tunnelto --subdomain ava-dev --port 3000",
-    "build": "fumadocs-mdx && next build",
+    "dev:tunnel": "tunnelto --subdomain ava-dev --port 3000",
+    "build": "fumadocs-mdx && pnpm build:copy-widgets && next build",
+    "build:copy-widgets": "turbo build --filter=apps-sdk && mkdir -p .widget-assets && cp -r ../../labs/apps-sdk/dist/* .widget-assets/",
     "build:analyze": "ANALYZE=true pnpm build",
     "start": "next start",
     "test": "NODE_ENV=test vitest run",
@@ -29,6 +31,7 @@
   "dependencies": {
     "@ai-sdk/openai": "2.0.74",
     "@ai-sdk/provider": "2.0.0",
+    "@apps-sdk/widget-runtime": "workspace:*",
     "@ava/database": "workspace:*",
     "@ava/integrations": "workspace:*",
     "@hono/mcp": "0.2.0",
