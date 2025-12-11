@@ -50,6 +50,28 @@ module "batch_jobs_service_account" {
   display_name       = "Cloud Run Batch Jobs Service Account"
 }
 
+# Cloud Scheduler for batch-jobs periodic execution
+module "batch_jobs_scheduler" {
+  source = "../../modules/cloud-scheduler"
+
+  gcp_project_id               = var.gcp_project_id
+  region                       = var.primary_region
+  service_account_id           = "batch-jobs-scheduler"
+  service_account_display_name = "Batch Jobs Scheduler"
+  job_name                     = "batch-jobs-daily"
+  description                  = "Daily execution of batch-jobs at 3:00 AM JST"
+  schedule                     = "0 3 * * *"
+  time_zone                    = "Asia/Tokyo"
+  cloud_run_job_name           = "batch-jobs"
+
+  # 必要に応じてコンテナの引数を上書き
+  # container_overrides = [
+  #   {
+  #     args = ["daily-task"]
+  #   }
+  # ]
+}
+
 # Cloud Build Trigger for batch-jobs deployment
 module "batch_jobs_deploy_trigger" {
   source = "../../modules/cloud-build-trigger"

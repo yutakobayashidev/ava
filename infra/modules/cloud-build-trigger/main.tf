@@ -5,6 +5,13 @@ resource "google_project_service" "cloudbuild" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "cloud_run" {
+  project = var.gcp_project_id
+  service = "run.googleapis.com"
+
+  disable_on_destroy = false
+}
+
 # Cloud Build サービスアカウント
 resource "google_service_account" "cloudbuild_service_account" {
   project      = var.gcp_project_id
@@ -22,6 +29,18 @@ resource "google_project_iam_member" "act_as" {
 resource "google_project_iam_member" "logs_writer" {
   project = var.gcp_project_id
   role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.cloudbuild_service_account.email}"
+}
+
+resource "google_project_iam_member" "artifact_registry_writer" {
+  project = var.gcp_project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.cloudbuild_service_account.email}"
+}
+
+resource "google_project_iam_member" "cloud_run_admin" {
+  project = var.gcp_project_id
+  role    = "roles/run.admin"
   member  = "serviceAccount:${google_service_account.cloudbuild_service_account.email}"
 }
 
