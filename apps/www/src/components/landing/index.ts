@@ -1,0 +1,9 @@
+export { HeroSection } from "./hero-section";
+export { VisionSection } from "./vision-section";
+export { SlackDemoSection } from "./slack-demo-section";
+export { FeaturesSection } from "./features-section";
+export { DashboardSection } from "./dashboard-section";
+export { PrivacySection } from "./privacy-section";
+export { SetupSection } from "./setup-section";
+export { CtaSection } from "./cta-section";
+export { Footer } from "./footer";
