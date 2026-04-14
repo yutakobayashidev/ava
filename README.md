@@ -212,6 +212,7 @@ ava/
 ### 必須
 
 - **Node.js 18+** (`corepack enable pnpm` 推奨)
+- **Go** (`cli/` の Hello World CLI をローカルで直接動かす場合。Nix を使う場合は `cli/flake.nix` で用意)
 - **Docker & Docker Compose** (PostgreSQL 用)
 - **Slack アプリ** - 以下の設定で作成:
 
@@ -367,6 +368,16 @@ $ pnpm dev
 ```
 
 サーバーが起動したら、https://localhost:3000 にアクセスしてください。
+
+### Go CLI の最小実行
+
+`cli/` には、Go の Hello World CLI を置いています。
+
+```bash
+$ cd cli
+$ go run .
+hello, ava cli
+```
 
 ### Stripe Webhook のローカルテスト
 
